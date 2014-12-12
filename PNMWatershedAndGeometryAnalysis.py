@@ -10,37 +10,26 @@ import math
 from scipy import ndimage
 from skimage import io as skimio
 from skimage import morphology
+from skimage import feature
 import mahotas
-#from imread import imread_multi
-#import tifffile as tff
 
-def main():
-    
-    foldername ='/home/ta240184/Documents/MATLAB/PNM_Matlab_V0.1/Simulations/PSI_drainage_python/'
-    inputFileName = foldername+"PSI_sampleDrainage.tif"
-    outputFileName = foldername+"segmentation_analyse_results_h2.mat" 
-    
-    hContrast = 2
+
+def main(inputFileName,outputFileName,hContrast):
+
     structuringElement = np.ones((3,3,3))
-    
-    
-    
+
     myImg=skimio.MultiImage(inputFileName)
     myImg=myImg.concatenate()
     myImg=myImg.swapaxes(0,2).astype(np.bool)
-    #myImg = imread_multi(foldername+"Dry_extended.tif")
-    #myImg = np.dstack(myImg).astype(bool)
-    
+
     pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,structuringElement,hContrast)
     
     PNMGeometricData = AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap)
-    
-    PNMGeometricData.update({'myImage':myImg, 'pores':pores,'watershedLines':watershedLines,'distanceMap':distanceMap})
-    hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
-    
-    #hdf5storage.savemat(foldername+"img_pores_distMap.mat",mdict={'myImage':myImg, 'pores':pores,'watershedLines':watershedLines,'distanceMap':distanceMap})
-    #hdf5storage.savemat(foldername+"segmentation_analyse_results.mat",mdict=PNMGeometricData)
 
+    PNMGeometricData.update({'pores':pores,'watershedLines':watershedLines})
+    hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
+    hdf5storage.savemat(inputFileName+"_reshaped.mat",{'myImage':myImg.astype(np.bool)})
+    
 
 
 
@@ -48,15 +37,19 @@ def main():
 def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     
     #calcul de la carte de distanceMap
-    distanceMap = ndimage.distance_transform_cdt(np.logical_not(myImg),metric='chessboard').astype(np.int8)
+    distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
     
     #Choix des marqueurs pour la segmentation (centres des pores) : H-maxima :
     #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise une 
     #recontruction morphologique pour construire la carte de distance étêtée.
-    hContrast=np.int8(hContrast)
-    reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap).astype(np.int8)
-    local_maxi=(distanceMap-reconstructed).astype(np.bool)
+    hContrast=hContrast
+    reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap).astype(np.float16)
     
+    if hContrast>0.1:
+        local_maxi=(distanceMap-reconstructed).astype(np.bool)
+    else:
+        local_maxi= feature.peak_local_max(distanceMap.astype(np.int8), min_distance=10, indices=False)
+        
     del reconstructed
     
     markers = ndimage.measurements.label(local_maxi , structure=structuringElement)[0]
@@ -64,7 +57,7 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     del local_maxi
     
     #Calcul des lignes de partage de niveau 
-    _,watershedLines = mahotas.cwatershed(distanceMap.max()-distanceMap, markers, Bc=structuringElement , return_lines=True)
+    _,watershedLines = mahotas.cwatershed((distanceMap.max()-distanceMap).astype(np.int8), markers, Bc=structuringElement , return_lines=True)
 
     del markers
     
@@ -73,18 +66,10 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     
     return pores,watershedLines,distanceMap
     
-    #hdf5storage.savemat(foldername+"pores_lines_img_dist.mat",mdict={'myImage':myImg, 'pores':pores,'watershedLines':watershedLines,'distanceMap':distanceMap})
-    #pylab.imshow(pores[:,:,5])
-
 
 #----------------------------------------------------------------------------------------------
 def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap):
-    
-#    foldername="/home/greentoto/Bureau/PSI_Invasion_eau/SGL 24BA/drainage/results_python/"
-#    infos=hdf5storage.loadmat(foldername+"pores_lines_img_dist.mat")
-#    #links=io.loadmat(foldername+"liens_bool.mat")['links']
-#    distanceMap=infos['distanceMap']
-#    pores=infos['pores']    
+     
     
     structuringElement=structuringElement.astype(np.bool)
     links=FindLinks(myImg,pores,watershedLines,structuringElement)
@@ -94,16 +79,14 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLin
     
     
     # Infos sur la forme, position des liens internes
-#    links_center=ndimage.measurements.center_of_mass(links, labels=links_label ,index=range(1,links_label.max()+1))
-#    links_center=np.transpose(np.squeeze(np.dstack(links_center)))
     links_center_arg=ndimage.measurements.maximum_position(distanceMap, links_label, range(1,links_label.max()+1))
     links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))   
     
-    linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(distanceMap, links_label, range(1,links_label.max()+1),max,np.int16,0)    
+    linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(distanceMap, links_label, range(1,links_label.max()+1),max,np.float16,0)    
     
     
     # Dilatation des liens internes
-    links=ndimage.morphology.grey_dilation(links_label,  size=(5,5,5))
+    links=ndimage.morphology.grey_dilation(links_label,  size=(3,3,3))
     
     
     # Infos sur la forme, position des pores
@@ -113,7 +96,7 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLin
     
     PNMGeometricData=dict()
     PNMGeometricData['imageLiensDilates']=links
-    PNMGeometricData['internalLinkDiameters']=linkDiameterDistanceMap
+    PNMGeometricData['internalLinkDiameters']=linkDiameterDistanceMap.astype(np.float32)
     PNMGeometricData['internalLinkBarycenters']=links_center
     PNMGeometricData['poreCenters']=pores_center
     PNMGeometricData['poreVolumes']=pores_volumes
@@ -148,11 +131,9 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLin
         links_center_arg=ndimage.measurements.maximum_position(boundaryDistances, boundarySlice, range(1,pores.max()+1))
         links_center=np.transpose(np.squeeze(np.dstack(links_center_arg))) 
         
-        #centers=ndimage.measurements.center_of_mass(boundarySlice, labels=boundarySlice ,index=range(1,pores.max()+1))
-        #centers=np.transpose(np.squeeze(np.dstack(centers)))
         diameterDistanceMap=ndimage.measurements.labeled_comprehension(boundaryDistances, boundarySlice, range(1,pores.max()+1),max,np.int16,0)
-        PNMGeometricData['boundaryCenters'+str(iBoundary)]=centers
-        PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap
+        PNMGeometricData['boundaryCenters'+str(iBoundary)]=links_center
+        PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap.astype(np.float32)
       
       
     return PNMGeometricData
@@ -187,18 +168,11 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
         if np.setdiff1d(np.unique(localPores[structuringElement]),[0]).size > 2 :
             links[x,y,z]=False
 
-#    booleans=np.zeros(pores.size, dtype=bool)
-#
-#    booleans[indices[boolfoo]]=True
-#    links=np.reshape(booleans,pores.shape)
     assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
-    #links=np.zeros((imageSize[0],imageSize[1],imageSize[2]),dtype=bool)
-
-    #links[booleans]=True
 
     return links
 
-
+#----------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()
