@@ -27,9 +27,16 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     
     
     #Dilate with a ball of size capillaryLength
-    ball=morphology.ball(capillaryLength)
-    invadedVoxels=ndimage.morphology.binary_dilation(invadedVoxels, structure=ball)     
-      
+    
+    #Scipy implementation of dilation
+    #ball=morphology.ball(capillaryLength)
+    #invadedVoxels=ndimage.morphology.binary_dilation(invadedVoxels, structure=ball)     
+    
+    #SimpleITK implementation of dilation
+    itkInvadedVoxels = sitk.GetImageFromArray(invadedVoxels.astype(np.uint8))
+    itkInvadedVoxels = sitk.BinaryDilate(itkInvadedVoxels, int(capillaryLength), sitk.sitkBall, 0.0, 1.0,  False)   
+    invadedVoxels=sitk.GetArrayFromImage(itkInvadedVoxels)  
+    invadedVoxels=invadedVoxels.astype(np.bool)  
               
     #Keep only water connected with the inlet          
     structuringElement = np.ones((3,3,3))
@@ -77,8 +84,8 @@ def main(inputFileName,outputFileName,voxelLength):
     gamma=72e-3
     
     #Calculs de répartition de l'eau pour 53 mbar, 39 mbar, 28 mbar, 22 mbar, 14 mbar 
-    #pressureList=[5300,3900,2800,2200,1400]
-    pressureList=[2200,1400]
+    pressureList=[5300,3900,2800,2200,1400]
+    #pressureList=[2200,1400]
     
     for i in range(len(pressureList)):
         print('begin '+str(i))
