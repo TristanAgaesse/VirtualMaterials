@@ -21,11 +21,17 @@ def main(inputFileName,outputFileName,hContrast):
     myImg=skimio.MultiImage(inputFileName)
     myImg=myImg.concatenate()
     myImg=myImg.swapaxes(0,2).astype(np.bool)
-
+    
+    print('PoresWatershedSegmentation')
     pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,structuringElement,hContrast)
     
+    print('FindLinks')
+    links=FindLinks(myImg,pores,watershedLines,structuringElement.astype(np.bool))
+    
+    print('AnalysePoresSegmentationGeometry')
     PNMGeometricData, links = AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap)
-
+    
+    print('BuildConnectivityTables') 
     interfaceToPore = BuildConnectivityTables(pores,links);    
 
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
@@ -71,12 +77,9 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     
 
 #----------------------------------------------------------------------------------------------
-def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap):
+def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distanceMap):
      
-    
-    structuringElement=structuringElement.astype(np.bool)
-    links=FindLinks(myImg,pores,watershedLines,structuringElement)
-    
+
     structuringElement=structuringElement.astype(np.int)
     links_label=ndimage.label(links,structure=structuringElement)[0]
     
@@ -148,6 +151,8 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #Input: myImage,pores,watershedLines,structuringElement
 #Output : links
     
+    print('FindLinks')    
+    
     imageSize=pores.shape
     assert myImage.shape == imageSize
     assert watershedLines.shape == imageSize
@@ -179,7 +184,6 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
  
 def BuildConnectivityTables(poresImage,internalLinkImage):
     
-    print('Debut de la construction des tables de connectivite')    
     nInterface=internalLinkImage.max()
 #    nPores=poresImage.max()
     #nVoxelsInterface=internalLinkImage.size()
@@ -244,8 +248,6 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
 #    for j=1:nInterface
 #        interfaceToPore{j}=find(i2p{j})
 #    end
-
-    print('Tables de connectivite construites')
 
     return interfaceToPore
     
