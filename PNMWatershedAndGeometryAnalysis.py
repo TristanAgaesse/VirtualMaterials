@@ -150,33 +150,31 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #FindLinks  Trouve les parties de watershed qui sont entre deux pores
 #Input: myImage,pores,watershedLines,structuringElement
 #Output : links
-    
-    print('FindLinks')    
-    
+        
     imageSize=pores.shape
     assert myImage.shape == imageSize
     assert watershedLines.shape == imageSize
         
     #structuring element size
-    foo=structuringElement.shape
-#    assert(isequal(foo,foo(1)*ones(1,3)) && rem(foo(1),2)==1,'Wrong size of structuring element');
-    seSize=int(math.floor(foo[1]/2))
-    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
-    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
-    watershedLines[sideBandes]=0
-   
+#    foo=structuringElement.shape
+##    assert(isequal(foo,foo(1)*ones(1,3)) && rem(foo(1),2)==1,'Wrong size of structuring element');
+#    seSize=int(math.floor(foo[1]/2))
+#    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
+#    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
+#    watershedLines[sideBandes]=0
+#   
     links=np.logical_and(watershedLines,np.logical_not(myImage))
     
-    indices=links.ravel().nonzero()[0]
-   
-    for i in range(indices.size):
-        ind=indices[i]
-        (x,y,z)=np.unravel_index(ind,imageSize)
-        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
-        if np.setdiff1d(np.unique(localPores[structuringElement]),[0]).size > 2 :
-            links[x,y,z]=False
-
-    assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
+#    indices=links.ravel().nonzero()[0]
+#   
+#    for i in range(indices.size):
+#        ind=indices[i]
+#        (x,y,z)=np.unravel_index(ind,imageSize)
+#        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
+#        if np.setdiff1d(np.unique(localPores[structuringElement]),[0]).size > 2 :
+#            links[x,y,z]=False
+#
+#    assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
 
     return links
 
@@ -192,9 +190,9 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
     orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
     sortedInterface=internalLinkImage.flatten()[orderInterface]
     
-    limits=np.nonzero(np.roll(sortedInterface,1)-sortedInterface)
-    assert(limits.size == nInterface+2)    
-    parsedInterface = limits[2:]    
+    limits=np.flatnonzero(np.roll(sortedInterface,1)-sortedInterface)
+    assert(limits.size == nInterface+1)    
+    parsedInterface = limits[1:]    
 #    for i in range(nInterface):
 #        parsedInterface[i]=limits[i+2],limits[i+1]
 
@@ -226,7 +224,7 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
     for j in range(1,nInterface):
 #        assert(reshapedInterface(interface{j}(1))==j)
         
-        intersection = poresImage.flatten()[orderInterface[parsedInterface[j]:parsedInterface[j+1]]] 
+        intersection = poresImage.flatten()[orderInterface[parsedInterface[j-1]:parsedInterface[j]]] 
         intersectedPores=np.unique(intersection)
         sizeIntersectionPores=ndimage.measurements.labeled_comprehension(intersection, intersection, intersectedPores,np.size,np.int32,0)
         interfaceToPore.append([intersectedPores,sizeIntersectionPores])
