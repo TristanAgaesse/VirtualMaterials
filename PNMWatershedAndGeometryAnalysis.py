@@ -24,9 +24,12 @@ def main(inputFileName,outputFileName,hContrast):
 
     pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,structuringElement,hContrast)
     
-    PNMGeometricData = AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap)
+    PNMGeometricData, links = AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap)
 
-    PNMGeometricData.update({'pores':pores,'watershedLines':watershedLines})
+    interfaceToPore = BuildConnectivityTables(pores,links);    
+
+    PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
+    #PNMGeometricData.update({'pores':pores,'watershedLines':watershedLines})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     hdf5storage.savemat(inputFileName+"_reshaped.mat",{'myImage':myImg.astype(np.bool)})
     
@@ -95,7 +98,7 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLin
     pores_volumes=ndimage.measurements.labeled_comprehension(pores, pores, range(1,pores.max()+1),np.size,np.int32,0)
     
     PNMGeometricData=dict()
-    PNMGeometricData['imageLiensDilates']=links
+    #PNMGeometricData['imageLiensDilates']=links
     PNMGeometricData['internalLinkDiameters']=linkDiameterDistanceMap.astype(np.float32)
     PNMGeometricData['internalLinkBarycenters']=links_center
     PNMGeometricData['poreCenters']=pores_center
@@ -136,7 +139,7 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLin
         PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap.astype(np.float32)
       
       
-    return PNMGeometricData
+    return PNMGeometricData,links
 
 
 #----------------------------------------------------------------------------------------------
@@ -171,6 +174,83 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
 
     return links
+
+#----------------------------------------------------------------------------------------------
+ 
+def BuildConnectivityTables(poresImage,internalLinkImage):
+    
+    print('Debut de la construction des tables de connectivite')    
+    nInterface=internalLinkImage.max()
+#    nPores=poresImage.max()
+    #nVoxelsInterface=internalLinkImage.size()
+    #reshapedInterface=reshape(internalLinkImage,[1,nVoxelsInterface])
+    #[sortedInterface,orderInterface]=sort(reshapedInterface)
+    orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
+    sortedInterface=internalLinkImage.flatten()[orderInterface]
+    
+    limits=np.nonzero(np.roll(sortedInterface,1)-sortedInterface)
+    assert(limits.size == nInterface+2)    
+    parsedInterface = limits[2:]    
+#    for i in range(nInterface):
+#        parsedInterface[i]=limits[i+2],limits[i+1]
+
+    #parsedInterface=parse_sorted_vector(sortedInterface)
+    #parsedInterface=parsedInterface(2:end)
+
+#    interface=cell(1,nInterface)
+#    for i=1:nInterface
+#        assert( parsedInterface{i}(1)==i )
+#        interface{i}= orderInterface(parsedInterface{i}(2):parsedInterface{i}(3))
+#    end
+
+
+#    for i in range(1,nPores):
+#        parsedPore[i]=limits[i+1],limits[i]
+    
+    
+#    reshapedPore=reshape(poresImage,[1,nVoxelsPore])
+#    [sortedPore,orderPore]=sort(reshapedPore)
+#    parsedPore=parse_sorted_vector(sortedPore)
+#    parsedPore=parsedPore(2:end)
+#    pore=cell(1,nPores)
+#    for i=1:nPores
+#        assert( parsedPore{i}(1)==i )
+#        pore{i}=orderPore(parsedPore{i}(2):parsedPore{i}(3))
+#    end
+
+    interfaceToPore = [] #cell(1,nInterface)
+    for j in range(1,nInterface):
+#        assert(reshapedInterface(interface{j}(1))==j)
+        
+        intersection = poresImage.flatten()[orderInterface[parsedInterface[j]:parsedInterface[j+1]]] 
+        intersectedPores=np.unique(intersection)
+        sizeIntersectionPores=ndimage.measurements.labeled_comprehension(intersection, intersection, intersectedPores,np.size,np.int32,0)
+        interfaceToPore.append([intersectedPores,sizeIntersectionPores])
+
+        
+#        C= unique(reshapedPore(interface{j}))
+#        for i in C[C~=0]:
+#            i2p{j}(i)=np.count_nonzero(==i )
+
+
+#    p2i=cell(1,nPores)
+#    for j=1:nPores
+#        p2i{j}=zeros(1,nInterface)
+#        for i=1:nInterface
+#            p2i{j}(i)=i2p{i}(j); 
+
+
+#    interfaceToPore=cell(1,nInterface)
+#    for j=1:nInterface
+#        interfaceToPore{j}=find(i2p{j})
+#    end
+
+    print('Tables de connectivite construites')
+
+    return interfaceToPore
+    
+    
+
 
 #----------------------------------------------------------------------------------------------
 
