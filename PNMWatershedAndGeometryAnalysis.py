@@ -23,13 +23,16 @@ def main(inputFileName,outputFileName,hContrast):
     myImg=myImg.swapaxes(0,2).astype(np.bool)
     
     print('PoresWatershedSegmentation')
-    pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,structuringElement,hContrast)
+    pores,watershedLines,distanceMap = PoresWatershedSegmentation(
+                                            myImg,structuringElement,hContrast)
     
     print('FindLinks')
     links=FindLinks(myImg,pores,watershedLines,structuringElement.astype(np.bool))
     
     print('AnalysePoresSegmentationGeometry')
-    PNMGeometricData, links = AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,watershedLines,distanceMap)
+    PNMGeometricData, links = AnalysePoresSegmentationGeometry(
+                                            myImg,structuringElement,
+                                            pores,watershedLines,distanceMap)
     
     print('BuildConnectivityTables') 
     interfaceToPore = BuildConnectivityTables(pores,links);    
@@ -52,12 +55,14 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise une 
     #recontruction morphologique pour construire la carte de distance étêtée.
     hContrast=hContrast
-    reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap).astype(np.float16)
+    reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
+                                            ).astype(np.float16)
     
     if hContrast>0.1:
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
     else:
-        local_maxi= feature.peak_local_max(distanceMap.astype(np.int8), min_distance=10, indices=False)
+        local_maxi= feature.peak_local_max(distanceMap.astype(np.int8), 
+                                           min_distance=10, indices=False)
         
     del reconstructed
     
@@ -66,12 +71,16 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     del local_maxi
     
     #Calcul des lignes de partage de niveau 
-    _,watershedLines = mahotas.cwatershed((distanceMap.max()-distanceMap).astype(np.int8), markers, Bc=structuringElement , return_lines=True)
+    _,watershedLines = mahotas.cwatershed(
+                                (distanceMap.max()-distanceMap).astype(np.int8), 
+                                markers, Bc=structuringElement , return_lines=True)
 
     del markers
     
     #Label des pores séparés par les lignes de partage de niveau
-    pores=ndimage.measurements.label(np.logical_not(np.logical_or(myImg,watershedLines)), structure=structuringElement )[0]
+    pores=ndimage.measurements.label(np.logical_not(np.logical_or(myImg,watershedLines)), 
+                                     structure=structuringElement 
+                                     )[0]
     
     return pores,watershedLines,distanceMap
     
@@ -85,10 +94,16 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distan
     
     
     # Infos sur la forme, position des liens internes
-    links_center_arg=ndimage.measurements.maximum_position(distanceMap, links_label, range(1,links_label.max()+1))
+    links_center_arg=ndimage.measurements.maximum_position(
+                                            distanceMap, links_label,
+                                            range(1,links_label.max()+1))
+                                            
     links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))   
     
-    linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(distanceMap, links_label, range(1,links_label.max()+1),max,np.float16,0)    
+    linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(
+                                            distanceMap, links_label, 
+                                            range(1,links_label.max()+1),
+                                            max,np.float16,0)    
     
     
     # Dilatation des liens internes
@@ -96,9 +111,13 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distan
     
     
     # Infos sur la forme, position des pores
-    pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,index=range(1,pores.max()+1))
+    pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
+                                                     index=range(1,pores.max()+1))
+                                                     
     pores_center=np.transpose(np.squeeze(np.dstack(pores_center)))
-    pores_volumes=ndimage.measurements.labeled_comprehension(pores, pores, range(1,pores.max()+1),np.size,np.int32,0)
+    pores_volumes=ndimage.measurements.labeled_comprehension(
+                                            pores, pores,range(1,pores.max()+1),
+                                            np.size,np.int32,0)
     
     PNMGeometricData=dict()
     #PNMGeometricData['imageLiensDilates']=links
@@ -134,10 +153,16 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distan
             boundarySlice=pores[:,:,-1]
             boundaryDistances=distanceMap[:,:,-1]
         
-        links_center_arg=ndimage.measurements.maximum_position(boundaryDistances, boundarySlice, range(1,pores.max()+1))
+        links_center_arg=ndimage.measurements.maximum_position(
+                                            boundaryDistances, boundarySlice, 
+                                            range(1,pores.max()+1))
+                                            
         links_center=np.transpose(np.squeeze(np.dstack(links_center_arg))) 
         
-        diameterDistanceMap=ndimage.measurements.labeled_comprehension(boundaryDistances, boundarySlice, range(1,pores.max()+1),max,np.int16,0)
+        diameterDistanceMap=ndimage.measurements.labeled_comprehension(
+                                        boundaryDistances, boundarySlice, 
+                                        range(1,pores.max()+1),max,np.int16,0)
+                                        
         PNMGeometricData['boundaryCenters'+str(iBoundary)]=links_center
         PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap.astype(np.float32)
       
@@ -226,7 +251,10 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
         
         intersection = poresImage.flatten()[orderInterface[parsedInterface[j-1]:parsedInterface[j]]] 
         intersectedPores=np.unique(intersection)
-        sizeIntersectionPores=ndimage.measurements.labeled_comprehension(intersection, intersection, intersectedPores,np.size,np.int32,0)
+        sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
+                                        intersection, intersection, 
+                                        intersectedPores,np.size,np.int32,0
+                                        )
         interfaceToPore.append([intersectedPores,sizeIntersectionPores])
 
         
