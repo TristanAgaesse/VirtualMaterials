@@ -7,7 +7,6 @@ Created on Fri Jan  2 18:50:02 2015
 import numpy as np
 import vtk
 from vtk.util import numpy_support
-from scipy import ndimage
 import math
 
 import sys
@@ -16,19 +15,20 @@ import tifffile as tff
 
 
 def main():
-    imageShape = (50,50,50)
-    image=np.zeros(imageShape).astype(np.uint8)
-    imageBounds=(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5)
+    voxelNumbers = (50,50,50)
+    image=np.zeros(voxelNumbers).astype(np.uint8)
+    bounds=(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5)
     
-    gridX
-    gridY
-    gridZ
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
     
-    center = (0,0,0)
-    radius = 0.5
-    mesh = CreateSphere(center,radius)
-    
-    image=Voxelize(mesh,gridX,gridY,gridZ)
+    for i in range(1):
+        center = (i/10.0 ,i/10.0,i/10.0)
+        radius = 0.5
+        mesh = CreateSphere(center,radius)
+        
+        image=Voxelize(mesh,gridX,gridY,gridZ)
     
     
     print(np.count_nonzero(image))
@@ -150,22 +150,22 @@ def CreateSpline():
     vtkPoints = vtk.vtkPoints()
     vtkPoints.SetNumberOfPoints(100)
     for i in range (npts):
-      x = math.sin(math.pi*i/20.)
-      y = math.cos(math.pi*i/20.)
-      z = 2*i/float(npts)
-      vtkPoints.SetPoint(i, (x,y,z))
+        x = math.sin(math.pi*i/20.)
+        y = math.cos(math.pi*i/20.)
+        z = 2*i/float(npts)
+        vtkPoints.SetPoint(i, (x,y,z))
     
     vtkCellArray = vtk.vtkCellArray()
     vtkCellArray.InsertNextCell(npts)
     for i in range(npts):
-      vtkCellArray.InsertCellPoint(i)
+        vtkCellArray.InsertCellPoint(i)
     
     value = lambda i: math.fabs(math.sin(math.pi*i/30.))
     vtkFloatArray = vtk.vtkFloatArray()
     vtkFloatArray.SetNumberOfValues(npts)
     for i in range(npts):
-      vtkFloatArray.SetValue(i, value(i))
-    
+        vtkFloatArray.SetValue(i, value(i))
+        
     vtkPolyData = vtk.vtkPolyData()
     vtkPolyData.SetPoints(vtkPoints)
     vtkPolyData.SetLines(vtkCellArray)
@@ -191,7 +191,7 @@ def CreateSpline():
 def CreateTorus():
     
     torus = vtk.vtkParametricTorus()
-
+    
     source = vtk.vtkParametricFunctionSource()
     source.SetParametricFunction(torus)
     source.Update()
@@ -205,41 +205,67 @@ def CreateTorus():
 #--------------------------------------------------------------------
 def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     
-    #Voxelize the object on a window adapted to its bounds
-    subGridX
-    subGridY
-    subGridZ
+    #Voxelize the object on a window adapted to its bounds. This windows should
+    #be a subsample or an extention of gridX,Y,Z
+    bounds=vtkPolyDataObject.GetBounds()    
+    nVoxGridX = len(gridX)-1  
+    nVoxGridY = len(gridY)-1
+    nVoxGridZ = len(gridZ)-1    
+    
+    Xmin = min(gridX)
+    deltaX = (max(gridX)-Xmin)/float(nVoxGridX)    
+    subNxMin = math.floor((bounds[0]-Xmin)/deltaX)-1   
+    subNxMax = math.ceil((Xmin-bounds[1])/deltaX)+1
+    subgridXmin = Xmin+deltaX*subNxMin
+    subgridXmax = Xmin+deltaX*subNxMax
+    nVoxSubgridX = subNxMax - subNxMin
+    
+    Ymin = min(gridY)
+    deltaY = (max(gridY)-Ymin)/float(nVoxGridY)
+    subNyMin = math.floor((bounds[2]-Ymin)/deltaY)-1
+    subNyMax = math.ceil((Ymin-bounds[3])/deltaY)+1
+    subgridYmin = Ymin+deltaY*subNyMin
+    subgridYmax = Ymin+deltaY*subNyMax
+    nVoxSubgridY = (subgridYmax-subgridYmin)/deltaY
+    
+    Zmin = min(gridZ)
+    deltaZ = (max(gridZ)-Zmin)/float(nVoxGridZ)
+    subNzMin = math.floor((bounds[4]-Zmin)/deltaZ)-1
+    subNzMax = math.ceil((Zmin-bounds[5])/deltaZ)+1
+    subgridZmin = Zmin+deltaZ*subNzMin
+    subgridZmax = Zmin+deltaZ*subNzMax
+    nVoxSubgridZ = (subgridZmax-subgridZmin)/deltaZ
     
     
     #Use VTK VoxelModel to Voxelize the surface
     voxelModel = vtk.vtkVoxelModeller()
     voxelModel.SetInput(vtkPolyDataObject)
-    voxelModel.SetSampleDimensions(sampleDimensions[0],sampleDimensions[1],sampleDimensions[2])
-    voxelModel.SetModelBounds(bounds[0],bounds[1],bounds[2],bounds[3],bounds[4],bounds[5])
-    voxelModel.SetScalarTypeToChar()
-    voxelModel.SetForegroundValue(255)
+    voxelModel.SetSampleDimensions(nVoxSubgridX,nVoxSubgridY,nVoxSubgridZ)
+    voxelModel.SetModelBounds(subgridXmin,subgridXmax,subgridYmin,subgridYmax,subgridZmin,subgridZmax)
+    voxelModel.SetScalarTypeToUnsignedChar()
+    voxelModel.SetForegroundValue(1)
     voxelModel.SetBackgroundValue(0)
     voxelModel.Update()
     
     voxelizedSurface = numpy_support.vtk_to_numpy(voxelModel.GetOutput().GetPointData().GetScalars())
-    voxelizedSurface = voxelizedSurface.reshape(sampleDimensions).astype(np.uint8)
+    voxelizedSurface = voxelizedSurface.reshape((nVoxSubgridX,nVoxSubgridY,nVoxSubgridZ)).astype(np.uint8)
     
-#    insideVoxel=( math.ceil(sampleDimensions[0]*(insidePoint[0]-bounds[0])/(bounds[1]-bounds[0])), 
-#                  math.ceil(sampleDimensions[1]*(insidePoint[1]-bounds[2])/(bounds[3]-bounds[2])), 
-#                  math.ceil(sampleDimensions[2]*(insidePoint[2]-bounds[4])/(bounds[5]-bounds[4]))
-#                  )
-
     subImage=FillInside(voxelizedSurface)
     
-    #Get back to the window of the original image
-    objectImage    
+    #Get back to the original window
+    windowX = range(max(0,subNxMin),min(len(gridX),subNxMax))
+    subWindowX = range(min(0,-subNxMin),min(len(gridX)-subNxMin,subNxMax-subNxMin))   
+    
+    objectImage = np.zeros((nVoxGridX,nVoxGridY,nVoxGridZ)).astype(np.uint8)
+    objectImage[windowX,windowY,windowZ] = subImage[subWindowX,subWindowY,subWindowZ]    
+    
     
     return objectImage
     
 #--------------------------------------------------------------------    
 def FillInside(voxelizedSurface):    
     
-    surface = voxelizedSurface==255
+    surface = voxelizedSurface==1
     sampleDimensions = voxelizedSurface.shape
     image=np.zeros(sampleDimensions).astype(np.uint8)
     
