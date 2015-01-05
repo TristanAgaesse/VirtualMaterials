@@ -10,13 +10,13 @@ from vtk.util import numpy_support
 import math
 
 import sys
-sys.path.append('C:/Users/Tristan/Documents/Python/workspace/Image_Computations/')
+sys.path.append('/home/greentoto/Documents/MATLAB/Image_Computations')
 import tifffile as tff
 
 
 def main():
     voxelNumbers = (50,50,50)
-    image=np.zeros(voxelNumbers).astype(np.uint8)
+    image=np.zeros(voxelNumbers).astype(np.bool)
     bounds=(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5)
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
@@ -24,15 +24,15 @@ def main():
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
     
     for i in range(1):
-        center = (i/10.0 ,i/10.0,i/10.0)
+        center = (i/100.0 ,i/100.0,i/100.0)
         radius = 0.5
         mesh = CreateSphere(center,radius)
         
-        image=Voxelize(mesh,gridX,gridY,gridZ)
-    
+        objImage=Voxelize(mesh,gridX,gridY,gridZ)
+        image=np.logical_or(image,objImage)
     
     print(np.count_nonzero(image))
-    tff.imsave('test2.tif',image)
+    tff.imsave('test2.tif',image.astype(np.uint8))
 
 
 
@@ -204,9 +204,11 @@ def CreateTorus():
     
 #--------------------------------------------------------------------
 def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
-    
-    #Voxelize the object on a window adapted to its bounds. This windows should
-    #be a subsample or an extention of gridX,Y,Z
+    #Voxelize the object on a window adapted to its bounds. The windows will 
+    #be chosed to be a subsample or an extention of the whole image voxel 
+    #gridX,Y,Z. This function uses VTK VoxelModel to voxelize the surface, 
+    #then the FillInside function to fill the inside.
+
     bounds=vtkPolyDataObject.GetBounds()    
     nVoxGridX = len(gridX)-1  
     nVoxGridY = len(gridY)-1
@@ -214,27 +216,27 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     
     Xmin = min(gridX)
     deltaX = (max(gridX)-Xmin)/float(nVoxGridX)    
-    subNxMin = math.floor((bounds[0]-Xmin)/deltaX)-1   
-    subNxMax = math.ceil((Xmin-bounds[1])/deltaX)+1
+    subNxMin = int(math.floor((bounds[0]-Xmin)/deltaX)-1)   
+    subNxMax = int(math.ceil((bounds[1]-Xmin)/deltaX)+1)
     subgridXmin = Xmin+deltaX*subNxMin
     subgridXmax = Xmin+deltaX*subNxMax
     nVoxSubgridX = subNxMax - subNxMin
     
     Ymin = min(gridY)
     deltaY = (max(gridY)-Ymin)/float(nVoxGridY)
-    subNyMin = math.floor((bounds[2]-Ymin)/deltaY)-1
-    subNyMax = math.ceil((Ymin-bounds[3])/deltaY)+1
+    subNyMin = int(math.floor((bounds[2]-Ymin)/deltaY)-1)
+    subNyMax = int(math.ceil((bounds[3]-Ymin)/deltaY)+1)
     subgridYmin = Ymin+deltaY*subNyMin
     subgridYmax = Ymin+deltaY*subNyMax
-    nVoxSubgridY = (subgridYmax-subgridYmin)/deltaY
+    nVoxSubgridY = subNyMax - subNyMin
     
     Zmin = min(gridZ)
     deltaZ = (max(gridZ)-Zmin)/float(nVoxGridZ)
-    subNzMin = math.floor((bounds[4]-Zmin)/deltaZ)-1
-    subNzMax = math.ceil((Zmin-bounds[5])/deltaZ)+1
+    subNzMin = int(math.floor((bounds[4]-Zmin)/deltaZ)-1)
+    subNzMax = int(math.ceil((bounds[5]-Zmin)/deltaZ)+1)
     subgridZmin = Zmin+deltaZ*subNzMin
     subgridZmax = Zmin+deltaZ*subNzMax
-    nVoxSubgridZ = (subgridZmax-subgridZmin)/deltaZ
+    nVoxSubgridZ = subNzMax - subNzMin
     
     
     #Use VTK VoxelModel to Voxelize the surface
@@ -253,38 +255,70 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     subImage=FillInside(voxelizedSurface)
     
     #Get back to the original window
-    windowX = range(max(0,subNxMin),min(len(gridX),subNxMax))
-    subWindowX = range(min(0,-subNxMin),min(len(gridX)-subNxMin,subNxMax-subNxMin))   
+    wXmin = max(0,subNxMin)
+    wXmax = min(len(gridX),subNxMax)
+    subwXmin = max(0,-subNxMin)
+    subwXmax = min(len(gridX)-subNxMin,subNxMax-subNxMin)
+    
+    wYmin = max(0,subNyMin)
+    wYmax = min(len(gridY),subNyMax)
+    subwYmin = max(0,-subNyMin)
+    subwYmax = min(len(gridY)-subNyMin,subNyMax-subNyMin)
+    
+    wZmin = max(0,subNzMin)
+    wZmax = min(len(gridZ),subNzMax)
+    subwZmin = max(0,-subNzMin)
+    subwZmax = min(len(gridZ)-subNzMin,subNzMax-subNzMin)
     
     objectImage = np.zeros((nVoxGridX,nVoxGridY,nVoxGridZ)).astype(np.uint8)
-    objectImage[windowX,windowY,windowZ] = subImage[subWindowX,subWindowY,subWindowZ]    
+    objectImage[wXmin:wXmax,wYmin:wYmax,wZmin:wZmax] = subImage[subwXmin:subwXmax,
+                                            subwYmin:subwYmax,subwZmin:subwZmax]    
     
     
-    return objectImage
+    return objectImage.astype(np.bool)
     
 #--------------------------------------------------------------------    
 def FillInside(voxelizedSurface):    
-    
+    #Fills the inside of a voxelized closed surface. This function is inspired 
+    #by some parts of the Matlab file exchange function VOXELISE (AUTHOR  
+    #Adam H. Aitkenhead, The Christie NHS Foundation Trust) 
+
     surface = voxelizedSurface==1
     sampleDimensions = voxelizedSurface.shape
     image=np.zeros(sampleDimensions).astype(np.uint8)
     
     correctionLIST = []
-    zVoxels=range(sampleDimensions[2])
+    zVoxels=np.asarray(range(sampleDimensions[2]))
     
     for ix in range(sampleDimensions[0]):
         for iy in range(sampleDimensions[1]):
-            zSurfaceVoxels=np.nonzero(surface[ix,iy,:])
+            zSurfaceVoxels=np.flatnonzero(surface[ix,iy,:])
             if zSurfaceVoxels.size%2 == 0:
                 for i in range(zSurfaceVoxels.size/2):
-                    voxelsINSIDE = (zVoxels>zSurfaceVoxels[2*i] 
-                                    & zVoxels<zSurfaceVoxels[2*i+1])
+                    voxelsINSIDE = np.logical_and(np.greater(zVoxels,zSurfaceVoxels[2*i]*np.ones(sampleDimensions[2])), 
+                                                  np.less(zVoxels,zSurfaceVoxels[2*i+1]*np.ones(sampleDimensions[2])))
                     image[ix,iy,voxelsINSIDE] = 1
             else:
                 correctionLIST.append([ix,iy])
     
+    
+    # USE INTERPOLATION TO FILL IN THE RAYS WHICH COULD NOT BE VOXELISED
+    #For rays where the voxelisation did not give a clear result, the ray is
+    #computed by interpolating from the surrounding rays.    
+    
     countCORRECTIONLIST = len(correctionLIST)
-
+    
+    #If necessary, add a one-pixel border around the x and y edges of the
+    #array.  This prevents an error if the code tries to interpolate a ray at
+    #the edge of the x,y grid.
+    if min(correctionLIST[:][0])==0 or max([correctionLIST[i][0] for i in range(len(correctionLIST))] )==sampleDimensions[0]-1 or min(correctionLIST[:][1])==0 or max([correctionLIST[i][1] for i in range(len(correctionLIST))] )==sampleDimensions[1]-1:
+        image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
+                            image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
+        image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
+                            image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
+        correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
+                                        for i in range(len(correctionLIST)) ]
+      
     if countCORRECTIONLIST>0:
         for loopC in range(countCORRECTIONLIST):
             voxelsforcorrection = np.squeeze( np.sum( [ 
@@ -300,7 +334,12 @@ def FillInside(voxelizedSurface):
             voxelsforcorrection = (voxelsforcorrection>=4)
             image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
         
-        
+  #Remove the one-pixel border surrounding the array, if this was added
+  #previously.
+    if image.shape[0]>sampleDimensions[0] or image.shape[1]>sampleDimensions[1]:
+        image = image[1:-1,1:-1,:]
+     
+    image[surface]=1
 #    labels=ndimage.measurements.label(np.logical_not(voxelizedSurface))[0]
 #    inside = labels==labels[insideVoxel]    
 #    image=np.zeros(sampleDimensions).astype(np.uint8)
