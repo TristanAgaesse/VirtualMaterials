@@ -8,6 +8,7 @@ import numpy as np
 import vtk
 from vtk.util import numpy_support
 import math
+from scipy import ndimage
 
 import sys
 sys.path.append('/home/greentoto/Documents/MATLAB/Image_Computations')
@@ -17,22 +18,22 @@ import tifffile as tff
 def main():
     voxelNumbers = (50,50,50)
     image=np.zeros(voxelNumbers).astype(np.bool)
-    bounds=(-1.5, 1.5, -1.5, 1.5, -1.5, 1.5)
+    bounds=(-0.5, 1.5, -0.5, 1.5, -0.5, 1.5)
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
     
-    for i in range(1):
-        center = (i/100.0 ,i/100.0,i/100.0)
-        radius = 0.5
-        mesh = CreateSphere(center,radius)
-        
+    for i in range(20):
+        center = (i/30.0 ,i/30.0,i/30.0)
+        radius = 0.05
+        #mesh = CreateSphere(center,radius)
+        mesh = CreateTorus()
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
     
     print(np.count_nonzero(image))
-    tff.imsave('test2.tif',image.astype(np.uint8))
+    tff.imsave('test1.tif',image.astype(np.uint8))
 
 
 
@@ -250,25 +251,28 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     voxelModel.Update()
     
     voxelizedSurface = numpy_support.vtk_to_numpy(voxelModel.GetOutput().GetPointData().GetScalars())
-    voxelizedSurface = voxelizedSurface.reshape((nVoxSubgridX,nVoxSubgridY,nVoxSubgridZ)).astype(np.uint8)
+    voxelizedSurface = voxelizedSurface.reshape((nVoxSubgridX,nVoxSubgridY,nVoxSubgridZ),order='F').astype(np.uint8)
     
     subImage=FillInside(voxelizedSurface)
     
     #Get back to the original window
     wXmin = max(0,subNxMin)
-    wXmax = min(len(gridX),subNxMax)
+    wXmax = min(len(gridX)-1,subNxMax)
     subwXmin = max(0,-subNxMin)
-    subwXmax = min(len(gridX)-subNxMin,subNxMax-subNxMin)
+    subwXmax = min(len(gridX)-1-subNxMin,subNxMax-subNxMin)
+    assert subwXmax>subwXmin &  (wXmax>wXmin), "%r  %r  %r  %r" % (subwXmax,subwXmin,wXmax,wXmin)     
     
     wYmin = max(0,subNyMin)
-    wYmax = min(len(gridY),subNyMax)
+    wYmax = min(len(gridY)-1,subNyMax)
     subwYmin = max(0,-subNyMin)
-    subwYmax = min(len(gridY)-subNyMin,subNyMax-subNyMin)
+    subwYmax = min(len(gridY)-1-subNyMin,subNyMax-subNyMin)
+    assert subwYmax>subwYmin &  (wYmax>wYmin)    
     
     wZmin = max(0,subNzMin)
-    wZmax = min(len(gridZ),subNzMax)
+    wZmax = min(len(gridZ)-1,subNzMax)
     subwZmin = max(0,-subNzMin)
-    subwZmax = min(len(gridZ)-subNzMin,subNzMax-subNzMin)
+    subwZmax = min(len(gridZ)-1-subNzMin,subNzMax-subNzMin)
+    assert subwZmax>subwZmin &  (wZmax>wZmin)
     
     objectImage = np.zeros((nVoxGridX,nVoxGridY,nVoxGridZ)).astype(np.uint8)
     objectImage[wXmin:wXmax,wYmin:wYmax,wZmin:wZmax] = subImage[subwXmin:subwXmax,
@@ -292,11 +296,14 @@ def FillInside(voxelizedSurface):
     
     for ix in range(sampleDimensions[0]):
         for iy in range(sampleDimensions[1]):
-            zSurfaceVoxels=np.flatnonzero(surface[ix,iy,:])
-            if zSurfaceVoxels.size%2 == 0:
-                for i in range(zSurfaceVoxels.size/2):
-                    voxelsINSIDE = np.logical_and(np.greater(zVoxels,zSurfaceVoxels[2*i]*np.ones(sampleDimensions[2])), 
-                                                  np.less(zVoxels,zSurfaceVoxels[2*i+1]*np.ones(sampleDimensions[2])))
+            #zSurfaceVoxels=np.flatnonzero(surface[ix,iy,:])
+            zSurfaceVoxels=ndimage.measurements.label(surface[ix,iy,:] , structure=np.ones(3))[0]
+            labelCenters=ndimage.measurements.center_of_mass(zSurfaceVoxels, labels=zSurfaceVoxels ,
+                                                     index=range(1,zSurfaceVoxels.max()+1))
+            if zSurfaceVoxels.max()%2 == 0:
+                for i in range(zSurfaceVoxels.max()/2):
+                    voxelsINSIDE = np.logical_and(np.greater(zVoxels,labelCenters[i][0]*np.ones(sampleDimensions[2])), 
+                                                  np.less(zVoxels,labelCenters[i+1][0]*np.ones(sampleDimensions[2])))
                     image[ix,iy,voxelsINSIDE] = 1
             else:
                 correctionLIST.append([ix,iy])
@@ -330,7 +337,7 @@ def FillInside(voxelizedSurface):
                 image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
                 image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
                 image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
-                ] ) )
+                ], axis=0 ) )
             voxelsforcorrection = (voxelsforcorrection>=4)
             image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
         
@@ -338,7 +345,7 @@ def FillInside(voxelizedSurface):
   #previously.
     if image.shape[0]>sampleDimensions[0] or image.shape[1]>sampleDimensions[1]:
         image = image[1:-1,1:-1,:]
-     
+    
     image[surface]=1
 #    labels=ndimage.measurements.label(np.logical_not(voxelizedSurface))[0]
 #    inside = labels==labels[insideVoxel]    
