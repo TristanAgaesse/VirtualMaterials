@@ -2,7 +2,7 @@
 """
 Created on Fri Jan  2 18:50:02 2015
 
-@author: greentoto
+@author: Tristan Agaesse
 """
 import numpy as np
 import vtk
@@ -10,30 +10,31 @@ from vtk.util import numpy_support
 import math
 from scipy import ndimage
 
+import os
 import sys
-sys.path.append('/home/greentoto/Documents/MATLAB/Image_Computations')
+sys.path.append(os.path.pardir)
 import tifffile as tff
 
 
 def main():
-    voxelNumbers = (50,50,50)
+    voxelNumbers = (100,100,100)
     image=np.zeros(voxelNumbers).astype(np.bool)
-    bounds=(-0.5, 1.5, -0.5, 1.5, -0.5, 1.5)
+    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
     
-    for i in range(20):
+    for i in range(1):
         center = (i/30.0 ,i/30.0,i/30.0)
-        radius = 0.05
-        #mesh = CreateSphere(center,radius)
-        mesh = CreateTorus()
+        radius = 1
+        mesh = CreateSpline()
+        
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
     
     print(np.count_nonzero(image))
-    tff.imsave('test1.tif',image.astype(np.uint8))
+    tff.imsave('test1.tif',(255*image).astype(np.uint8))
 
 
 
@@ -147,12 +148,12 @@ def CreateRandomHills():
 #--------------------------------------------------------------------
 def CreateSpline():   
     
-    npts      = 100
+    npts      = 25
     vtkPoints = vtk.vtkPoints()
     vtkPoints.SetNumberOfPoints(100)
     for i in range (npts):
-        x = math.sin(math.pi*i/20.)
-        y = math.cos(math.pi*i/20.)
+        x = (1.0+i/float(npts))*math.sin(math.pi*i/5.)
+        y = (1.0+i/float(npts))*math.cos(math.pi*i/5.)
         z = 2*i/float(npts)
         vtkPoints.SetPoint(i, (x,y,z))
     
@@ -280,9 +281,42 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     
     
     return objectImage.astype(np.bool)
+
+
+#--------------------------------------------------------------------    
+def FillInside(voxelizedSurface,raydirection='xyz'): 
+
+    #Count the number of voxels in each direction:
+    sampleDimensions = voxelizedSurface.shape     
+    voxcountX = sampleDimensions[0]
+    voxcountY = sampleDimensions[1]
+    voxcountZ = sampleDimensions[2]
+
+    
+    # Prepare logical array to hold the voxelised data:
+    gridOUTPUT      = np.zeros( (voxcountX,voxcountY,voxcountZ,len(raydirection)) ).astype(np.bool)
+    countdirections = 0;
+    
+    if raydirection.find('x')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideInternal(np.transpose(voxelizedSurface,axes=[1,2,0])) ,axes=[2,0,1] )
+    
+    if raydirection.find('y')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideInternal(np.transpose(voxelizedSurface,axes=[2,0,1])) ,axes=[1,2,0] )
+    
+    if raydirection.find('z')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = FillInsideInternal(voxelizedSurface)
+    
+    # Combine the results of each ray-tracing direction:
+    if len(raydirection)>1:
+      gridOUTPUT = np.sum(gridOUTPUT,axis=3)>=len(raydirection)/2.0
+
+    return gridOUTPUT 
     
 #--------------------------------------------------------------------    
-def FillInside(voxelizedSurface):    
+def FillInsideInternal(voxelizedSurface):    
     #Fills the inside of a voxelized closed surface. This function is inspired 
     #by some parts of the Matlab file exchange function VOXELISE (AUTHOR  
     #Adam H. Aitkenhead, The Christie NHS Foundation Trust) 
@@ -298,15 +332,20 @@ def FillInside(voxelizedSurface):
         for iy in range(sampleDimensions[1]):
             #zSurfaceVoxels=np.flatnonzero(surface[ix,iy,:])
             zSurfaceVoxels=ndimage.measurements.label(surface[ix,iy,:] , structure=np.ones(3))[0]
-            labelCenters=ndimage.measurements.center_of_mass(zSurfaceVoxels, labels=zSurfaceVoxels ,
-                                                     index=range(1,zSurfaceVoxels.max()+1))
-            if zSurfaceVoxels.max()%2 == 0:
-                for i in range(zSurfaceVoxels.max()/2):
-                    voxelsINSIDE = np.logical_and(np.greater(zVoxels,labelCenters[i][0]*np.ones(sampleDimensions[2])), 
-                                                  np.less(zVoxels,labelCenters[i+1][0]*np.ones(sampleDimensions[2])))
-                    image[ix,iy,voxelsINSIDE] = 1
-            else:
-                correctionLIST.append([ix,iy])
+            if zSurfaceVoxels.max()>0:
+                labelCenters=ndimage.measurements.center_of_mass(zSurfaceVoxels, labels=zSurfaceVoxels ,
+                                                         index=range(1,zSurfaceVoxels.max()+1))
+#                labelLength=ndimage.measurements.labeled_comprehension(
+#                                                zSurfaceVoxels, zSurfaceVoxels, 
+#                                                range(1,zSurfaceVoxels.max()+1),
+#                                                np.size,np.uint8,0)
+                if zSurfaceVoxels.max()%2 == 0: #& max(labelLength)<3:
+                    for i in range(zSurfaceVoxels.max()/2):
+                        voxelsINSIDE = np.logical_and(np.greater(zVoxels,labelCenters[i][0]*np.ones(sampleDimensions[2])), 
+                                                      np.less(zVoxels,labelCenters[i+1][0]*np.ones(sampleDimensions[2])))
+                        image[ix,iy,voxelsINSIDE] = 1
+                else:
+                    correctionLIST.append([ix,iy])
     
     
     # USE INTERPOLATION TO FILL IN THE RAYS WHICH COULD NOT BE VOXELISED

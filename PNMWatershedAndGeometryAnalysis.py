@@ -14,7 +14,7 @@ from skimage import feature
 import mahotas
 
 
-def main(inputFileName,outputFileName,hContrast):
+def ExtractNetwork(inputFileName,outputFileName,hContrast):
 
     structuringElement = np.ones((3,3,3))
 
@@ -282,5 +282,5 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
 
 #----------------------------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    #main()
