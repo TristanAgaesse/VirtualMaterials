@@ -16,7 +16,7 @@ sys.path.append(os.path.pardir)
 import tifffile as tff
 
 
-def main():
+def Test():
     voxelNumbers = (100,100,100)
     image=np.zeros(voxelNumbers).astype(np.bool)
     bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
@@ -28,22 +28,69 @@ def main():
     for i in range(1):
         center = (i/30.0 ,i/30.0,i/30.0)
         radius = 1
-        mesh = CreateSpline()
+        mesh = CreateEllipsoid(center,2,1,0.5)
         
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
     
     print(np.count_nonzero(image))
-    tff.imsave('test1.tif',(255*image).astype(np.uint8))
+    tff.imsave('TestEllipsoid.tif',(255*image).astype(np.uint8))
 
 
 
 
 #--------------------------------------------------------------------
+def CreateVoronoi(voxelNumbers,imageBounds,outputFile,fiberFile,radiusFile,pointFile,verticeFile):
 
+    image=np.zeros(voxelNumbers).astype(np.bool)
+    
+    gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(imageBounds[3],imageBounds[2],voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[5],imageBounds[4],voxelNumbers[2]+1)
 
+    def readMatrix(filename,elementType):
+        f = open ( filename , 'r')
+        if elementType is 'float':
+            l = [ map(float,line.split(' ')) for line in f ]
+        else :
+            l = [ map(int,line.split(' ')) for line in f ]
+        return l
+        f.close()
+                                  
+    fibres=readMatrix(fiberFile,"int")
+    radius=readMatrix(radiusFile,"float")
+    points=readMatrix(pointFile,"float")
+    vertices=readMatrix(verticeFile,"int")
+    
+    nFibre=len(fibres)
+    print nFibre
+    nVertice=len(vertices)
+    print nVertice
+    
+    sphereRadii     
+    
+    for iFibre in range(nFibre):
+      iPoint1=fibres[iFibre][1]
+      iPoint2=fibres[iFibre][2]
+      origin=tuple(points[iPoint1])
+      end=tuple(points[iPoint2])
+      thisRadius=radius[iPoint1][0]
+      #heigth=(end-origin).Length
+      
+      mesh = CreateCylinder(origin,end,thisRadius,)
+      objImage=Voxelize(mesh,gridX,gridY,gridZ)
+      image=np.logical_or(image,objImage)
 
+    for iVertice in range(nVertice):
+        thisRadius = 400e-5
+        iPoint = vertices[iVertice][1]-1
+        center = tuple(points[iPoint])
+        
+        mesh = CreateSphere(center,thisRadius)
+        objImage=Voxelize(mesh,gridX,gridY,gridZ)
+        image=np.logical_or(image,objImage)
 
+    tff.imsave(outputFile,(255*image).astype(np.uint8))
 
 
 #--------------------------------------------------------------------
@@ -397,4 +444,4 @@ def FillInsideInternal(voxelizedSurface):
 #--------------------------------------------------------------------
  
 if __name__ == "__main__":
-    main()
+    Test()
