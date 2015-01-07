@@ -36,7 +36,25 @@ def Test():
     print(np.count_nonzero(image))
     tff.imsave('TestEllipsoid.tif',(255*image).astype(np.uint8))
 
-
+#--------------------------------------------------------------------
+def CreateVirtualGDL():
+    
+    #Put cylinders according to a given random law
+    1
+    
+    
+    
+    #Add binder
+    
+    
+    
+#--------------------------------------------------------------------
+def CreateVirtualActiveLayer():  
+    
+    #Choose spherical voids between agglomerates
+    1
+    
+    #Add carbon spheres to form agglomerates
 
 
 #--------------------------------------------------------------------
@@ -67,23 +85,29 @@ def CreateVoronoi(voxelNumbers,imageBounds,outputFile,fiberFile,radiusFile,point
     nVertice=len(vertices)
     print nVertice
     
-    sphereRadii     
+    sphereRadii = np.zeros(len(points))    
     
     for iFibre in range(nFibre):
+        
       iPoint1=fibres[iFibre][1]
       iPoint2=fibres[iFibre][2]
       origin=tuple(points[iPoint1])
       end=tuple(points[iPoint2])
       thisRadius=radius[iPoint1][0]
+      #construction of radii of the sperical capings of cylinders
+      sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
+      sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
       #heigth=(end-origin).Length
       
       mesh = CreateCylinder(origin,end,thisRadius,)
       objImage=Voxelize(mesh,gridX,gridY,gridZ)
       image=np.logical_or(image,objImage)
-
+      
+    #spherical capings of cylinders      
     for iVertice in range(nVertice):
-        thisRadius = 400e-5
+        
         iPoint = vertices[iVertice][1]-1
+        thisRadius = sphereRadii[iPoint]
         center = tuple(points[iPoint])
         
         mesh = CreateSphere(center,thisRadius)
