@@ -32,7 +32,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast):
     print('AnalysePoresSegmentationGeometry')
     PNMGeometricData, links = AnalysePoresSegmentationGeometry(
                                             myImg,structuringElement,
-                                            pores,watershedLines,distanceMap)
+                                            pores,links,distanceMap)
     
     print('BuildConnectivityTables') 
     interfaceToPore = BuildConnectivityTables(pores,links);    
@@ -182,7 +182,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
         
     #structuring element size
 #    foo=structuringElement.shape
-##    assert(isequal(foo,foo(1)*ones(1,3)) && rem(foo(1),2)==1,'Wrong size of structuring element');
+###    assert(isequal(foo,foo(1)*ones(1,3)) && rem(foo(1),2)==1,'Wrong size of structuring element');
 #    seSize=int(math.floor(foo[1]/2))
 #    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
 #    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
@@ -215,72 +215,37 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
     orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
     sortedInterface=internalLinkImage.flatten()[orderInterface]
     
-    limits=np.flatnonzero(np.roll(sortedInterface,1)-sortedInterface)
-    assert(limits.size == nInterface+1)    
-    parsedInterface = limits[1:]    
-#    for i in range(nInterface):
-#        parsedInterface[i]=limits[i+2],limits[i+1]
+    labelEnds=np.flatnonzero(np.roll(sortedInterface,1)-sortedInterface)
+    assert(labelEnds.size == nInterface+1)    
 
-    #parsedInterface=parse_sorted_vector(sortedInterface)
-    #parsedInterface=parsedInterface(2:end)
-
-#    interface=cell(1,nInterface)
-#    for i=1:nInterface
-#        assert( parsedInterface{i}(1)==i )
-#        interface{i}= orderInterface(parsedInterface{i}(2):parsedInterface{i}(3))
-#    end
-
-
-#    for i in range(1,nPores):
-#        parsedPore[i]=limits[i+1],limits[i]
-    
-    
-#    reshapedPore=reshape(poresImage,[1,nVoxelsPore])
-#    [sortedPore,orderPore]=sort(reshapedPore)
-#    parsedPore=parse_sorted_vector(sortedPore)
-#    parsedPore=parsedPore(2:end)
-#    pore=cell(1,nPores)
-#    for i=1:nPores
-#        assert( parsedPore{i}(1)==i )
-#        pore{i}=orderPore(parsedPore{i}(2):parsedPore{i}(3))
-#    end
-
-    interfaceToPore = [] #cell(1,nInterface)
-    for j in range(1,nInterface):
-#        assert(reshapedInterface(interface{j}(1))==j)
+    interfaceToPore = [] 
+    for j in range(1,nInterface+1):
         
-        intersection = poresImage.flatten()[orderInterface[parsedInterface[j-1]:parsedInterface[j]]] 
-        intersectedPores=np.unique(intersection)
-        sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
+        intersection = poresImage.flatten()[orderInterface[labelEnds[j-1]+1:
+                                                           labelEnds[j]+1]] 
+        assert intersection.size>0                                                   
+        intersectedPores=np.unique(intersection[intersection>0])
+        if intersectedPores.size>0:        
+            sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
                                         intersection, intersection, 
                                         intersectedPores,np.size,np.int32,0
                                         )
+        else:
+            sizeIntersectionPores=[]
         interfaceToPore.append([intersectedPores,sizeIntersectionPores])
 
-        
-#        C= unique(reshapedPore(interface{j}))
-#        for i in C[C~=0]:
-#            i2p{j}(i)=np.count_nonzero(==i )
-
-
-#    p2i=cell(1,nPores)
-#    for j=1:nPores
-#        p2i{j}=zeros(1,nInterface)
-#        for i=1:nInterface
-#            p2i{j}(i)=i2p{i}(j); 
-
-
-#    interfaceToPore=cell(1,nInterface)
-#    for j=1:nInterface
-#        interfaceToPore{j}=find(i2p{j})
-#    end
 
     return interfaceToPore
     
     
-
+def Test():
+    inputfile='PSI_sampleDrainage_635.tif'
+    outputfile='datatest_635_4'
+    hContrast=4
+    ExtractNetwork(inputfile,outputfile,hContrast)
 
 #----------------------------------------------------------------------------------------------
 
-#if __name__ == "__main__":
-#    #main()
+if __name__ == "__main__":
+    Test()
+    

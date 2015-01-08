@@ -91,15 +91,16 @@ def CreateVoronoi(voxelNumbers,imageBounds,outputFile,fiberFile,radiusFile,point
         
       iPoint1=fibres[iFibre][1]
       iPoint2=fibres[iFibre][2]
-      origin=tuple(points[iPoint1])
-      end=tuple(points[iPoint2])
+      origin=np.array(points[iPoint1])
+      end=np.array(points[iPoint2])
       thisRadius=radius[iPoint1][0]
       #construction of radii of the sperical capings of cylinders
       sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
       sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
-      #heigth=(end-origin).Length
-      
-      mesh = CreateCylinder(origin,end,thisRadius,)
+      height=np.linalg.norm(end-origin)
+      axis=end-origin
+      center=tuple((end+origin)/2)
+      mesh = CreateCylinder(center,axis,thisRadius,height)
       objImage=Voxelize(mesh,gridX,gridY,gridZ)
       image=np.logical_or(image,objImage)
       
@@ -120,29 +121,69 @@ def CreateVoronoi(voxelNumbers,imageBounds,outputFile,fiberFile,radiusFile,point
 #--------------------------------------------------------------------
 def CreateSphere(center,radius):
     
-    sphereModel = vtk.vtkSphereSource()
-    sphereModel.SetCenter(center[0],center[1],center[2])
-    sphereModel.SetRadius(radius)
-    sphereModel.SetThetaResolution(10)
-    sphereModel.SetPhiResolution(10)
-    mesh=sphereModel.GetOutput()
-    mesh.Update()    
+    source = vtk.vtkSphereSource()
+    source.SetCenter(center[0],center[1],center[2])
+    source.SetRadius(radius)
+    source.SetThetaResolution(10)
+    source.SetPhiResolution(10)
+    polydata=source.GetOutput()
+    polydata.Update()    
 
-    return mesh
+    return polydata
     
 #--------------------------------------------------------------------
-def CreateCylinder(center,radius,height):
+def CreateCylinder(center,axis,radius,height):
     
-    cylinderModel = vtk.vtkCylinderSource()
-    cylinderModel.SetCenter(center[0],center[1],center[2])
-    cylinderModel.SetRadius(radius)
-    cylinderModel.SetHeight(height)
-    cylinderModel.SetResolution(30)
+    source = vtk.vtkCylinderSource()
+    source.SetCenter(center[0],center[1],center[2])
+    source.SetRadius(radius)
+    source.SetHeight(height)
+    source.SetResolution(10)
     
-    mesh=cylinderModel.GetOutput()
-    mesh.Update()
+    polydata=source.GetOutput()
+    polydata.Update()
 
-    return mesh
+    transform = vtk.vtkTransform()
+    
+    # Compute a basis
+#    normalizedX = [0 for i in range(3)]
+#    normalizedY = [0 for i in range(3)]
+#    normalizedZ = [0 for i in range(3)]
+#     
+#    # The X axis is a vector from start to end
+#    math = vtk.vtkMath()
+#    math.Subtract(endPoint, startPoint, normalizedX)
+#    length = math.Norm(normalizedX)
+#    math.Normalize(normalizedX)
+#     
+#    # The Z axis is an arbitrary vector cross X
+#    arbitrary = [0 for i in range(3)]
+#    arbitrary[0] = random.uniform(-10,10)
+#    arbitrary[1] = random.uniform(-10,10)
+#    arbitrary[2] = random.uniform(-10,10)
+#    math.Cross(normalizedX, arbitrary, normalizedZ)
+#    math.Normalize(normalizedZ)
+#     
+#    # The Y axis is Z cross X
+#    math.Cross(normalizedZ, normalizedX, normalizedY)
+#    matrix = vtk.vtkMatrix4x4()
+#     
+#    # Create the direction cosine matrix
+#    matrix.Identity()
+#    for i in range(3):
+#      matrix.SetElement(i, 0, normalizedX[i])
+#      matrix.SetElement(i, 1, normalizedY[i])
+#      matrix.SetElement(i, 2, normalizedZ[i])
+    
+    
+    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    polydata = transformFilter.GetOutput()
+    polydata.Update()
+
+    return polydata
     
 #--------------------------------------------------------------------
 def CreatePolyhedron(points):
@@ -194,11 +235,17 @@ def CreateEllipsoid(center,xRadius,yRadius,zRadius):
     source.SetVResolution(30)
     source.SetWResolution(30)
     source.Update()
-    polydata = source.GetOutput()
+    
+    polydata=source.GetOutput()
     polydata.Update()
     
-    center=(0,0,0)    
-    
+    transform = vtk.vtkTransform()
+    transform.Translate(list(center))
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    polydata = transformFilter.GetOutput()
+    polydata.Update()
     
     return polydata
     
@@ -261,7 +308,7 @@ def CreateSpline():
     return polydata    
     
 #--------------------------------------------------------------------
-def CreateTorus():
+def CreateTorus(center):
     
     torus = vtk.vtkParametricTorus()
     
@@ -269,7 +316,15 @@ def CreateTorus():
     source.SetParametricFunction(torus)
     source.Update()
     
-    polydata = source.GetOutput()
+    polydata=source.GetOutput()
+    polydata.Update()    
+    
+    transform = vtk.vtkTransform()
+    transform.Translate(list(center))
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    polydata = transformFilter.GetOutput()
     polydata.Update()
     
     return polydata
