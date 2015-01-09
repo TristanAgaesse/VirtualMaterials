@@ -19,31 +19,28 @@ import tifffile as tff
 
 
 def Test():
-    voxelNumbers = (100,100,100)
-    image=np.zeros(voxelNumbers).astype(np.bool)
-    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
+#    voxelNumbers = (100,100,100)
+#    image=np.zeros(voxelNumbers).astype(np.bool)
+#    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
+#    
+#    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+#    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
+#    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
+#    
+    image = CreateVirtualGDL((300,300,100),270,4,400,10,5)
     
-    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
-    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
-    
-    for i in range(1):
-        center = (i/30.0 ,i/30.0,i/30.0)
-        mesh = CreateEllipsoid(center,2,1,0.5)
-        
-        objImage=Voxelize(mesh,gridX,gridY,gridZ)
-        image=np.logical_or(image,objImage)
-    
-    print(np.count_nonzero(image))
-    SaveImage(255*image,'Test.tif')
+    SaveImage(100*image,'TestGDL.tif')
 
 #--------------------------------------------------------------------
-def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,binderThickness,anisotropy=1,randomSeed=1):
+def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
+                             binderThickness,anisotropy=1,randomSeed=1):
     
     random.seed(randomSeed)
     
     image=np.zeros(voxelNumbers).astype(np.bool)
-    bounds=(0.0, float(voxelNumbers[0]), 0.0, float(voxelNumbers[1]), 0.0, float(voxelNumbers[2]))
+    bounds=(0.0, float(voxelNumbers[0]), 
+            0.0, float(voxelNumbers[1]), 
+            0.0, float(voxelNumbers[2]))
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
@@ -69,7 +66,8 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,binderThickness
     
     binder = np.logical_and(binder,np.logical_not(image))    
     
-    image[binder]=2    
+    image = image.astype(np.uint8)
+    image[binder] = 2    
     
     return image
     
@@ -79,7 +77,9 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,ra
     random.seed(randomSeed)
     
     image=np.zeros(voxelNumbers).astype(np.bool)
-    bounds=(0.0, float(voxelNumbers[0]), 0.0, float(voxelNumbers[1]), 0.0, float(voxelNumbers[2]))
+    bounds=(0.0, float(voxelNumbers[0]), 
+            0.0, float(voxelNumbers[1]), 
+            0.0, float(voxelNumbers[2]))
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
@@ -172,8 +172,6 @@ def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,vertic
     return image
 
 
-
-
 #--------------------------------------------------------------------
 def CreateBall(center,radius):
     
@@ -192,7 +190,7 @@ def CreateBall(center,radius):
 def CreateCylinder(center,axis,radius,height):
     
     source = vtk.vtkCylinderSource()
-    source.SetCenter(center[0],center[1],center[2])
+    source.SetCenter(0,0,0)
     source.SetRadius(radius)
     source.SetHeight(height)
     source.SetResolution(10)
@@ -200,46 +198,34 @@ def CreateCylinder(center,axis,radius,height):
     polydata=source.GetOutput()
     polydata.Update()
 
+    #Perform rotation to get the rigth axis
     transform = vtk.vtkTransform()
+    axis = np.asarray(axis)
+    defaultAxis = np.asarray((0,1,0))
     
-    # Compute a basis
-#    normalizedX = [0 for i in range(3)]
-#    normalizedY = [0 for i in range(3)]
-#    normalizedZ = [0 for i in range(3)]
-#     
-#    # The X axis is a vector from start to end
-#    math = vtk.vtkMath()
-#    math.Subtract(endPoint, startPoint, normalizedX)
-#    length = math.Norm(normalizedX)
-#    math.Normalize(normalizedX)
-#     
-#    # The Z axis is an arbitrary vector cross X
-#    arbitrary = [0 for i in range(3)]
-#    arbitrary[0] = random.uniform(-10,10)
-#    arbitrary[1] = random.uniform(-10,10)
-#    arbitrary[2] = random.uniform(-10,10)
-#    math.Cross(normalizedX, arbitrary, normalizedZ)
-#    math.Normalize(normalizedZ)
-#     
-#    # The Y axis is Z cross X
-#    math.Cross(normalizedZ, normalizedX, normalizedY)
-#    matrix = vtk.vtkMatrix4x4()
-#     
-#    # Create the direction cosine matrix
-#    matrix.Identity()
-#    for i in range(3):
-#      matrix.SetElement(i, 0, normalizedX[i])
-#      matrix.SetElement(i, 1, normalizedY[i])
-#      matrix.SetElement(i, 2, normalizedZ[i])
-    
-    
+    if np.linalg.norm(axis-defaultAxis)<0.0000001:
+        rotationAxis=axis
+    else:
+        rotationAxis = (axis-defaultAxis)/2.0
+        rotationAxis = rotationAxis/np.linalg.norm(rotationAxis)
+        
+    transform.RotateWXYZ(180,rotationAxis[0],rotationAxis[1],rotationAxis[2])
     
     transformFilter=vtk.vtkTransformPolyDataFilter()
     transformFilter.SetTransform(transform)
     transformFilter.SetInput(polydata)   
     polydata = transformFilter.GetOutput()
     polydata.Update()
-
+    
+    #Perform translation to get the rigth center
+    transform = vtk.vtkTransform()
+    transform.Translate(center[0],center[1],center[2])    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    polydata = transformFilter.GetOutput()
+    polydata.Update()
+    
     return polydata
     
 #--------------------------------------------------------------------
@@ -398,7 +384,8 @@ def CreateVoxelizedBallFast(center,radius,imageVoxelNumber,imageBounds):
     subWindowBound = (center[0]-2*radius,center[0]+2*radius,
                       center[1]-2*radius,center[1]+2*radius,
                       center[2]-2*radius,center[2]+2*radius)    
-    nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(subWindowBound,gridX,gridY,gridZ)
+    nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(
+                                                        subWindowBound,gridX,gridY,gridZ)
     
     #Create a voxelized ball
     voxRadius = int(imageVoxelNumber[0]*radius/float(imageBounds[1]-imageBounds[0]))
@@ -426,7 +413,8 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
 
     #Prepare a subwindows zooming on the object
     subWindowBound=vtkPolyDataObject.GetBounds()    
-    nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(subWindowBound,gridX,gridY,gridZ)
+    nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(
+                                                        subWindowBound,gridX,gridY,gridZ)
     
     #Use VTK VoxelModel to Voxelize the surface
     voxelModel = vtk.vtkVoxelModeller()
@@ -439,7 +427,7 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     voxelModel.SetBackgroundValue(0)
     voxelModel.Update()
     voxelizedSurface = numpy_support.vtk_to_numpy(voxelModel.GetOutput().GetPointData().GetScalars())
-    voxelizedSurface = voxelizedSurface.reshape(nVoxSubgrid,order='F').astype(np.uint8)
+    voxelizedSurface = voxelizedSurface.reshape(nVoxSubImage,order='F').astype(np.uint8)
     
     #Fill the inside
     subImage=FillInside(voxelizedSurface)
@@ -456,6 +444,8 @@ def GetSubWindowInformation(subWindowBounds,gridX,gridY,gridZ):
     nVoxGridX = len(gridX)-1  
     nVoxGridY = len(gridY)-1
     nVoxGridZ = len(gridZ)-1    
+    bounds=subWindowBounds    
+    
     
     Xmin = min(gridX)
     deltaX = (max(gridX)-Xmin)/float(nVoxGridX)    
@@ -502,7 +492,7 @@ def InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition):
     wXmax = min(nVoxImage[0],subNxMax)
     subwXmin = max(0,-subNxMin)
     subwXmax = min(nVoxImage[0]-subNxMin,subNxMax-subNxMin)
-    assert subwXmax>subwXmin &  (wXmax>wXmin), "%r  %r  %r  %r" % (subwXmax,subwXmin,wXmax,wXmin)     
+    assert subwXmax>subwXmin &  (wXmax>wXmin)    
     
     wYmin = max(0,subNyMin)
     wYmax = min(nVoxImage[1],subNyMax)
@@ -648,7 +638,7 @@ def FillInsideInternal(voxelizedSurface):
     
 #--------------------------------------------------------------------
 def SaveImage(image,filename):
-    tff.imsave('TestEllipsoid.tif',image.astype(np.uint8))
+    tff.imsave(filename,image.astype(np.uint8))
 
     
 #--------------------------------------------------------------------
