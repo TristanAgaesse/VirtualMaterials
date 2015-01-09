@@ -8,6 +8,7 @@ Created on Thu Nov 27 19:53:34 2014
 import numpy as np
 from skimage import morphology
 from scipy import ndimage
+import SimpleITK as sitk
 import sys
 import os
 
@@ -83,7 +84,7 @@ def main(inputFileName,outputFileName,voxelLength):
 
     gamma=72e-3
     
-    #Calculs de répartition de l'eau pour 53 mbar, 39 mbar, 28 mbar, 22 mbar, 14 mbar 
+    #Calculs de rÃ©partition de l'eau pour 53 mbar, 39 mbar, 28 mbar, 22 mbar, 14 mbar 
     pressureList=[5300,3900,2800,2200,1400]
     #pressureList=[2200,1400]
     

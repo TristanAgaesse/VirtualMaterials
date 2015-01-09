@@ -11,6 +11,7 @@ import math
 from scipy import ndimage
 import random
 from skimage import morphology
+import SimpleITK as sitk
 
 import os
 import sys
@@ -27,14 +28,16 @@ def Test():
 #    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
 #    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
 #    
-    image = CreateVirtualGDL((300,300,100),270,4,400,10,5)
-    
-    SaveImage(100*image,'TestGDL.tif')
+    #image = CreateVirtualGDL((300,300,100),270,4,400,10,5)
+    image=CreateVoronoi((500,500,500),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
+                  'fibres.txt','radius.txt','points.txt','vertices.txt')
+    SaveImage(100*(image.astype(np.uint8)),'TestVoronoi.tif')
 
 #--------------------------------------------------------------------
 def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
                              binderThickness,anisotropy=1,randomSeed=1):
     
+    print('CreateVirtual GDL')
     random.seed(randomSeed)
     
     image=np.zeros(voxelNumbers).astype(np.bool)
@@ -61,8 +64,12 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
         image = np.logical_or(image,objImage)
     
     #Add binder
-    ball = morphology.ball(binderThickness)
-    binder = ndimage.morphology.binary_closing(image, structure=ball)
+#    ball = morphology.ball(binderThickness)
+#    binder = ndimage.morphology.binary_closing(image, structure=ball)
+    
+    itkInvadedVoxels = sitk.GetImageFromArray(image.astype(np.uint8))
+    itkInvadedVoxels = sitk.BinaryDilate(itkInvadedVoxels, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+    binder=sitk.GetArrayFromImage(itkInvadedVoxels).astype(np.bool)     
     
     binder = np.logical_and(binder,np.logical_not(image))    
     
@@ -88,6 +95,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,ra
     #Choose spherical voids between agglomerates
     void=np.zeros(voxelNumbers).astype(np.bool)
     for i in range(nVoid):
+        
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
@@ -97,8 +105,8 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,ra
         void=np.logical_or(image,objImage)
     
     #Add spheres outside voids
-    i=0
-    while i < nGrain & i<1000000 :
+    iGrain, loop = 0, 0
+    while iGrain < nGrain & loop<1000000 :
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
@@ -107,8 +115,10 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,ra
             mesh = CreateBall(center,grainRadius)
             objImage=Voxelize(mesh,gridX,gridY,gridZ)
             image=np.logical_or(image,objImage)
-            i=i+1
-            
+            iGrain = iGrain+1
+        
+        loop=loop+1
+        
     return image
 
 #--------------------------------------------------------------------
@@ -142,17 +152,17 @@ def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,vertic
     sphereRadii = np.zeros(len(points))    
     
     for iFibre in range(nFibre):
-        
       iPoint1=fibres[iFibre][1]
       iPoint2=fibres[iFibre][2]
       origin=np.array(points[iPoint1])
       end=np.array(points[iPoint2])
-      thisRadius=radius[iPoint1][0]
+      thisRadius=4*radius[iPoint1][0]
       #construction of radii of the sperical capings of cylinders
       sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
       sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
       height=np.linalg.norm(end-origin)
       axis=end-origin
+      
       center=tuple((end+origin)/2)
       mesh = CreateCylinder(center,axis,thisRadius,height)
       objImage=Voxelize(mesh,gridX,gridY,gridZ)
@@ -201,6 +211,7 @@ def CreateCylinder(center,axis,radius,height):
     #Perform rotation to get the rigth axis
     transform = vtk.vtkTransform()
     axis = np.asarray(axis)
+    axis = axis/np.linalg.norm(axis)    
     defaultAxis = np.asarray((0,1,0))
     
     if np.linalg.norm(axis-defaultAxis)<0.0000001:
@@ -492,19 +503,20 @@ def InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition):
     wXmax = min(nVoxImage[0],subNxMax)
     subwXmin = max(0,-subNxMin)
     subwXmax = min(nVoxImage[0]-subNxMin,subNxMax-subNxMin)
-    assert subwXmax>subwXmin &  (wXmax>wXmin)    
+    #print subwXmax, subwXmin , wXmax,wXmin
+    assert subwXmax>=subwXmin &  (wXmax>=wXmin)    
     
     wYmin = max(0,subNyMin)
     wYmax = min(nVoxImage[1],subNyMax)
     subwYmin = max(0,-subNyMin)
     subwYmax = min(nVoxImage[1]-subNyMin,subNyMax-subNyMin)
-    assert subwYmax>subwYmin &  (wYmax>wYmin)    
+    assert subwYmax>=subwYmin &  (wYmax>=wYmin)    
     
     wZmin = max(0,subNzMin)
     wZmax = min(nVoxImage[2],subNzMax)
     subwZmin = max(0,-subNzMin)
     subwZmax = min(nVoxImage[2]-subNzMin,subNzMax-subNzMin)
-    assert subwZmax>subwZmin &  (wZmax>wZmin)
+    assert subwZmax>=subwZmin &  (wZmax>=wZmin)
     
     objectImage = np.zeros(nVoxImage).astype(np.uint8)
     objectImage[wXmin:wXmax,wYmin:wYmax,wZmin:wZmax] = subImage[subwXmin:subwXmax,
@@ -588,23 +600,25 @@ def FillInsideInternal(voxelizedSurface):
     
     countCORRECTIONLIST = len(correctionLIST)
     
-    #If necessary, add a one-pixel border around the x and y edges of the
-    #array.  This prevents an error if the code tries to interpolate a ray at
-    #the edge of the x,y grid.
-    cond0 = min(correctionLIST[:][0])==0
-    cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
-    cond2 = min(correctionLIST[:][1])==0
-    cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
-
-    if cond0 or cond1 or cond2 or cond3:
-        image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
-                            image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
-        image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
-                            image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
-        correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
-                                        for i in range(len(correctionLIST)) ]
       
     if countCORRECTIONLIST>0:
+        
+        #If necessary, add a one-pixel border around the x and y edges of the
+        #array.  This prevents an error if the code tries to interpolate a ray at
+        #the edge of the x,y grid.
+        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
+        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
+        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
+        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
+    
+        if cond0 or cond1 or cond2 or cond3:
+            image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
+                                image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
+            image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
+                                image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
+            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
+                                            for i in range(len(correctionLIST)) ]
+        
         for loopC in range(countCORRECTIONLIST):
             voxelsforcorrection = np.squeeze( np.sum( [ 
                 image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
