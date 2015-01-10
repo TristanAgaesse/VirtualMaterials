@@ -74,7 +74,7 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
     
     
 #--------------------------------------------------------------------
-def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidRadius,nVoid,
                              nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):  
     
     print('Create Virtual Active Layer')
@@ -109,7 +109,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
     #Add carbon spheres with Nafion outside voids
     iGrain, loop = 0, 0
     assert 0 <= nafionCoveragePercentage <= 100
-    nGrainWithNafion = int(nGrain*nafionCoveragePercentage/100.0)
+    nGrainWithNafion = int(nCarbonGrain*nafionCoveragePercentage/100.0)
     while iGrain < nGrainWithNafion : 
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
@@ -128,7 +128,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
             break
     
     myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
-    myItkImage = sitk.BinaryDilate(myItkImage, int(grainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
+    myItkImage = sitk.BinaryDilate(myItkImage, int(carbonGrainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
     image = sitk.GetArrayFromImage(myItkImage).astype(np.bool)  
     
     #Add Nafion
@@ -141,7 +141,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
     
     #Add carbon spheres without Nafion outside voids
     carbon = np.zeros(voxelNumbers,dtype=np.bool)
-    nGrainWithoutNafion = nGrain-nGrainWithNafion
+    nGrainWithoutNafion = nCarbonGrain-nGrainWithNafion
     iGrain, loop = 0, 0
     while iGrain < nGrainWithoutNafion : 
         center = (random.uniform(bounds[0], bounds[1]),
@@ -153,7 +153,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
 #            objImage=Voxelize(mesh,gridX,gridY,gridZ)
             carbon[int(center[0]),int(center[1]),int(center[2])]=1
 #            objImage=CreateVoxelizedBallFast(center,grainRadius,voxelNumbers,bounds)            
-#            image=np.logical_or(image,objImage)
+#            image=np.logical_or(imGDLage,objImage)
             
             iGrain = iGrain+1
         
@@ -162,7 +162,7 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
             break
     
     myItkImage = sitk.GetImageFromArray(carbon.astype(np.uint8))
-    myItkImage = sitk.BinaryDilate(myItkImage, int(grainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
+    myItkImage = sitk.BinaryDilate(myItkImage, int(carbonGrainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
     carbon = sitk.GetArrayFromImage(myItkImage).astype(np.bool)    
     
     image = image.astype(np.uint8)
@@ -171,10 +171,52 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
     
     return image
 
+#--------------------------------------------------------------------
+def CreateVirtualAgglomerate(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+
+
+    return 1
 
 
 #--------------------------------------------------------------------
-def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,verticeFile):
+def CreateVirtualInterfaceGDLMPL(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+
+    #Create GDL Image
+
+
+    #Zoom on the bottom of GDL with resampling
+
+
+    #Create MPL Image
+
+
+    #Add the two images
+
+    return 1
+
+
+#--------------------------------------------------------------------
+def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+
+    #Create Catalyst Layer Image
+
+
+
+    #Create a piece of Membrane
+
+
+
+    #Add the two images
+
+
+    return 1
+
+
+#--------------------------------------------------------------------
+def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,verticeFile):
     
     print('Create Voronoi')
     
@@ -241,7 +283,40 @@ def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,vertic
 
     return image
 
+#--------------------------------------------------------------------
+def CreateVirtualCeramicElectrode():
+    
+    #Create Higth temperature Fuel Cell Electrode
+    
+    #Add polyhedra
+    
+    return 1
 
+
+#--------------------------------------------------------------------
+def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
+    
+    voxelNumbers = gdlImage.shape
+    imageBounds=(0.0, float(voxelNumbers[0]), 
+            0.0, float(voxelNumbers[1]), 
+            0.0, float(voxelNumbers[2]))
+    gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(imageBounds[3],imageBounds[2],voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[5],imageBounds[4],voxelNumbers[2]+1)
+    
+    holeAxis=(0,0,1)    
+    
+    for iHole in range(nHole):
+        
+        center = (random.uniform(imageBounds[0], imageBounds[1]),
+                  random.uniform(imageBounds[2], imageBounds[3]),
+                  math.ceil(voxelNumbers[2]-holeHeight/2))
+                  
+        mesh = CreateCylinder(center,holeAxis,holeRadius,holeHeight)
+        objImage=Voxelize(mesh,gridX,gridY,gridZ)
+        gdlImage=np.logical_and(gdlImage,np.logical_not(objImage))
+        
+    return gdlImage
 
 
 
@@ -385,16 +460,16 @@ def CreateSpline():
     for i in range(npts):
         vtkCellArray.InsertCellPoint(i)
     
-    value = lambda i: math.fabs(math.sin(math.pi*i/30.))
-    vtkFloatArray = vtk.vtkFloatArray()
-    vtkFloatArray.SetNumberOfValues(npts)
-    for i in range(npts):
-        vtkFloatArray.SetValue(i, value(i))
+#    value = lambda i: math.fabs(math.sin(math.pi*i/30.))
+#    vtkFloatArray = vtk.vtkFloatArray()
+#    vtkFloatArray.SetNumberOfValues(npts)
+#    for i in range(npts):
+#        vtkFloatArray.SetValue(i, value(i))
         
     vtkPolyData = vtk.vtkPolyData()
     vtkPolyData.SetPoints(vtkPoints)
     vtkPolyData.SetLines(vtkCellArray)
-    vtkPolyData.GetPointData().SetScalars(vtkFloatArray)
+#    vtkPolyData.GetPointData().SetScalars(vtkFloatArray)
     
     vtkSplineFilter = vtk.vtkSplineFilter()
     vtkSplineFilter.SetInput(vtkPolyData)
@@ -509,6 +584,26 @@ def MeshRotate(polydata,oldAxis,newAxis):
     polydata.Update()
     
     return polydata
+
+
+#--------------------------------------------------------------------    
+def VisualizeMesh(polydata):
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInput(polydata)
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+     
+    renderer = vtk.vtkRenderer()
+    renderWindow = vtk.vtkRenderWindow()
+    renderWindow.AddRenderer(renderer)
+    renderWindowInteractor = vtk.vtkRenderWindowInteractor()
+    renderWindowInteractor.SetRenderWindow(renderWindow)
+     
+    renderer.AddActor(actor)
+     
+    renderWindow.Render()
+    renderWindowInteractor.Start()
 
 
 
@@ -798,13 +893,13 @@ def Test():
 #    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
 #    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
 #   
-    image = CreateVirtualActiveLayer((200,200,200),4,5000,50,200,2,30)  
+    #image = CreateVirtualCatalystLayer((200,200,200),4,5000,50,200,2,30)  
 #    image = CreateVirtualGDL((200,200,100),27,4,200,10,5)
 #    image=CreateVoronoi((500,500,500),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
 #                  'fibres.txt','radius.txt','points.txt','vertices.txt')
-    SaveImage(100*(image.astype(np.uint8)),'TestCCL.tif')    
-    
-    
+    #SaveImage(100*(image.astype(np.uint8)),'TestCCL.tif')    
+    mesh = CreateRandomHills()
+    VisualizeMesh(mesh)
 #--------------------------------------------------------------------
 if __name__ == "__main__":
     Test()
