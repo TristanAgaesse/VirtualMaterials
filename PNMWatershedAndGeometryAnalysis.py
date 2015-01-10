@@ -238,6 +238,8 @@ def BuildConnectivityTables(poresImage,internalLinkImage):
     return interfaceToPore
     
     
+    
+#----------------------------------------------------------------------------------------------
 def Test():
     inputfile='PSI_sampleDrainage_635.tif'
     outputfile='datatest_635_4'

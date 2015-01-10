@@ -19,28 +19,20 @@ sys.path.append(os.path.pardir)
 import tifffile as tff
 
 
-def Test():
-#    voxelNumbers = (100,100,100)
-#    image=np.zeros(voxelNumbers).astype(np.bool)
-#    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
-#    
-#    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-#    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
-#    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
-#    
-    #image = CreateVirtualGDL((300,300,100),270,4,400,10,5)
-    image=CreateVoronoi((500,500,500),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
-                  'fibres.txt','radius.txt','points.txt','vertices.txt')
-    SaveImage(100*(image.astype(np.uint8)),'TestVoronoi.tif')
+
+#--------------------------------------------------------------------
+#      Virtual Materials
+#--------------------------------------------------------------------
+
 
 #--------------------------------------------------------------------
 def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
                              binderThickness,anisotropy=1,randomSeed=1):
     
-    print('CreateVirtual GDL')
+    print('Create Virtual GDL')
     random.seed(randomSeed)
     
-    image=np.zeros(voxelNumbers).astype(np.bool)
+    image=np.zeros(voxelNumbers,dtype=np.bool)
     bounds=(0.0, float(voxelNumbers[0]), 
             0.0, float(voxelNumbers[1]), 
             0.0, float(voxelNumbers[2]))
@@ -67,9 +59,10 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
 #    ball = morphology.ball(binderThickness)
 #    binder = ndimage.morphology.binary_closing(image, structure=ball)
     
-    itkInvadedVoxels = sitk.GetImageFromArray(image.astype(np.uint8))
-    itkInvadedVoxels = sitk.BinaryDilate(itkInvadedVoxels, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
-    binder=sitk.GetArrayFromImage(itkInvadedVoxels).astype(np.bool)     
+    myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+    myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+    binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
     
     binder = np.logical_and(binder,np.logical_not(image))    
     
@@ -78,12 +71,16 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
     
     return image
     
-#--------------------------------------------------------------------
-def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,randomSeed=1):  
     
+    
+#--------------------------------------------------------------------
+def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):  
+    
+    print('Create Virtual Active Layer')
     random.seed(randomSeed)
     
-    image=np.zeros(voxelNumbers).astype(np.bool)
+    image=np.zeros(voxelNumbers,dtype=np.bool)
     bounds=(0.0, float(voxelNumbers[0]), 
             0.0, float(voxelNumbers[1]), 
             0.0, float(voxelNumbers[2]))
@@ -93,43 +90,102 @@ def CreateVirtualActiveLayer(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,ra
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
     
     #Choose spherical voids between agglomerates
-    void=np.zeros(voxelNumbers).astype(np.bool)
+    void=np.zeros(voxelNumbers,dtype=np.bool)
     for i in range(nVoid):
         
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
-        
-        mesh = CreateBall(center,voidRadius)
-        objImage=Voxelize(mesh,gridX,gridY,gridZ)
+#        void[int(center[0]),int(center[1]),int(center[2])]=1
+        objImage=CreateVoxelizedBallFast(center,voidRadius,voxelNumbers,bounds)            
+#        mesh = CreateBall(center,voidRadius)
+#        objImage=Voxelize(mesh,gridX,gridY,gridZ)
         void=np.logical_or(image,objImage)
     
-    #Add spheres outside voids
+#    myItkImage = sitk.GetImageFromArray(void.astype(np.uint8))
+#    myItkImage = sitk.BinaryDilate(myItkImage, int(voidRadius), sitk.sitkBall, 0.0, 1.0,  False)   
+#    void = sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
+    
+    #Add carbon spheres with Nafion outside voids
     iGrain, loop = 0, 0
-    while iGrain < nGrain & loop<1000000 :
+    assert 0 <= nafionCoveragePercentage <= 100
+    nGrainWithNafion = int(nGrain*nafionCoveragePercentage/100.0)
+    while iGrain < nGrainWithNafion : 
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
         
         if void[int(center[0]),int(center[1]),int(center[2])]==0:
-            mesh = CreateBall(center,grainRadius)
-            objImage=Voxelize(mesh,gridX,gridY,gridZ)
-            image=np.logical_or(image,objImage)
+#            mesh = CreateBall(center,grainRadius)
+#            objImage=Voxelize(mesh,gridX,gridY,gridZ)
+            image[int(center[0]),int(center[1]),int(center[2])]=1
+#            objImage=CreateVoxelizedBallFast(center,grainRadius,voxelNumbers,bounds)            
+#            image=np.logical_or(image,objImage)
             iGrain = iGrain+1
         
         loop=loop+1
+        if loop > 10000000:
+            break
+    
+    myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    myItkImage = sitk.BinaryDilate(myItkImage, int(grainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
+    image = sitk.GetArrayFromImage(myItkImage).astype(np.bool)  
+    
+    #Add Nafion
+    myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    myItkImage = sitk.BinaryDilate(myItkImage, int(nafionThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+    nafion = sitk.GetArrayFromImage(myItkImage).astype(np.bool)  
+    nafion = np.logical_and(nafion,np.logical_not(image))
+    
+    image = image.astype(np.bool)
+    
+    #Add carbon spheres without Nafion outside voids
+    carbon = np.zeros(voxelNumbers,dtype=np.bool)
+    nGrainWithoutNafion = nGrain-nGrainWithNafion
+    iGrain, loop = 0, 0
+    while iGrain < nGrainWithoutNafion : 
+        center = (random.uniform(bounds[0], bounds[1]),
+                  random.uniform(bounds[2], bounds[3]),
+                  random.uniform(bounds[4], bounds[5]))
         
+        if void[int(center[0]),int(center[1]),int(center[2])]==0:
+#            mesh = CreateBall(center,grainRadius)
+#            objImage=Voxelize(mesh,gridX,gridY,gridZ)
+            carbon[int(center[0]),int(center[1]),int(center[2])]=1
+#            objImage=CreateVoxelizedBallFast(center,grainRadius,voxelNumbers,bounds)            
+#            image=np.logical_or(image,objImage)
+            
+            iGrain = iGrain+1
+        
+        loop=loop+1
+        if loop > 10000000:
+            break
+    
+    myItkImage = sitk.GetImageFromArray(carbon.astype(np.uint8))
+    myItkImage = sitk.BinaryDilate(myItkImage, int(grainRadius), sitk.sitkBall, 0.0, 1.0,  False)   
+    carbon = sitk.GetArrayFromImage(myItkImage).astype(np.bool)    
+    
+    image = image.astype(np.uint8)
+    image[nafion] = 2        
+    image[carbon] = 1 
+    
     return image
+
+
 
 #--------------------------------------------------------------------
 def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,verticeFile):
-
-    image=np.zeros(voxelNumbers).astype(np.bool)
+    
+    print('Create Voronoi')
+    
+    #Prepare the structure image
+    image=np.zeros(voxelNumbers,dtype=np.bool)
     
     gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
     gridY=np.linspace(imageBounds[3],imageBounds[2],voxelNumbers[1]+1)
     gridZ=np.linspace(imageBounds[5],imageBounds[4],voxelNumbers[2]+1)
-
+    
+    #Read the positions of cylinders and balls in files
     def readMatrix(filename,elementType):
         f = open ( filename , 'r')
         if elementType is 'float':
@@ -145,28 +201,31 @@ def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,vertic
     vertices=readMatrix(verticeFile,"int")
     
     nFibre=len(fibres)
-    print nFibre
     nVertice=len(vertices)
+    sphereRadii = np.zeros(len(points))  
+    
+    #Add cylinders and balls to the structure image
+    print nFibre
     print nVertice
     
-    sphereRadii = np.zeros(len(points))    
-    
     for iFibre in range(nFibre):
-      iPoint1=fibres[iFibre][1]
-      iPoint2=fibres[iFibre][2]
-      origin=np.array(points[iPoint1])
-      end=np.array(points[iPoint2])
-      thisRadius=4*radius[iPoint1][0]
-      #construction of radii of the sperical capings of cylinders
-      sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
-      sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
-      height=np.linalg.norm(end-origin)
-      axis=end-origin
+        
+        iPoint1=fibres[iFibre][1]
+        iPoint2=fibres[iFibre][2]
+        origin=np.array(points[iPoint1])
+        end=np.array(points[iPoint2])
+        thisRadius=4*radius[iPoint1][0]
+        #construction of radii of the sperical capings of cylinders
+        sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
+        sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
+        height=np.linalg.norm(end-origin)
+        axis=end-origin
+        center=tuple((end+origin)/2)
       
-      center=tuple((end+origin)/2)
-      mesh = CreateCylinder(center,axis,thisRadius,height)
-      objImage=Voxelize(mesh,gridX,gridY,gridZ)
-      image=np.logical_or(image,objImage)
+        mesh = CreateCylinder(center,axis,thisRadius,height)
+        objImage=Voxelize(mesh,gridX,gridY,gridZ)
+        image=np.logical_or(image,objImage)
+      
       
     #spherical capings of cylinders      
     for iVertice in range(nVertice):
@@ -179,8 +238,21 @@ def CreateVoronoi(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,vertic
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
 
+
     return image
 
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------
+#      Basic Shapes
+#--------------------------------------------------------------------
 
 #--------------------------------------------------------------------
 def CreateBall(center,radius):
@@ -209,33 +281,12 @@ def CreateCylinder(center,axis,radius,height):
     polydata.Update()
 
     #Perform rotation to get the rigth axis
-    transform = vtk.vtkTransform()
-    axis = np.asarray(axis)
-    axis = axis/np.linalg.norm(axis)    
-    defaultAxis = np.asarray((0,1,0))
-    
-    if np.linalg.norm(axis-defaultAxis)<0.0000001:
-        rotationAxis=axis
-    else:
-        rotationAxis = (axis-defaultAxis)/2.0
-        rotationAxis = rotationAxis/np.linalg.norm(rotationAxis)
-        
-    transform.RotateWXYZ(180,rotationAxis[0],rotationAxis[1],rotationAxis[2])
-    
-    transformFilter=vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
-    polydata = transformFilter.GetOutput()
-    polydata.Update()
+    oldAxis = (0,1,0)
+    polydata = MeshRotate(polydata,oldAxis,axis)
     
     #Perform translation to get the rigth center
-    transform = vtk.vtkTransform()
-    transform.Translate(center[0],center[1],center[2])    
-    transformFilter=vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
-    polydata = transformFilter.GetOutput()
-    polydata.Update()
+    translationVector = center
+    polydata = MeshTranslate(polydata,translationVector)
     
     return polydata
     
@@ -276,7 +327,7 @@ def CreatePolyhedron(points):
     return polydata
     
 #--------------------------------------------------------------------
-def CreateEllipsoid(center,xRadius,yRadius,zRadius):
+def CreateEllipsoid(center,axis,xRadius,yRadius,zRadius):
 
     ellipsoid = vtk.vtkParametricEllipsoid()
     ellipsoid.SetXRadius(xRadius)
@@ -285,21 +336,21 @@ def CreateEllipsoid(center,xRadius,yRadius,zRadius):
     
     source = vtk.vtkParametricFunctionSource()
     source.SetParametricFunction(ellipsoid)
-    source.SetUResolution(30)
-    source.SetVResolution(30)
-    source.SetWResolution(30)
+    source.SetUResolution(15)
+    source.SetVResolution(15)
+    source.SetWResolution(15)
     source.Update()
     
     polydata=source.GetOutput()
     polydata.Update()
     
-    transform = vtk.vtkTransform()
-    transform.Translate(list(center))
-    transformFilter=vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
-    polydata = transformFilter.GetOutput()
-    polydata.Update()
+    #Perform rotation to get the rigth axis
+    oldAxis = (0,1,0)
+    polydata = MeshRotate(polydata,oldAxis,axis)
+    
+    #Perform translation to get the rigth center
+    translationVector = center
+    polydata = MeshTranslate(polydata,translationVector)
     
     return polydata
     
@@ -324,8 +375,8 @@ def CreateSpline():
     vtkPoints = vtk.vtkPoints()
     vtkPoints.SetNumberOfPoints(100)
     for i in range (npts):
-        x = (1.0+i/float(npts))*math.sin(math.pi*i/5.)
-        y = (1.0+i/float(npts))*math.cos(math.pi*i/5.)
+        x = math.sin(math.pi*i/5.)
+        y = math.cos(math.pi*i/5.)
         z = 2*i/float(npts)
         vtkPoints.SetPoint(i, (x,y,z))
     
@@ -362,7 +413,7 @@ def CreateSpline():
     return polydata    
     
 #--------------------------------------------------------------------
-def CreateTorus(center):
+def CreateTorus(center,axis):
     
     torus = vtk.vtkParametricTorus()
     
@@ -373,13 +424,13 @@ def CreateTorus(center):
     polydata=source.GetOutput()
     polydata.Update()    
     
-    transform = vtk.vtkTransform()
-    transform.Translate(list(center))
-    transformFilter=vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
-    polydata = transformFilter.GetOutput()
-    polydata.Update()
+    #Perform rotation to get the rigth axis
+    oldAxis = (0,1,0)
+    polydata = MeshRotate(polydata,oldAxis,axis)
+    
+    #Perform translation to get the rigth center
+    translationVector = center
+    polydata = MeshTranslate(polydata,translationVector)
     
     return polydata
     
@@ -404,16 +455,74 @@ def CreateVoxelizedBallFast(center,radius,imageVoxelNumber,imageBounds):
     diameter = myBall.shape[0]
     assert diameter <= min(nVoxSubImage[0],nVoxSubImage[1],nVoxSubImage[2])
     
-    subImage = np.zeros(nVoxSubImage).astype(np.bool)
+    subImage = np.zeros(nVoxSubImage,dtype=np.bool)
     nxMin = int((nVoxSubImage[0]-diameter)/2.0)
     nyMin = int((nVoxSubImage[1]-diameter)/2.0)
     nzMin = int((nVoxSubImage[2]-diameter)/2.0)
-    subImage[nxMin:nxMin+diameter+1,nyMin:nyMin+diameter+1,nzMin:nzMin+diameter+1] = myBall
+    subImage[nxMin:nxMin+diameter,nyMin:nyMin+diameter,nzMin:nzMin+diameter] = myBall
     
     #Get back to the original window
     objectImage = InsertSubimageInImage(subImage,imageVoxelNumber,gridRelativePosition)
     
     return objectImage
+    
+    
+    
+#--------------------------------------------------------------------    
+def MeshTranslate(polydata,translationVector):    
+    
+    #Perform translation 
+    transform = vtk.vtkTransform()
+    transform.Translate(translationVector[0],translationVector[1],translationVector[2])    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    
+    polydata = transformFilter.GetOutput()
+    polydata.Update()
+
+    return polydata
+
+#--------------------------------------------------------------------    
+def MeshRotate(polydata,oldAxis,newAxis): 
+    
+    #Perform rotation 
+    oldAxis = np.asarray(oldAxis)
+    oldAxis = oldAxis/np.linalg.norm(oldAxis)
+    newAxis = np.asarray(newAxis)
+    newAxis = newAxis/np.linalg.norm(newAxis)    
+       
+    if np.linalg.norm(newAxis-oldAxis)<0.0000001:
+        rotationAxis=newAxis
+    else:
+        rotationAxis = (newAxis-oldAxis)/2.0
+        rotationAxis = rotationAxis/np.linalg.norm(rotationAxis)
+    
+    transform = vtk.vtkTransform()    
+    transform.RotateWXYZ(180,rotationAxis[0],rotationAxis[1],rotationAxis[2])
+    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInput(polydata)   
+    
+    polydata = transformFilter.GetOutput()
+    polydata.Update()
+    
+    return polydata
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------
+#      Voxelisation
+#--------------------------------------------------------------------
+
     
 #--------------------------------------------------------------------
 def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
@@ -427,7 +536,23 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(
                                                         subWindowBound,gridX,gridY,gridZ)
     
+    #Voxelize the surface
+    voxelizedSurface = VoxelizeSurface(vtkPolyDataObject,nVoxSubImage,boundSubgrid)
+    
+    #Fill the inside
+    subImage=FillInside(voxelizedSurface)
+    
+    #Get back to the original window
+    nVoxImage = (len(gridX)-1,len(gridY)-1,len(gridZ)-1)    
+    wholeImage = InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition)
+    
+    return wholeImage.astype(np.bool)
+
+
+#--------------------------------------------------------------------
+def VoxelizeSurface(vtkPolyDataObject,nVoxSubImage,boundSubgrid):
     #Use VTK VoxelModel to Voxelize the surface
+
     voxelModel = vtk.vtkVoxelModeller()
     voxelModel.SetInput(vtkPolyDataObject)
     voxelModel.SetSampleDimensions(nVoxSubImage[0],nVoxSubImage[1],nVoxSubImage[2])
@@ -440,14 +565,139 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ):
     voxelizedSurface = numpy_support.vtk_to_numpy(voxelModel.GetOutput().GetPointData().GetScalars())
     voxelizedSurface = voxelizedSurface.reshape(nVoxSubImage,order='F').astype(np.uint8)
     
-    #Fill the inside
-    subImage=FillInside(voxelizedSurface)
+    return voxelizedSurface
     
-    #Get back to the original window
-    nVoxImage = (len(gridX)-1,len(gridY)-1,len(gridZ)-1)    
-    wholeImage = InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition)
     
-    return wholeImage.astype(np.bool)
+#--------------------------------------------------------------------    
+def FillInside(voxelizedSurface,raydirection='xyz'): 
+
+    #Count the number of voxels in each direction:
+    sampleDimensions = voxelizedSurface.shape     
+    voxcountX = sampleDimensions[0]
+    voxcountY = sampleDimensions[1]
+    voxcountZ = sampleDimensions[2]
+
+    
+    # Prepare logical array to hold the voxelised data:
+    gridOUTPUT = np.zeros((voxcountX,voxcountY,voxcountZ,len(raydirection))).astype(np.bool)
+    countdirections = 0;
+    
+    if raydirection.find('x')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideZDirection(
+                                  np.transpose(voxelizedSurface,axes=[1,2,0])), 
+                                  axes=[2,0,1] )
+    
+    if raydirection.find('y')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideZDirection(
+                                  np.transpose(voxelizedSurface,axes=[2,0,1])),
+                                  axes=[1,2,0] )
+    
+    if raydirection.find('z')>-1:
+      countdirections = countdirections + 1;
+      gridOUTPUT[:,:,:,countdirections-1] = FillInsideZDirection(voxelizedSurface)
+    
+    # Combine the results of each ray-tracing direction:
+    if len(raydirection)>1:
+      gridOUTPUT = np.sum(gridOUTPUT,axis=3)>=len(raydirection)/2.0
+
+    return gridOUTPUT 
+    
+#--------------------------------------------------------------------    
+def FillInsideZDirection(voxelizedSurface):    
+    #Fills the inside of a voxelized closed surface. This function is inspired 
+    #by some parts of the Matlab file exchange function VOXELISE (AUTHOR  
+    #Adam H. Aitkenhead, The Christie NHS Foundation Trust) 
+
+    surface = voxelizedSurface.astype(np.int8)
+    
+    sampleDimensions = voxelizedSurface.shape
+    image=np.zeros(sampleDimensions,dtype=np.uint8)
+    
+    correctionLIST = []
+    zVoxels=np.arange(sampleDimensions[2])
+    
+    for ix in range(sampleDimensions[0]):
+        for iy in range(sampleDimensions[1]):
+            rolledIndices=[i+1 for i in range(sampleDimensions[2]-1)]
+            rolledIndices.append(0)
+            a=surface[ix,iy,rolledIndices]-surface[ix,iy,:]
+            #print(a.max(),a.min())
+            labelEnds = a<0
+            if surface[ix,iy,-1]==1:
+                labelEnds[-1]=1
+            labelEnds = np.flatnonzero(labelEnds)
+            #zSurfaceVoxels=ndimage.measurements.label(surface[ix,iy,:] , structure=np.ones(3))[0]
+            
+            if labelEnds.size>0:
+#                labelCenters=ndimage.measurements.center_of_mass(
+#                                          zSurfaceVoxels, labels=zSurfaceVoxels,
+#                                          index=range(1,zSurfaceVoxels.max()+1))
+
+                if labelEnds.size%2 == 0: 
+                    for i in range(labelEnds.size/2):
+                        voxelsINSIDE = np.logical_and(
+                                np.greater(zVoxels,labelEnds[i]*np.ones(sampleDimensions[2])), 
+                                np.less(zVoxels,labelEnds[i+1]*np.ones(sampleDimensions[2])))
+                                
+                        image[ix,iy,voxelsINSIDE] = 1
+                else:
+                    correctionLIST.append([ix,iy])
+    
+    
+    # USE INTERPOLATION TO FILL IN THE RAYS WHICH COULD NOT BE VOXELISED
+    #For rays where the voxelisation did not give a clear result, the ray is
+    #computed by interpolating from the surrounding rays.    
+    
+    countCORRECTIONLIST = len(correctionLIST)
+    
+      
+    if countCORRECTIONLIST>0:
+        
+        #If necessary, add a one-pixel border around the x and y edges of the
+        #array.  This prevents an error if the code tries to interpolate a ray at
+        #the edge of the x,y grid.
+        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
+        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
+        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
+        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
+    
+        if cond0 or cond1 or cond2 or cond3:
+            image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
+                                image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
+            image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
+                                image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
+            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
+                                            for i in range(len(correctionLIST)) ]
+        
+        for loopC in range(countCORRECTIONLIST):
+            voxelsforcorrection = np.squeeze( np.sum( [ 
+                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
+                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
+                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
+                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
+                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
+                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
+                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
+                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
+                ], axis=0 ) )
+            voxelsforcorrection = (voxelsforcorrection>=4)
+            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
+        
+    #Remove the one-pixel border surrounding the array, if this was added
+    #previously.
+    if image.shape[0]>sampleDimensions[0] or image.shape[1]>sampleDimensions[1]:
+        image = image[1:-1,1:-1,:]
+    
+    image[surface.astype(np.bool)]=1
+#    labels=ndimage.measurements.label(np.logical_not(voxelizedSurface))[0]
+#    inside = labels==labels[insideVoxel]    
+#    image=np.zeros(sampleDimensions).astype(np.uint8)
+#    image[inside]=255
+#    image[surface]=255
+    
+    return image    
 
 #--------------------------------------------------------------------    
 def GetSubWindowInformation(subWindowBounds,gridX,gridY,gridZ): 
@@ -518,142 +768,42 @@ def InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition):
     subwZmax = min(nVoxImage[2]-subNzMin,subNzMax-subNzMin)
     assert subwZmax>=subwZmin &  (wZmax>=wZmin)
     
-    objectImage = np.zeros(nVoxImage).astype(np.uint8)
+    objectImage = np.zeros(nVoxImage,dtype=np.uint8)
     objectImage[wXmin:wXmax,wYmin:wYmax,wZmin:wZmax] = subImage[subwXmin:subwXmax,
                                             subwYmin:subwYmax,subwZmin:subwZmax]
 
     return objectImage
     
-    
-#--------------------------------------------------------------------    
-def FillInside(voxelizedSurface,raydirection='xyz'): 
-
-    #Count the number of voxels in each direction:
-    sampleDimensions = voxelizedSurface.shape     
-    voxcountX = sampleDimensions[0]
-    voxcountY = sampleDimensions[1]
-    voxcountZ = sampleDimensions[2]
-
-    
-    # Prepare logical array to hold the voxelised data:
-    gridOUTPUT = np.zeros((voxcountX,voxcountY,voxcountZ,len(raydirection))).astype(np.bool)
-    countdirections = 0;
-    
-    if raydirection.find('x')>-1:
-      countdirections = countdirections + 1;
-      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideInternal(
-                                  np.transpose(voxelizedSurface,axes=[1,2,0])), 
-                                  axes=[2,0,1] )
-    
-    if raydirection.find('y')>-1:
-      countdirections = countdirections + 1;
-      gridOUTPUT[:,:,:,countdirections-1] = np.transpose( FillInsideInternal(
-                                  np.transpose(voxelizedSurface,axes=[2,0,1])),
-                                  axes=[1,2,0] )
-    
-    if raydirection.find('z')>-1:
-      countdirections = countdirections + 1;
-      gridOUTPUT[:,:,:,countdirections-1] = FillInsideInternal(voxelizedSurface)
-    
-    # Combine the results of each ray-tracing direction:
-    if len(raydirection)>1:
-      gridOUTPUT = np.sum(gridOUTPUT,axis=3)>=len(raydirection)/2.0
-
-    return gridOUTPUT 
-    
-#--------------------------------------------------------------------    
-def FillInsideInternal(voxelizedSurface):    
-    #Fills the inside of a voxelized closed surface. This function is inspired 
-    #by some parts of the Matlab file exchange function VOXELISE (AUTHOR  
-    #Adam H. Aitkenhead, The Christie NHS Foundation Trust) 
-
-    surface = voxelizedSurface==1
-    sampleDimensions = voxelizedSurface.shape
-    image=np.zeros(sampleDimensions).astype(np.uint8)
-    
-    correctionLIST = []
-    zVoxels=np.asarray(range(sampleDimensions[2]))
-    
-    for ix in range(sampleDimensions[0]):
-        for iy in range(sampleDimensions[1]):
-            zSurfaceVoxels=ndimage.measurements.label(surface[ix,iy,:] , structure=np.ones(3))[0]
-            
-            if zSurfaceVoxels.max()>0:
-                labelCenters=ndimage.measurements.center_of_mass(
-                                          zSurfaceVoxels, labels=zSurfaceVoxels,
-                                          index=range(1,zSurfaceVoxels.max()+1))
-
-                if zSurfaceVoxels.max()%2 == 0: 
-                    for i in range(zSurfaceVoxels.max()/2):
-                        voxelsINSIDE = np.logical_and(
-                                np.greater(zVoxels,labelCenters[i][0]*np.ones(sampleDimensions[2])), 
-                                np.less(zVoxels,labelCenters[i+1][0]*np.ones(sampleDimensions[2])))
-                                
-                        image[ix,iy,voxelsINSIDE] = 1
-                else:
-                    correctionLIST.append([ix,iy])
-    
-    
-    # USE INTERPOLATION TO FILL IN THE RAYS WHICH COULD NOT BE VOXELISED
-    #For rays where the voxelisation did not give a clear result, the ray is
-    #computed by interpolating from the surrounding rays.    
-    
-    countCORRECTIONLIST = len(correctionLIST)
-    
-      
-    if countCORRECTIONLIST>0:
-        
-        #If necessary, add a one-pixel border around the x and y edges of the
-        #array.  This prevents an error if the code tries to interpolate a ray at
-        #the edge of the x,y grid.
-        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
-        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
-        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
-        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
-    
-        if cond0 or cond1 or cond2 or cond3:
-            image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
-                                image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
-            image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
-                                image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
-            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
-                                            for i in range(len(correctionLIST)) ]
-        
-        for loopC in range(countCORRECTIONLIST):
-            voxelsforcorrection = np.squeeze( np.sum( [ 
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
-                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
-                ], axis=0 ) )
-            voxelsforcorrection = (voxelsforcorrection>=4)
-            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
-        
-    #Remove the one-pixel border surrounding the array, if this was added
-    #previously.
-    if image.shape[0]>sampleDimensions[0] or image.shape[1]>sampleDimensions[1]:
-        image = image[1:-1,1:-1,:]
-    
-    image[surface]=1
-#    labels=ndimage.measurements.label(np.logical_not(voxelizedSurface))[0]
-#    inside = labels==labels[insideVoxel]    
-#    image=np.zeros(sampleDimensions).astype(np.uint8)
-#    image[inside]=255
-#    image[surface]=255
-    
-    return image    
 
 
+
+
+#--------------------------------------------------------------------
+#      Utilities
+#--------------------------------------------------------------------
     
     
 #--------------------------------------------------------------------
 def SaveImage(image,filename):
     tff.imsave(filename,image.astype(np.uint8))
 
+    
+#--------------------------------------------------------------------
+def Test():
+#    voxelNumbers = (100,100,100)
+#    image=np.zeros(voxelNumbers).astype(np.bool)
+#    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
+#    
+#    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+#    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
+#    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
+#   
+    image = CreateVirtualActiveLayer((200,200,200),4,5000,50,200,2,30)  
+#    image = CreateVirtualGDL((200,200,100),27,4,200,10,5)
+#    image=CreateVoronoi((500,500,500),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
+#                  'fibres.txt','radius.txt','points.txt','vertices.txt')
+    SaveImage(100*(image.astype(np.uint8)),'TestCCL.tif')    
+    
     
 #--------------------------------------------------------------------
 if __name__ == "__main__":
