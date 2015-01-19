@@ -38,8 +38,8 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
             0.0, float(voxelNumbers[2]))
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
-    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)
     
     #Put cylinders according to a given random law
     for i in range(nFiber):
@@ -86,8 +86,8 @@ def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidR
             0.0, float(voxelNumbers[2]))
     
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
-    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)
     
     #Choose spherical voids between agglomerates
     void=np.zeros(voxelNumbers,dtype=np.bool)
@@ -216,7 +216,7 @@ def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,
 
 
 #--------------------------------------------------------------------
-def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,fiberFile,radiusFile,pointFile,verticeFile):
+def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed=0):
     
     print('Create Voronoi')
     
@@ -224,64 +224,76 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,fiberFile,radiusFile,point
     image=np.zeros(voxelNumbers,dtype=np.bool)
     
     gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(imageBounds[3],imageBounds[2],voxelNumbers[1]+1)
-    gridZ=np.linspace(imageBounds[5],imageBounds[4],voxelNumbers[2]+1)
+    gridY=np.linspace(imageBounds[2],imageBounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[4],imageBounds[5],voxelNumbers[2]+1)
+    
     
     #Read the positions of cylinders and balls in files
-    def readMatrix(filename,elementType):
-        f = open ( filename , 'r')
-        if elementType is 'float':
-            l = [ map(float,line.split(' ')) for line in f ]
-        else :
-            l = [ map(int,line.split(' ')) for line in f ]
-        return l
-        f.close()
-                                  
-    fibres=readMatrix(fiberFile,"int")
-    radius=readMatrix(radiusFile,"float")
-    points=readMatrix(pointFile,"float")
-    vertices=readMatrix(verticeFile,"int")
+#    def readMatrix(filename,elementType):
+#        f = open ( filename , 'r')
+#        if elementType is 'float':
+#            l = [ map(float,line.split(' ')) for line in f ]
+#        else :
+#            l = [ map(int,line.split(' ')) for line in f ]
+#        return l
+#        f.close()
+#                                  
+#    fibres=readMatrix(fiberFile,"int")
+#    radius=readMatrix(radiusFile,"float")
+#    points=readMatrix(pointFile,"float")
+#    vertices=readMatrix(verticeFile,"int")
+#    
+#    nFibre=len(fibres)
+#    nVertice=len(vertices)
+#    sphereRadii = np.zeros(len(points))  
     
-    nFibre=len(fibres)
-    nVertice=len(vertices)
-    sphereRadii = np.zeros(len(points))  
+    vertices,fibres = VoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed)
     
+#    xCoord = [vertices[i][0] for i in range(nPoint)]
+#    xmin,xmax = min(xCoord),max(xCoord)
+#    yCoord = [vertices[i][1] for i in range(nPoint)]
+#    ymin,ymax = min(yCoord),max(yCoord)    
+#    zCoord = [vertices[i][2] for i in range(nPoint)]
+#    zmin,zmax = min(zCoord),max(zCoord)    
+#    
+#    subWindowBounds = (xmin,xmax,ymin,ymax,zmin,zmax)   
+#    
+#    nVoxSubImage,boundSubgrid,gridRelativePosition = GetSubWindowInformation(
+#                                            subWindowBounds,gridX,gridY,gridZ)
+#    
+#    subgridX=np.linspace(boundSubgrid[0],boundSubgrid[1],nVoxSubImage[0]+1)
+#    subgridY=np.linspace(boundSubgrid[2],boundSubgrid[3],nVoxSubImage[1]+1)
+#    subgridZ=np.linspace(boundSubgrid[4],boundSubgrid[5],nVoxSubImage[2]+1)    
+#    
+    nVertice, nFibre = len(vertices),len(fibres)
     #Add cylinders and balls to the structure image
-    print nFibre
-    print nVertice
+    print(str(nFibre)+' fibers')
+    print(str(nVertice)+' vertices')
     
     for iFibre in range(nFibre):
-        
-        iPoint1=fibres[iFibre][1]
-        iPoint2=fibres[iFibre][2]
-        origin=np.array(points[iPoint1])
-        end=np.array(points[iPoint2])
-        thisRadius=4*radius[iPoint1][0]
+        print iFibre,         
+        iPoint1=fibres[iFibre][0]
+        iPoint2=fibres[iFibre][1]
+        origin=np.array(vertices[iPoint1])
+        end=np.array(vertices[iPoint2])
         height=np.linalg.norm(end-origin)
         axis=end-origin
         center=tuple((end+origin)/2)
-      
-        mesh = CreateCylinder(center,axis,thisRadius,height)
+        mesh = CreateCylinder(center,axis,fiberRadius,height)
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
-        
-        #construction of radii of the sperical capings of cylinders
-        sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
-        sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
       
-    sphereRadii=sphereRadii.max()*np.ones(len(points))  
+      
     #spherical capings of cylinders      
     for iVertice in range(nVertice):
+        center = vertices[iVertice]
         
-        iPoint = vertices[iVertice][1]-1
-        thisRadius = sphereRadii[iPoint]
-        center = tuple(points[iPoint])
-        
-        mesh = CreateBall(center,thisRadius)
+        mesh = CreateBall(tuple(center),fiberRadius)
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
 
-
+    #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)
+    
     return image
 
 #--------------------------------------------------------------------
@@ -302,8 +314,8 @@ def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
             0.0, float(voxelNumbers[1]), 
             0.0, float(voxelNumbers[2]))
     gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(imageBounds[3],imageBounds[2],voxelNumbers[1]+1)
-    gridZ=np.linspace(imageBounds[5],imageBounds[4],voxelNumbers[2]+1)
+    gridY=np.linspace(imageBounds[2],imageBounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[4],imageBounds[5],voxelNumbers[2]+1)
     
     holeAxis=(0,0,1)    
     
@@ -515,8 +527,8 @@ def CreateVoxelizedBallFast(center,radius,imageVoxelNumber,imageBounds):
     
     bounds = imageBounds
     gridX=np.linspace(bounds[0],bounds[1],imageVoxelNumber[0]+1)
-    gridY=np.linspace(bounds[3],bounds[2],imageVoxelNumber[1]+1)
-    gridZ=np.linspace(bounds[5],bounds[4],imageVoxelNumber[2]+1)    
+    gridY=np.linspace(bounds[2],bounds[3],imageVoxelNumber[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],imageVoxelNumber[2]+1)    
     
     #Prepare a subwindows zooming on the object
     subWindowBound = (center[0]-2*radius,center[0]+2*radius,
@@ -884,6 +896,55 @@ def SaveImage(image,filename):
     tff.imsave(filename,image.astype(np.uint8))
 
 
+#--------------------------------------------------------------------
+def VoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):    
+    from scipy.spatial import Voronoi
+    import numpy as np
+    
+    random.seed(randomSeed)
+    assert anisotropy>0
+    
+    points=[]
+    for i in range(nPoint):
+        points.append([random.uniform(imageBounds[0], imageBounds[1]),
+                  random.uniform(imageBounds[2], imageBounds[3]),
+                  random.uniform(imageBounds[4], imageBounds[5])] )
+    
+    zCoord = [points[i][2] for i in range(nPoint)]
+    zmin = min(zCoord)
+    
+    points=[[points[i][0],points[i][1],((points[i][2]-zmin)*anisotropy+zmin)] 
+                                                            for i in range(nPoint)]
+    
+    vor = Voronoi(points)
+    
+    vertices = vor.vertices
+    nVertice = len(vertices)
+    vertices=[[vertices[i][0],vertices[i][1],((vertices[i][2]-zmin)/anisotropy+zmin)] 
+                                                          for i in range(nVertice)]
+    
+    #remove vertices outside imageBounds
+    isinside = [(vertices[i][0]>=imageBounds[0]) & (vertices[i][0]<=imageBounds[1]) &
+                (vertices[i][1]>=imageBounds[2]) & (vertices[i][1]<=imageBounds[3]) &
+                (vertices[i][2]>=imageBounds[4]) & (vertices[i][2]<=imageBounds[5]) 
+                for i in range(nVertice) ]
+     
+    vertices = [vertices[i] for i in range(nVertice) if isinside[i]]
+    oldNum = [i for i in range(nVertice) if isinside[i]]
+    newNum = np.zeros(nVertice,dtype=np.uint)    
+    newNum[np.asarray(oldNum)]=np.arange(0,len(oldNum))   
+    
+    #Get edges
+    ridges = vor.ridge_vertices
+    fibres = [ sorted([ridges[i][j],ridges[i][(j+1)%len(ridges[i])]]) 
+                for i in range(len(ridges)) for j in range(len(ridges[i]))]
+    goodfibre=[(fibres[i][0]!=-1) & (isinside[fibres[i][0]]) & (isinside[fibres[i][1]])
+                        for i in range(len(fibres))]            
+    fibres = [[newNum[fibres[i][0]],newNum[fibres[i][1]]] 
+                            for i in range(len(fibres)) if goodfibre[i]]
+    fibres = np.array([np.array(x) for x in set(tuple(x) for x in fibres)])
+     
+    return vertices, fibres
 
 #--------------------------------------------------------------------
 #      Tests
@@ -903,8 +964,13 @@ def Test():
     
 #--------------------------------------------------------------------    
 def TestVirtualVoronoi():    
-    image=CreateVirtualVoronoiFoam((400,400,400),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
-                  'fibres.txt','radius.txt','points.txt','vertices.txt')
+    voxelNumbers=(200,200,200)
+    imageBounds = (0.0,1.0,0.0,1.0,0.0,1.0)
+    nPoint=100
+    fiberRadius=0.04
+    anisotropy=3
+    randomSeed=0
+    image=CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed)
     SaveImage(255*(image.astype(np.uint8)),'TestVoronoi.tif')
 
 #--------------------------------------------------------------------
