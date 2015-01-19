@@ -14,7 +14,7 @@ from skimage import feature
 import mahotas
 
 
-def ExtractNetwork(inputFileName,outputFileName,hContrast):
+def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidean'):
 
     structuringElement = np.ones((3,3,3))
     
@@ -27,7 +27,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast):
     print('PoresWatershedSegmentation')
     pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,
                                                 structuringElement,hContrast,
-                                                distance='euclidean')
+                                                distanceType)
     
     print('FindLinks')
     links=FindLinks(myImg,pores,watershedLines,structuringElement)

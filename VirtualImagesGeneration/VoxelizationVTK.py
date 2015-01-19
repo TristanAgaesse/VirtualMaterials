@@ -257,9 +257,6 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,fiberFile,radiusFile,point
         origin=np.array(points[iPoint1])
         end=np.array(points[iPoint2])
         thisRadius=4*radius[iPoint1][0]
-        #construction of radii of the sperical capings of cylinders
-        sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
-        sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
         height=np.linalg.norm(end-origin)
         axis=end-origin
         center=tuple((end+origin)/2)
@@ -267,8 +264,12 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,fiberFile,radiusFile,point
         mesh = CreateCylinder(center,axis,thisRadius,height)
         objImage=Voxelize(mesh,gridX,gridY,gridZ)
         image=np.logical_or(image,objImage)
+        
+        #construction of radii of the sperical capings of cylinders
+        sphereRadii[iPoint1]=max(thisRadius,sphereRadii[iPoint1])
+        sphereRadii[iPoint2]=max(thisRadius,sphereRadii[iPoint2])
       
-      
+    sphereRadii=sphereRadii.max()*np.ones(len(points))  
     #spherical capings of cylinders      
     for iVertice in range(nVertice):
         
@@ -882,7 +883,12 @@ def InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition):
 def SaveImage(image,filename):
     tff.imsave(filename,image.astype(np.uint8))
 
-    
+
+
+#--------------------------------------------------------------------
+#      Tests
+#--------------------------------------------------------------------
+     
 #--------------------------------------------------------------------
 def Test():
 #    voxelNumbers = (100,100,100)
@@ -893,13 +899,28 @@ def Test():
 #    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
 #    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
 #   
-    #image = CreateVirtualCatalystLayer((200,200,200),4,5000,50,200,2,30)  
-#    image = CreateVirtualGDL((200,200,100),27,4,200,10,5)
-#    image=CreateVoronoi((500,500,500),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
-#                  'fibres.txt','radius.txt','points.txt','vertices.txt')
-    #SaveImage(100*(image.astype(np.uint8)),'TestCCL.tif')    
-    mesh = CreateRandomHills()
-    VisualizeMesh(mesh)
+    return 1  
+    
+#--------------------------------------------------------------------    
+def TestVirtualVoronoi():    
+    image=CreateVirtualVoronoiFoam((400,400,400),(-0.0002,0.0012,-0.0002,0.0012,-0.0002,0.0012),
+                  'fibres.txt','radius.txt','points.txt','vertices.txt')
+    SaveImage(255*(image.astype(np.uint8)),'TestVoronoi.tif')
+
+#--------------------------------------------------------------------
+def TestVirtualGDL():
+    image = CreateVirtualGDL((200,200,100),27,4,200,10,5) 
+    SaveImage(100*(image.astype(np.uint8)),'TestGDL.tif')
+    
+#--------------------------------------------------------------------    
+def TestVirtualCCL():
+    image = CreateVirtualCatalystLayer((200,200,200),4,5000,50,200,2,30)
+    SaveImage(100*(image.astype(np.uint8)),'TestCCL.tif')
+    
+    
+    
+    
+    
 #--------------------------------------------------------------------
 if __name__ == "__main__":
-    Test()
+    TestVirtualVoronoi()
