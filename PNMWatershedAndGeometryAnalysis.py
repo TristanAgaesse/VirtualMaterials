@@ -17,28 +17,31 @@ import mahotas
 def ExtractNetwork(inputFileName,outputFileName,hContrast):
 
     structuringElement = np.ones((3,3,3))
-
+    
+    #Load image
     myImg=skimio.MultiImage(inputFileName)
     myImg=myImg.concatenate()
     myImg=myImg.swapaxes(0,2).astype(np.bool)
     
+    #Perform network extraction
     print('PoresWatershedSegmentation')
-    pores,watershedLines,distanceMap = PoresWatershedSegmentation(
-                                            myImg,structuringElement,hContrast)
+    pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,
+                                                structuringElement,hContrast,
+                                                distance='euclidean')
     
     print('FindLinks')
-    links=FindLinks(myImg,pores,watershedLines,structuringElement.astype(np.bool))
+    links=FindLinks(myImg,pores,watershedLines,structuringElement)
     
-    print('AnalysePoresSegmentationGeometry')
-    PNMGeometricData, links = AnalysePoresSegmentationGeometry(
-                                            myImg,structuringElement,
-                                            pores,links,distanceMap)
+    
+    print('AnalyseElementsGeometry')
+    PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
+    
     
     print('BuildConnectivityTables') 
     interfaceToPore = BuildConnectivityTables(pores,links);    
 
+    #Save results
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
-    #PNMGeometricData.update({'pores':pores,'watershedLines':watershedLines})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     hdf5storage.savemat(inputFileName+"_reshaped.mat",{'myImage':myImg.astype(np.bool)})
     
@@ -46,22 +49,30 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast):
 
 
 #----------------------------------------------------------------------------------------------
-def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
+def PoresWatershedSegmentation(myImg,structuringElement,hContrast,distance='euclidean'):
     
     #calcul de la carte de distanceMap
-    distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
+    if distance=='euclidean':
+        memoryType=np.float16
+        distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)
+                                                    ).astype(memoryType)
+    elif distance=='chamfer':
+        memoryType=np.int8
+        distanceMap = ndimage.distance_transform_cdt(np.logical_not(myImg),
+                                        metric='chessboard').astype(memoryType)
+    
     
     #Choix des marqueurs pour la segmentation (centres des pores) : H-maxima :
     #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise une 
     #recontruction morphologique pour construire la carte de distance étêtée.
     hContrast=hContrast
     reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
-                                            ).astype(np.float16)
+                                            ).astype(memoryType)
     
-    if hContrast>0.1:
+    if hContrast>0:
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
     else:
-        local_maxi= feature.peak_local_max(distanceMap.astype(np.int8), 
+        local_maxi= feature.peak_local_max(distanceMap.astype(memoryType), 
                                            min_distance=10, indices=False)
         
     del reconstructed
@@ -86,28 +97,20 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast) :
     
 
 #----------------------------------------------------------------------------------------------
-def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distanceMap):
+def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
      
 
-    structuringElement=structuringElement.astype(np.int)
-    links_label=ndimage.label(links,structure=structuringElement)[0]
-    
-    
     # Infos sur la forme, position des liens internes
     links_center_arg=ndimage.measurements.maximum_position(
-                                            distanceMap, links_label,
-                                            range(1,links_label.max()+1))
+                                            distanceMap, links,
+                                            range(1,links.max()+1))
                                             
     links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))   
     
     linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(
-                                            distanceMap, links_label, 
-                                            range(1,links_label.max()+1),
+                                            distanceMap, links, 
+                                            range(1,links.max()+1),
                                             max,np.float16,0)    
-    
-    
-    # Dilatation des liens internes
-    links=ndimage.morphology.grey_dilation(links_label,  size=(3,3,3))
     
     
     # Infos sur la forme, position des pores
@@ -120,7 +123,6 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distan
                                             np.size,np.int32,0)
     
     PNMGeometricData=dict()
-    #PNMGeometricData['imageLiensDilates']=links
     PNMGeometricData['internalLinkDiameters']=linkDiameterDistanceMap.astype(np.float32)
     PNMGeometricData['internalLinkBarycenters']=links_center
     PNMGeometricData['poreCenters']=pores_center
@@ -167,7 +169,7 @@ def AnalysePoresSegmentationGeometry(myImg,structuringElement,pores,links,distan
         PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap.astype(np.float32)
       
       
-    return PNMGeometricData,links
+    return PNMGeometricData
 
 
 #----------------------------------------------------------------------------------------------
@@ -191,7 +193,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     links=np.logical_and(watershedLines,np.logical_not(myImage))
     
 #    indices=links.ravel().nonzero()[0]
-#   
+#    structuringElement=structuringElement.astype(np.bool)
 #    for i in range(indices.size):
 #        ind=indices[i]
 #        (x,y,z)=np.unravel_index(ind,imageSize)
@@ -201,23 +203,27 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #
 #    assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
 
+    structuringElement=structuringElement.astype(np.int)
+    links=ndimage.label(links,structure=structuringElement)[0]
+
     return links
 
 #----------------------------------------------------------------------------------------------
  
 def BuildConnectivityTables(poresImage,internalLinkImage):
     
-    nInterface=internalLinkImage.max()
-#    nPores=poresImage.max()
-    #nVoxelsInterface=internalLinkImage.size()
-    #reshapedInterface=reshape(internalLinkImage,[1,nVoxelsInterface])
-    #[sortedInterface,orderInterface]=sort(reshapedInterface)
+    # Dilation of internal links
+    internalLinkImage=ndimage.morphology.grey_dilation(internalLinkImage,  size=(3,3,3))    
+    
+    # Sorting links image for fast access to links voxels
     orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
     sortedInterface=internalLinkImage.flatten()[orderInterface]
+    labelEnds=np.flatnonzero(np.roll(sortedInterface,-1)-sortedInterface)
     
-    labelEnds=np.flatnonzero(np.roll(sortedInterface,1)-sortedInterface)
+    nInterface=internalLinkImage.max()
     assert(labelEnds.size == nInterface+1)    
-
+    
+    # Finding intersections between pores and dilated links
     interfaceToPore = [] 
     for j in range(1,nInterface+1):
         
