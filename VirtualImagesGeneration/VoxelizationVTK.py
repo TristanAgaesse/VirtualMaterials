@@ -966,8 +966,8 @@ def Test():
 def TestVirtualVoronoi():    
     voxelNumbers=(200,200,200)
     imageBounds = (0.0,1.0,0.0,1.0,0.0,1.0)
-    nPoint=100
-    fiberRadius=0.04
+    nPoint=200
+    fiberRadius=0.05
     anisotropy=3
     randomSeed=0
     image=CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed)

@@ -11,7 +11,7 @@ from skimage import io as skimio
 from skimage import morphology
 from skimage import feature
 import mahotas
-
+import tifffile as tff
 
 def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidean'):
 
@@ -28,10 +28,12 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
                                                 structuringElement,hContrast,
                                                 distanceType)
     
+    tff.imsave(outputFileName+'_testPores.tiff',(pores.astype(np.uint32)))
+    
     print('FindLinks')
     links,interfaceToPore=FindLinksNew(myImg,pores,watershedLines,structuringElement)
-    import tifffile as tff
-    tff.imsave(outputFileName+'_testLinks.tiff',links)
+    
+    tff.imsave(outputFileName+'_testLinks.tiff',links.astype(np.uint32))
     
     print('AnalyseElementsGeometry')
     PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
@@ -300,7 +302,9 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
     interfaceToPore=[ [[ re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1],
                         re.search('(?<=_)\w+', mykeys[i]).group(0)],[10,10]] 
                         for i in range(len(mykeys))  ]
-            
+    
+    links=links.astype(np.uint)
+        
     for i in range(len(linksToPores)):
         for j in range(len(linksToPores[i])):
             ind=linksToPores[i][j]
@@ -355,10 +359,10 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
 #    
 #----------------------------------------------------------------------------------------------
 def Test():
-    inputfile='PSI_sampleDrainage_635.tif'
-    outputfile='datatest_635_4'
-    hContrast=4
-    ExtractNetwork(inputfile,outputfile,hContrast,distanceType='chamfer')
+    inputfile='VirtualImagesGeneration/TestVoronoi.tif'
+    outputfile='datatest'
+    hContrast=2
+    ExtractNetwork(inputfile,outputfile,hContrast,distanceType='euclidean')
 
 #----------------------------------------------------------------------------------------------
 
