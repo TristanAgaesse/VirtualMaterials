@@ -6,7 +6,6 @@ Created on Mon Nov 10 09:39:57 2014
 """
 import numpy as np
 import hdf5storage
-import math
 from scipy import ndimage
 from skimage import io as skimio
 from skimage import morphology
@@ -30,15 +29,16 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
                                                 distanceType)
     
     print('FindLinks')
-    links=FindLinks(myImg,pores,watershedLines,structuringElement)
-    
+    links,interfaceToPore=FindLinksNew(myImg,pores,watershedLines,structuringElement)
+    import tifffile as tff
+    tff.imsave(outputFileName+'_testLinks.tiff',links)
     
     print('AnalyseElementsGeometry')
     PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
     
     
-    print('BuildConnectivityTables') 
-    interfaceToPore = BuildConnectivityTables(pores,links);    
+    #print('BuildConnectivityTables') 
+    #interfaceToPore = BuildConnectivityTables(pores,links);    
 
     #Save results
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
@@ -183,9 +183,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     assert watershedLines.shape == imageSize
         
     #structuring element size
-#    foo=structuringElement.shape
-###    assert(isequal(foo,foo(1)*ones(1,3)) && rem(foo(1),2)==1,'Wrong size of structuring element');
-#    seSize=int(math.floor(foo[1]/2))
+#    seSize=int(np.shape(structuringElement)[1]//2)
 #    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
 #    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
 #    watershedLines[sideBandes]=0
@@ -209,48 +207,158 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     return links
 
 #----------------------------------------------------------------------------------------------
+#def BuildConnectivityTables(poresImage,internalLinkImage):
+#    
+#    # Dilation of internal links
+#    internalLinkImage=ndimage.morphology.grey_dilation(internalLinkImage,  size=(3,3,3))    
+#    
+#    # Sorting links image for fast access to links voxels
+#    orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
+#    sortedInterface=internalLinkImage.flatten()[orderInterface]
+#    labelEnds=np.flatnonzero(np.roll(sortedInterface,-1)-sortedInterface)
+#    
+#    nInterface=internalLinkImage.max()
+#    assert(labelEnds.size == nInterface+1)    
+#    
+#    # Finding intersections between pores and dilated links
+#    interfaceToPore = [] 
+#    for j in range(1,nInterface+1):
+#        
+#        intersection = poresImage.flatten()[orderInterface[labelEnds[j-1]+1:
+#                                                           labelEnds[j]+1]] 
+#        assert intersection.size>0                                                   
+#        intersectedPores=np.unique(intersection[intersection>0])
+#        if intersectedPores.size>0:        
+#            sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
+#                                        intersection, intersection, 
+#                                        intersectedPores,np.size,np.int32,0
+#                                        )
+#        else:
+#            sizeIntersectionPores=[]
+#        interfaceToPore.append([intersectedPores,sizeIntersectionPores])
+#
+#
+#    return interfaceToPore
+    
  
-def BuildConnectivityTables(poresImage,internalLinkImage):
+#---------------------------------------------------------------------------------------------- 
+def FindLinksNew(myImage,pores,watershedLines,structuringElement):
+    #Trouve les liens. Algorithme :
+    #1) Attribuer à chaque voxel de watershedLines un lien s'il a exactement deux 
+    #pores voisins.
+    #2) Les autres voxels de watershedlines sont attribués au lien le plus représenté
+    #dans les voxels voisins
+
+
+
+    #1) Trouver les pores voisins de chaque voxel de watershed line
     
-    # Dilation of internal links
-    internalLinkImage=ndimage.morphology.grey_dilation(internalLinkImage,  size=(3,3,3))    
+    imageSize=pores.shape
+    assert myImage.shape == watershedLines.shape == imageSize
     
-    # Sorting links image for fast access to links voxels
-    orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
-    sortedInterface=internalLinkImage.flatten()[orderInterface]
-    labelEnds=np.flatnonzero(np.roll(sortedInterface,-1)-sortedInterface)
+        #Side bands to avoid unexpected boundary effects
+    seSize=int(np.shape(structuringElement)[1]//2)
+    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
+    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
+    watershedLines[sideBandes]=0
     
-    nInterface=internalLinkImage.max()
-    assert(labelEnds.size == nInterface+1)    
+        #Remove useless parts of watershedLines
+    links=np.logical_and(watershedLines,np.logical_not(myImage))
     
-    # Finding intersections between pores and dilated links
-    interfaceToPore = [] 
-    for j in range(1,nInterface+1):
-        
-        intersection = poresImage.flatten()[orderInterface[labelEnds[j-1]+1:
-                                                           labelEnds[j]+1]] 
-        assert intersection.size>0                                                   
-        intersectedPores=np.unique(intersection[intersection>0])
-        if intersectedPores.size>0:        
-            sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
-                                        intersection, intersection, 
-                                        intersectedPores,np.size,np.int32,0
-                                        )
+        #Boucle sur les voxels de watershedlines pour trouver leurs pores voisins
+    indices=links.ravel().nonzero()[0]
+    structuringElement=structuringElement.astype(np.bool)
+    linksToPores=[]    
+    correctionList=[]
+    for i in range(indices.size):
+        ind=indices[i]
+        (x,y,z)=np.unravel_index(ind,imageSize)
+        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
+        nonzeroPores=np.setdiff1d(localPores[structuringElement],[0])
+        poresNum = np.unique(nonzeroPores)
+        if poresNum.size == 2:
+            #Add to links pore1,pore2
+            linksToPores.append([[min(poresNum),max(poresNum)],ind])
         else:
-            sizeIntersectionPores=[]
-        interfaceToPore.append([intersectedPores,sizeIntersectionPores])
+            #Add to correctionList
+            correctionList.append(ind)
+            
+    mydict={}        
+    for i in range(len(linksToPores)):
+        if not (linksToPores[i] is None):
+            key=str(linksToPores[i][0][0])+'_'+str(linksToPores[i][0][1])
+            if key not in mydict:
+                mydict[key] = [linksToPores[i][1]]
+            else:
+                mydict[key].append(linksToPores[i][1])
+                                                
+    mykeys= mydict.keys()                                           
+    
+    linksToPores=[mydict[keyx] for keyx in mykeys]
+    
+    import re    
+    interfaceToPore=[ [[ re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1],
+                        re.search('(?<=_)\w+', mykeys[i]).group(0)],[10,10]] 
+                        for i in range(len(mykeys))  ]
+            
+    for i in range(len(linksToPores)):
+        for j in range(len(linksToPores[i])):
+            ind=linksToPores[i][j]
+            (x,y,z)=np.unravel_index(ind,imageSize)
+            links[x,y,z] = i+1
+    
+    
+         
+    return links, interfaceToPore 
+
+                      
+    #2) Trouver les lien le plus présent parmis les voisins des voxels restants
 
 
-    return interfaceToPore
+#  countCORRECTIONLIST = len(correctionLIST)
     
-    
-    
+     
+#    if countCORRECTIONLIST>0:
+#        
+#        #If necessary, add a one-pixel border around the x and y edges of the
+#        #array.  This prevents an error if the code tries to interpolate a ray at
+#        #the edge of the x,y grid.
+#        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
+#        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))]
+#                                                    )==sampleDimensions[0]-1
+#        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
+#        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))]
+#                                                    )==sampleDimensions[1]-1
+#    
+#        if cond0 or cond1 or cond2 or cond3:
+#            image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
+#                                image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
+#            image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
+#                                image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
+#            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
+#                                            for i in range(len(correctionLIST)) ]
+#        
+#        for loopC in range(countCORRECTIONLIST):
+#            voxelsforcorrection = np.squeeze( np.max( [ 
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
+#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
+#                ], axis=0 ) )
+#            voxelsforcorrection = (voxelsforcorrection>=4)
+#            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
+#        
+#    
 #----------------------------------------------------------------------------------------------
 def Test():
     inputfile='PSI_sampleDrainage_635.tif'
     outputfile='datatest_635_4'
     hContrast=4
-    ExtractNetwork(inputfile,outputfile,hContrast)
+    ExtractNetwork(inputfile,outputfile,hContrast,distanceType='chamfer')
 
 #----------------------------------------------------------------------------------------------
 
