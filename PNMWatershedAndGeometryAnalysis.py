@@ -7,21 +7,23 @@ Created on Mon Nov 10 09:39:57 2014
 import numpy as np
 import hdf5storage
 from scipy import ndimage
-from skimage import io as skimio
+#from skimage import io as skimio
 from skimage import morphology
 from skimage import feature
 import mahotas
+import os, sys
+sys.path.append(os.getcwd()) 
 import tifffile as tff
 
 def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidean'):
 
     structuringElement = np.ones((3,3,3))
     
-    #Load image
+    #Load image from disk
+    myImg=tff.imread(inputFileName).astype(np.bool)    
 #    myImg=skimio.MultiImage(inputFileName)
 #    myImg=myImg.concatenate()
 #    myImg=myImg.swapaxes(0,2).astype(np.bool)
-    myImg=tff.imread(inputFileName).astype(np.bool)
     
     #Perform network extraction
     print('PoresWatershedSegmentation')
@@ -29,12 +31,12 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
                                                 structuringElement,hContrast,
                                                 distanceType)
     
-    tff.imsave(outputFileName+'_testPores.tiff',(pores.astype(np.uint32)))
+    #tff.imsave(outputFileName+'_testPores.tiff',(pores.astype(np.uint32)))
     
     print('FindLinks')
-    links,interfaceToPore=FindLinksNew(myImg,pores,watershedLines,structuringElement)
+    links,interfaceToPore=FindLinks(myImg,pores,watershedLines,structuringElement)
     
-    tff.imsave(outputFileName+'_testLinks.tiff',links.astype(np.uint32))
+    #tff.imsave(outputFileName+'_testLinks.tiff',links.astype(np.uint32))
     
     print('AnalyseElementsGeometry')
     PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
@@ -43,7 +45,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
     #print('BuildConnectivityTables') 
     #interfaceToPore = BuildConnectivityTables(pores,links);    
 
-    #Save results
+    print('Saving results to disk')
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     hdf5storage.savemat(inputFileName+"_reshaped.mat",{'myImage':myImg.astype(np.bool)})
@@ -175,77 +177,9 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
     return PNMGeometricData
 
 
-#----------------------------------------------------------------------------------------------
-def FindLinks(myImage,pores,watershedLines,structuringElement):
-#FindLinks  Trouve les parties de watershed qui sont entre deux pores
-#Input: myImage,pores,watershedLines,structuringElement
-#Output : links
-        
-    imageSize=pores.shape
-    assert myImage.shape == imageSize
-    assert watershedLines.shape == imageSize
-        
-    #structuring element size
-#    seSize=int(np.shape(structuringElement)[1]//2)
-#    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
-#    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
-#    watershedLines[sideBandes]=0
-#   
-    links=np.logical_and(watershedLines,np.logical_not(myImage))
-    
-#    indices=links.ravel().nonzero()[0]
-#    structuringElement=structuringElement.astype(np.bool)
-#    for i in range(indices.size):
-#        ind=indices[i]
-#        (x,y,z)=np.unravel_index(ind,imageSize)
-#        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
-#        if np.setdiff1d(np.unique(localPores[structuringElement]),[0]).size > 2 :
-#            links[x,y,z]=False
-#
-#    assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
 
-    structuringElement=structuringElement.astype(np.int)
-    links=ndimage.label(links,structure=structuringElement)[0]
-
-    return links
-
-#----------------------------------------------------------------------------------------------
-#def BuildConnectivityTables(poresImage,internalLinkImage):
-#    
-#    # Dilation of internal links
-#    internalLinkImage=ndimage.morphology.grey_dilation(internalLinkImage,  size=(3,3,3))    
-#    
-#    # Sorting links image for fast access to links voxels
-#    orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
-#    sortedInterface=internalLinkImage.flatten()[orderInterface]
-#    labelEnds=np.flatnonzero(np.roll(sortedInterface,-1)-sortedInterface)
-#    
-#    nInterface=internalLinkImage.max()
-#    assert(labelEnds.size == nInterface+1)    
-#    
-#    # Finding intersections between pores and dilated links
-#    interfaceToPore = [] 
-#    for j in range(1,nInterface+1):
-#        
-#        intersection = poresImage.flatten()[orderInterface[labelEnds[j-1]+1:
-#                                                           labelEnds[j]+1]] 
-#        assert intersection.size>0                                                   
-#        intersectedPores=np.unique(intersection[intersection>0])
-#        if intersectedPores.size>0:        
-#            sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
-#                                        intersection, intersection, 
-#                                        intersectedPores,np.size,np.int32,0
-#                                        )
-#        else:
-#            sizeIntersectionPores=[]
-#        interfaceToPore.append([intersectedPores,sizeIntersectionPores])
-#
-#
-#    return interfaceToPore
-    
- 
 #---------------------------------------------------------------------------------------------- 
-def FindLinksNew(myImage,pores,watershedLines,structuringElement):
+def FindLinks(myImage,pores,watershedLines,structuringElement):
     #Trouve les liens. Algorithme :
     #1) Attribuer à chaque voxel de watershedLines un lien s'il a exactement deux 
     #pores voisins.
@@ -308,11 +242,8 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
         linksToPores=[[[min(U[i]),max(U[i])],indices[i]] for i in range(nVox) if len(U[i])==2]
         correctionList=[indices[i] for i in range(nVox) if len(U[i])!=2]
         return linksToPores,correctionList
-    
-    
-    linksToPores,correctionList=StudyNeighbourhood(pores,indices,structuringElement,imageSize)
-    
-    
+
+
     def FillDict(linksToPores):
         mydict={}
         key=[[str(linksToPores[i][0][0])+'_'+str(linksToPores[i][0][1]),i] 
@@ -332,12 +263,7 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
     #            mydict[thiskey].append(linksToPores[oldnum][1])
         return mydict
                          
-                         
-    mydict=FillDict(linksToPores)
-    #linksToPores=[mydict[keyx] for keyx in mykeys]
-    
-    links=links.astype(np.int)
-    
+
     def LabelLinks(mydict,links,imageSize):
         mykeys= mydict.keys()     
         for iLink in range(len(mykeys)):
@@ -349,24 +275,30 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
     #            ind=linksToPores[iLink][j]
     #            (x,y,z)=np.unravel_index(ind,imageSize)
     #            links[x,y,z] = iLink+1
-            
-            
-    links=LabelLinks(mydict,links,imageSize)
      
     def BuildInterfaceToPore(mydict) :
         mykeys= mydict.keys()
         import re    
-        interfaceToPore=[ [[ int(re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1]),
-                            int(re.search('(?<=_)\w+', mykeys[i]).group(0))],[10,10]] 
-                            for i in range(len(mykeys))  ]
+        interfaceToPore=np.asarray([ [ int(re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1]),
+                            int(re.search('(?<=_)\w+', mykeys[i]).group(0))] 
+                            for i in range(len(mykeys))  ])
         return interfaceToPore                         
     
     
-    interfaceToPore=BuildInterfaceToPore(mydict)
     
-    return links, interfaceToPore 
+    linksToPores,correctionList=StudyNeighbourhood(pores,indices,
+                                                   structuringElement,imageSize)
 
-                      
+    mydict=FillDict(linksToPores)
+    
+    links=links.astype(np.int)
+    
+    links=LabelLinks(mydict,links,imageSize)
+    
+    interfaceToPore=BuildInterfaceToPore(mydict)
+               
+               
+               
     #2) Trouver les lien le plus présent parmis les voisins des voxels restants
 
 
@@ -406,12 +338,100 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
 #                ], axis=0 ) )
 #            voxelsforcorrection = (voxelsforcorrection>=4)
 #            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
+ 
+    return links, interfaceToPore
+ 
+
+    
+     
+#     
+##----------------------------------------------------------------------------------------------
+#def FindLinks(myImage,pores,watershedLines,structuringElement):
+##FindLinks  Trouve les parties de watershed qui sont entre deux pores
+##Input: myImage,pores,watershedLines,structuringElement
+##Output : links
 #        
+#    imageSize=pores.shape
+#    assert myImage.shape == imageSize
+#    assert watershedLines.shape == imageSize
+#        
+#    #structuring element size
+##    seSize=int(np.shape(structuringElement)[1]//2)
+##    sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
+##    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
+##    watershedLines[sideBandes]=0
+##   
+#    links=np.logical_and(watershedLines,np.logical_not(myImage))
 #    
+##    indices=links.ravel().nonzero()[0]
+##    structuringElement=structuringElement.astype(np.bool)
+##    for i in range(indices.size):
+##        ind=indices[i]
+##        (x,y,z)=np.unravel_index(ind,imageSize)
+##        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
+##        if np.setdiff1d(np.unique(localPores[structuringElement]),[0]).size > 2 :
+##            links[x,y,z]=False
+##
+##    assert np.count_nonzero(links[np.logical_not(watershedLines.astype(np.bool))])==0
+#
+#    structuringElement=structuringElement.astype(np.int)
+#    links=ndimage.label(links,structure=structuringElement)[0]
+#
+#    return links
+
+#----------------------------------------------------------------------------------------------
+#def BuildConnectivityTables(poresImage,internalLinkImage):
+#    
+#    # Dilation of internal links
+#    internalLinkImage=ndimage.morphology.grey_dilation(internalLinkImage,  size=(3,3,3))    
+#    
+#    # Sorting links image for fast access to links voxels
+#    orderInterface=np.argsort(internalLinkImage, axis=None, kind='quicksort', order=None)
+#    sortedInterface=internalLinkImage.flatten()[orderInterface]
+#    labelEnds=np.flatnonzero(np.roll(sortedInterface,-1)-sortedInterface)
+#    
+#    nInterface=internalLinkImage.max()
+#    assert(labelEnds.size == nInterface+1)    
+#    
+#    # Finding intersections between pores and dilated links
+#    interfaceToPore = [] 
+#    for j in range(1,nInterface+1):
+#        
+#        intersection = poresImage.flatten()[orderInterface[labelEnds[j-1]+1:
+#                                                           labelEnds[j]+1]] 
+#        assert intersection.size>0                                                   
+#        intersectedPores=np.unique(intersection[intersection>0])
+#        if intersectedPores.size>0:        
+#            sizeIntersectionPores=ndimage.measurements.labeled_comprehension(
+#                                        intersection, intersection, 
+#                                        intersectedPores,np.size,np.int32,0
+#                                        )
+#        else:
+#            sizeIntersectionPores=[]
+#        interfaceToPore.append([intersectedPores,sizeIntersectionPores])
+#
+#
+#    return interfaceToPore
+    
+      
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
 #----------------------------------------------------------------------------------------------
 def Test():
     inputfile='PSI_sampleDrainage_635.tif'
-    outputfile='watershedTest_635h2'
+    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_635h2.mat'
     hContrast=2
     ExtractNetwork(inputfile,outputfile,hContrast,distanceType='chamfer')
 

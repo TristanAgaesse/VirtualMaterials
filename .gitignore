@@ -216,3 +216,5 @@ pip-log.txt
 .mr.developer.cfg
 VirtualImagesGeneration/test2.tif
 VirtualImagesGeneration/test1.tif
+PSI_sampleDrainage_635.tif
+PSI_sampleDrainage_635.tif_reshaped.mat
