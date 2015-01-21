@@ -18,9 +18,10 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
     structuringElement = np.ones((3,3,3))
     
     #Load image
-    myImg=skimio.MultiImage(inputFileName)
-    myImg=myImg.concatenate()
-    myImg=myImg.swapaxes(0,2).astype(np.bool)
+#    myImg=skimio.MultiImage(inputFileName)
+#    myImg=myImg.concatenate()
+#    myImg=myImg.swapaxes(0,2).astype(np.bool)
+    myImg=tff.imread(inputFileName).astype(np.bool)
     
     #Perform network extraction
     print('PoresWatershedSegmentation')
@@ -269,50 +270,100 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
     
         #Boucle sur les voxels de watershedlines pour trouver leurs pores voisins
     indices=links.ravel().nonzero()[0]
+    nVox=indices.size
     structuringElement=structuringElement.astype(np.bool)
     linksToPores=[]    
     correctionList=[]
-    for i in range(indices.size):
-        ind=indices[i]
-        (x,y,z)=np.unravel_index(ind,imageSize)
-        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
-        nonzeroPores=np.setdiff1d(localPores[structuringElement],[0])
-        poresNum = np.unique(nonzeroPores)
-        if poresNum.size == 2:
-            #Add to links pore1,pore2
-            linksToPores.append([[min(poresNum),max(poresNum)],ind])
-        else:
-            #Add to correctionList
-            correctionList.append(ind)
-            
-    mydict={}        
-    for i in range(len(linksToPores)):
-        if not (linksToPores[i] is None):
-            key=str(linksToPores[i][0][0])+'_'+str(linksToPores[i][0][1])
-            if key not in mydict:
-                mydict[key] = [linksToPores[i][1]]
-            else:
-                mydict[key].append(linksToPores[i][1])
-                                                
-    mykeys= mydict.keys()                                           
+#    for i in range(indices.size):
+#        ind=indices[i]
+#        (x,y,z)=np.unravel_index(ind,imageSize)
+#        localPores=pores[x-seSize:x+seSize+1,y-seSize:y+seSize+1,z-seSize:z+seSize+1]
+#        nonzeroPores=np.setdiff1d(localPores[structuringElement],[0])
+#        poresNum = np.unique(nonzeroPores)
+#        if poresNum.size == 2:
+#            #Add to links pore1,pore2
+#            linksToPores.append([[min(poresNum),max(poresNum)],ind])
+#        else:
+#            #Add to correctionList
+#            correctionList.append(ind)
     
-    linksToPores=[mydict[keyx] for keyx in mykeys]
+        #Get neighbourhood of each watershedline voxel 
+
+    def StudyNeighbourhood(pores,indices,structuringElement,imageSize):  
+        X,Y,Z =np.unravel_index(indices,imageSize)
+        oneColumn=np.ones(X.shape,dtype=np.int)        
+        neighboor=[]
+        for iSE in range(structuringElement.size):        
+            xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
+            if structuringElement[xIse,yIse,zIse]:
+                center = (structuringElement.shape[0]+1)/2
+                shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
+                #neighboor.append([ pores[X[i]+shiftX,Y[i]+shiftY,Z[i]+shiftZ] for i in range(nVox)])
+                neighboor.append( pores[X+shiftX*oneColumn,
+                                        Y+shiftY*oneColumn,
+                                        Z+shiftZ*oneColumn] )
+                
+        #U=[set([neighboor[j][i] for j in range(len(neighboor))])-{0}  for i in range(nVox)]
+        U=[set([neighboor[j][i] for j in range(len(neighboor))])-{0}  for i in range(nVox)]
+        linksToPores=[[[min(U[i]),max(U[i])],indices[i]] for i in range(nVox) if len(U[i])==2]
+        correctionList=[indices[i] for i in range(nVox) if len(U[i])!=2]
+        return linksToPores,correctionList
     
-    import re    
-    interfaceToPore=[ [[ re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1],
-                        re.search('(?<=_)\w+', mykeys[i]).group(0)],[10,10]] 
-                        for i in range(len(mykeys))  ]
     
-    links=links.astype(np.uint)
+    linksToPores,correctionList=StudyNeighbourhood(pores,indices,structuringElement,imageSize)
+    
+    
+    def FillDict(linksToPores):
+        mydict={}
+        key=[[str(linksToPores[i][0][0])+'_'+str(linksToPores[i][0][1]),i] 
+                                            for i in range(len(linksToPores)) 
+                                                if not (linksToPores[i] is None)]        
         
-    for i in range(len(linksToPores)):
-        for j in range(len(linksToPores[i])):
-            ind=linksToPores[i][j]
-            (x,y,z)=np.unravel_index(ind,imageSize)
-            links[x,y,z] = i+1
+        from collections import defaultdict
+        
+        mydict = defaultdict(list)
+        
+        for i in range(len(key)):
+                #key=str(linksToPores[i][0][0])+'_'+str(linksToPores[i][0][1])
+            mydict[key[i][0]].append(linksToPores[key[i][1]][1])
+    #        if thiskey not in mydict:
+    #            mydict[thiskey] = [linksToPores[oldnum][1]]
+    #        else:
+    #            mydict[thiskey].append(linksToPores[oldnum][1])
+        return mydict
+                         
+                         
+    mydict=FillDict(linksToPores)
+    #linksToPores=[mydict[keyx] for keyx in mykeys]
+    
+    links=links.astype(np.int)
+    
+    def LabelLinks(mydict,links,imageSize):
+        mykeys= mydict.keys()     
+        for iLink in range(len(mykeys)):
+            ind=mydict[mykeys[iLink]]
+            X,Y,Z=np.unravel_index(ind,imageSize)
+            links[X,Y,Z] = iLink+1
+        return links
+    #        for j in range(len(linksToPores[iLink])):
+    #            ind=linksToPores[iLink][j]
+    #            (x,y,z)=np.unravel_index(ind,imageSize)
+    #            links[x,y,z] = iLink+1
+            
+            
+    links=LabelLinks(mydict,links,imageSize)
+     
+    def BuildInterfaceToPore(mydict) :
+        mykeys= mydict.keys()
+        import re    
+        interfaceToPore=[ [[ int(re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1]),
+                            int(re.search('(?<=_)\w+', mykeys[i]).group(0))],[10,10]] 
+                            for i in range(len(mykeys))  ]
+        return interfaceToPore                         
     
     
-         
+    interfaceToPore=BuildInterfaceToPore(mydict)
+    
     return links, interfaceToPore 
 
                       
@@ -359,10 +410,10 @@ def FindLinksNew(myImage,pores,watershedLines,structuringElement):
 #    
 #----------------------------------------------------------------------------------------------
 def Test():
-    inputfile='VirtualImagesGeneration/TestVoronoi.tif'
-    outputfile='datatest'
+    inputfile='PSI_sampleDrainage_635.tif'
+    outputfile='watershedTest_635h2'
     hContrast=2
-    ExtractNetwork(inputfile,outputfile,hContrast,distanceType='euclidean')
+    ExtractNetwork(inputfile,outputfile,hContrast,distanceType='chamfer')
 
 #----------------------------------------------------------------------------------------------
 
