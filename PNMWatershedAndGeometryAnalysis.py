@@ -10,10 +10,12 @@ from scipy import ndimage
 #from skimage import io as skimio
 from skimage import morphology
 from skimage import feature
+import SimpleITK as sitk
 import mahotas
 import os, sys
 sys.path.append(os.getcwd()) 
 import tifffile as tff
+
 
 def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidean'):
 
@@ -25,25 +27,20 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
 #    myImg=myImg.concatenate()
 #    myImg=myImg.swapaxes(0,2).astype(np.bool)
     
-    #Perform network extraction
+    #Perform pores segmentation
     print('PoresWatershedSegmentation')
-    pores,watershedLines,distanceMap = PoresWatershedSegmentation(myImg,
+    pores,watershedLines,distanceMap = PoresSegmentation(myImg,
                                                 structuringElement,hContrast,
                                                 distanceType)
     
-    #tff.imsave(outputFileName+'_testPores.tiff',(pores.astype(np.uint32)))
     
     print('FindLinks')
     links,interfaceToPore=FindLinks(myImg,pores,watershedLines,structuringElement)
     
-    #tff.imsave(outputFileName+'_testLinks.tiff',links.astype(np.uint32))
     
     print('AnalyseElementsGeometry')
     PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
     
-    
-    #print('BuildConnectivityTables') 
-    #interfaceToPore = BuildConnectivityTables(pores,links);    
 
     print('Saving results to disk')
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores})
@@ -51,19 +48,50 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,distanceType='euclidea
     hdf5storage.savemat(inputFileName+"_reshaped.mat",{'myImage':myImg.astype(np.bool)})
     
 
-
-
 #----------------------------------------------------------------------------------------------
-def PoresWatershedSegmentation(myImg,structuringElement,hContrast,distance='euclidean'):
+def PoresSegmentation(myImg,phases={'void':False},structuringElement,hContrast,distanceType='euclidean'):
+    #Phases=dict, phases['myphase']=codeForMyPhaseInImage
+    
+    pores=np.zeros(myImg.shape,dtype=np.uint32)
+    watershedLines=np.zeros(myImg.shape,dtype=np.bool)
+    
+    if distance=='euclidean':
+        memoryType=np.float16    
+    elif distance=='chamfer':
+        memoryType=np.int8
+    distanceMap=np.zeros(myImg.shape,dtype=memoryType)    
+        
+       
+    for phaseName in phases.keys:
+        phaseCode=phases[phaseName]
+        phaseImage= myImg==phaseCode 
+        
+        poresPhase,watershedLinesPhase,distanceMapPhase = PoresWatershedSegmentationOnePhase(
+                                    phaseImage,structuringElement,hContrast,distanceType)
+        
+        labelShift=pores.max()
+        pores[phaseImage]=poresPhase[phaseImage]+labelShift
+        watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
+        distanceMap[phaseImage] = distanceMapPhase[phaseImage]
+
+        
+    phaseBoundaries = PhaseBoundaryDetection(myImg)     
+    watershedLines=np.logical_or(watershedLines,phaseBoundaries)
+    
+    return pores,watershedLines,distanceMap
+    
+    
+#----------------------------------------------------------------------------------------------
+def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,distanceType='euclidean'):
     
     #calcul de la carte de distanceMap
     if distance=='euclidean':
         memoryType=np.float16
-        distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)
+        distanceMap = ndimage.distance_transform_edt(phaseImage
                                                     ).astype(memoryType)
     elif distance=='chamfer':
         memoryType=np.int8
-        distanceMap = ndimage.distance_transform_cdt(np.logical_not(myImg),
+        distanceMap = ndimage.distance_transform_cdt(phaseImage,
                                         metric='chessboard').astype(memoryType)
     
     
@@ -94,7 +122,7 @@ def PoresWatershedSegmentation(myImg,structuringElement,hContrast,distance='eucl
     del markers
     
     #Label des pores séparés par les lignes de partage de niveau
-    pores=ndimage.measurements.label(np.logical_not(np.logical_or(myImg,watershedLines)), 
+    pores=ndimage.measurements.label(np.logical_and(phaseImage,np.logical_not(watershedLines)), 
                                      structure=structuringElement 
                                      )[0]
     
@@ -112,12 +140,16 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
                                             
     links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))   
     
-    linkDiameterDistanceMap=ndimage.measurements.labeled_comprehension(
+    linkRadiusDistanceMap=ndimage.measurements.labeled_comprehension(
                                             distanceMap, links, 
                                             range(1,links.max()+1),
-                                            max,np.float16,0)    
+                                            np.max,np.float16,0)    
     
-    
+    linkSurfaceGeometric=ndimage.measurements.labeled_comprehension(
+                                            links, links, 
+                                            range(1,links.max()+1),
+                                            np.size,np.float16,0)
+                                            
     # Infos sur la forme, position des pores
     pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
                                                      index=range(1,pores.max()+1))
@@ -128,7 +160,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
                                             np.size,np.int32,0)
     
     PNMGeometricData=dict()
-    PNMGeometricData['internalLinkDiameters']=linkDiameterDistanceMap.astype(np.float32)
+    PNMGeometricData['internalLinkCapillaryRadius']=linkRadiusDistanceMap.astype(np.float16)
+    PNMGeometricData['internalLinkGeometricSurface']=linkSurfaceGeometric.astype(np.float16)
     PNMGeometricData['internalLinkBarycenters']=links_center
     PNMGeometricData['poreCenters']=pores_center
     PNMGeometricData['poreVolumes']=pores_volumes
@@ -166,13 +199,19 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
                                             
         links_center=np.transpose(np.squeeze(np.dstack(links_center_arg))) 
         
-        diameterDistanceMap=ndimage.measurements.labeled_comprehension(
-                                        boundaryDistances, boundarySlice, 
-                                        range(1,pores.max()+1),max,np.int16,0)
-                                        
+        radiusDistanceMap=ndimage.measurements.labeled_comprehension(
+                                            boundaryDistances, boundarySlice, 
+                                            range(1,pores.max()+1),
+                                            np.max,np.int16,0)
+        
+        surfaceGeometric=ndimage.measurements.labeled_comprehension(
+                                            boundarySlice, boundarySlice, 
+                                            range(1,pores.max()+1),
+                                            np.size,np.float16,0)
+                                
         PNMGeometricData['boundaryCenters'+str(iBoundary)]=links_center
-        PNMGeometricData['boundaryDiameters'+str(iBoundary)]=diameterDistanceMap.astype(np.float32)
-      
+        PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]=radiusDistanceMap.astype(np.float32)
+        PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)]=surfaceGeometric.astype(np.float32)
       
     return PNMGeometricData
 
@@ -340,9 +379,38 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
  
     return links, interfaceToPore
- 
 
+
+ 
+##-----------------------------------------------------------------------------
+def PhaseBoundaryDetection(myImg,variance=2):    
+    #Uses ITK canny edge detector to detect boundaries between phases in the 
+    #material image
+
+    #Load image into SimpleITK
+    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
+    caster = sitk.CastImageFilter()
+    caster.SetOutputPixelType(sitk.sitkFloat32)
+    floatImage = caster.Execute( myItkImage )
     
+    #Canny edge detection
+    canny = sitk.CannyEdgeDetectionImageFilter()
+    variance=float(variance)
+    canny.SetVariance( [ variance,variance,variance] )
+    #canny.SetLowerThreshold( 10 )
+    #canny.SetUpperThreshold( 1000 ) 
+    myItkImage = canny.Execute( floatImage )
+    
+    #Go back to a numpy array image
+    caster = sitk.CastImageFilter()
+    caster.SetOutputPixelType(sitk.sitkInt8)
+    myItkImage = caster.Execute( myItkImage )
+    phaseBoundaries = sitk.GetArrayFromImage(myItkImage).astype(np.bool)
+
+    return phaseBoundaries
+
+
+
      
 #     
 ##----------------------------------------------------------------------------------------------
