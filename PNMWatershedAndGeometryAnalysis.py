@@ -23,7 +23,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},
     structuringElement = np.ones((3,3,3))
     
     #Load image from disk
-    myImg=tff.imread(inputFileName).astype(np.bool)    
+    myImg=tff.imread(inputFileName).astype(np.uint8)    
     
     #Perform pores segmentation
     print('PoresWatershedSegmentation')
@@ -394,11 +394,11 @@ def PhaseBoundaryDetection(myImg,variance=2):
      
 #----------------------------------------------------------------------------------------------
 def Test():
-    inputfile='PSI_sampleDrainage_635.tif'
-    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_635h2.mat'
-    hContrast=2
-    myphases={'void':False,'carbon':True}
-    ExtractNetwork(inputfile,outputfile,hContrast,phases=myphases,distanceType='chamfer')
+    inputfile='testGDL.tif'
+    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_GDL_h4.mat'
+    hContrast=4
+    myphases={'void':0,'fiber':100,'binder':200}
+    ExtractNetwork(inputfile,outputfile,hContrast,phases=myphases,distanceType='euclidean')
 
 #----------------------------------------------------------------------------------------------
 
