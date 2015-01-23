@@ -62,7 +62,7 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     labelShift=[0]   
     for phaseName in phases.keys():
         phaseCode=phases[phaseName]
-        phaseImage= myImg==phaseCode 
+        phaseImage= myImg==np.uint8(phaseCode) 
         
         poresPhase,watershedLinesPhase,distanceMapPhase = PoresWatershedSegmentationOnePhase(
                                     phaseImage,structuringElement,hContrast,distanceType=distanceType)
@@ -70,12 +70,13 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
         pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
+        del phaseImage, poresPhase,watershedLinesPhase,distanceMapPhase
         labelShift.append(pores.max())
         
     phaseBoundaries = PhaseBoundaryDetection(myImg)     
     watershedLines=np.logical_or(watershedLines,phaseBoundaries)
     
-    porePhase=np.zeros(pores.max(),dtype=np.uint32)    
+    porePhase=np.zeros(pores.max(),dtype=np.uint8)    
     for i in range(len(labelShift)-1):
         porePhase[np.arange(labelShift[i],labelShift[i+1])]=int(phases[phases.keys()[i]])
     
