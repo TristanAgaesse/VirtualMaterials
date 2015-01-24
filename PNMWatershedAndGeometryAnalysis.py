@@ -265,8 +265,10 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
                 neighboor.append( pores[X+shiftX*oneColumn,
                                         Y+shiftY*oneColumn,
                                         Z+shiftZ*oneColumn] )
-                
+                #TODO:horzcat au lieu de append pour avoir une seule matrice
         U=[set([neighboor[j][i] for j in range(len(neighboor))])-{0}  for i in range(nVox)]
+        #pour gagner en temps de calcul, pour trouver les colonnes à deux elements, retrancher 
+        #le max de chaque colonne puis count non zero (deux fois) 
         linksToPores=[[[min(U[i]),max(U[i])],indices[i]] for i in range(nVox) if len(U[i])==2]
         correctionList=[indices[i] for i in range(nVox) if len(U[i])!=2]
         return linksToPores,correctionList
