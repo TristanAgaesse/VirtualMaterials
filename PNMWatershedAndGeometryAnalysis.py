@@ -95,6 +95,11 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,d
         memoryType=np.int8
         distanceMap = ndimage.distance_transform_cdt(phaseImage,
                                         metric='chessboard').astype(memoryType)
+    elif distanceType=='ITKDanielson':
+        memoryType=np.float16
+        itkimage = sitk.GetImageFromArray(phaseImage.astype(np.uint8))
+        itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
+        distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
     
     
     #Choix des marqueurs pour la segmentation (centres des pores) : H-maxima :
