@@ -12,7 +12,7 @@ from scipy import ndimage
 import random
 from skimage import morphology
 import SimpleITK as sitk
-
+import time
 import os
 import sys
 sys.path.append(os.path.pardir)
@@ -30,6 +30,8 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
                              binderThickness,anisotropy=1,randomSeed=1):
     
     print('Create Virtual GDL')
+    beginTime=time.time()
+    
     random.seed(randomSeed)
     
     image=np.zeros(voxelNumbers,dtype=np.bool)
@@ -42,7 +44,8 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
     gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)
     
     #Put cylinders according to a given random law
-    for i in range(nFiber):
+    for iFiber in range(nFiber):
+        print(iFiber)
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
@@ -54,6 +57,7 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
         mesh = CreateCylinder(center,axis,fiberRadius,fiberLength)
         objImage = Voxelize(mesh,gridX,gridY,gridZ)
         image = np.logical_or(image,objImage)
+        
     
     #Add binder
 #    ball = morphology.ball(binderThickness)
@@ -69,6 +73,9 @@ def CreateVirtualGDL(voxelNumbers,nFiber,fiberRadius,fiberLength,
     image = image.astype(np.uint8)
     image[binder] = 2    
     
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
+    
     return image
     
     
@@ -78,6 +85,7 @@ def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidR
                              nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):  
     
     print('Create Virtual Active Layer')
+    beginTime=time.time()
     random.seed(randomSeed)
     
     image=np.zeros(voxelNumbers,dtype=np.bool)
@@ -169,6 +177,9 @@ def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidR
     image[nafion] = 2        
     image[carbon] = 1 
     
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
+    
     return image
 
 #--------------------------------------------------------------------
@@ -219,6 +230,7 @@ def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,
 def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed=0):
     
     print('Create Voronoi')
+    beginTime=time.time()
     
     #Prepare the structure image
     image=np.zeros(voxelNumbers,dtype=np.bool)
@@ -293,6 +305,9 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotr
         image=np.logical_or(image,objImage)
 
     #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)
+    
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
     
     return image
 
@@ -807,6 +822,172 @@ def FillInsideZDirection(voxelizedSurface):
     
     return image    
 
+
+def VoxelizeSurfacePurePython(vtkPolyDataObject,nVoxSubImage,boundSubgrid):
+
+#% Loop through each x,y pixel.
+#% The mesh will be voxelised by passing rays in the z-direction through
+#% each x,y pixel, and finding the locations where the rays cross the mesh.
+#This function is inspired by some parts of the Matlab file exchange function
+#VOXELISE (AUTHOR Adam H. Aitkenhead, The Christie NHS Foundation Trust) 
+
+#TODO : get mesh information as numpy arrays
+
+#%Identify the min and max x,y,z coordinates of each facet:
+#meshXYZmin = min(meshXYZ,[],3);
+#meshXYZmax = max(meshXYZ,[],3);
+
+#for loopY = meshYminp:meshYmaxp
+#  
+#  % - 1a - Find which mesh facets could possibly be crossed by the ray:
+#  possibleCROSSLISTy = find( meshXYZmin(:,2)<=gridCOy(loopY) & meshXYZmax(:,2)>=gridCOy(loopY) );
+#  
+#  for loopX = meshXminp:meshXmaxp
+#    
+#    % - 1b - Find which mesh facets could possibly be crossed by the ray:
+#    possibleCROSSLIST = possibleCROSSLISTy( meshXYZmin(possibleCROSSLISTy,1)<=gridCOx(loopX) & meshXYZmax(possibleCROSSLISTy,1)>=gridCOx(loopX) );
+#
+#    if isempty(possibleCROSSLIST)==0  %Only continue the analysis if some nearby facets were actually identified
+#          
+#      % - 2 - For each facet, check if the ray really does cross the facet rather than just passing it close-by:
+#          
+#      % GENERAL METHOD:
+#      % A. Take each edge of the facet in turn.
+#      % B. Find the position of the opposing vertex to that edge.
+#      % C. Find the position of the ray relative to that edge.
+#      % D. Check if ray is on the same side of the edge as the opposing vertex.
+#      % E. If this is true for all three edges, then the ray definitely passes through the facet.
+#      %
+#      % NOTES:
+#      % A. If a ray crosses exactly on a vertex:
+#      %    a. If the surrounding facets have normal components pointing in the same (or opposite) direction as the ray then the face IS crossed.
+#      %    b. Otherwise, add the ray to the correctionlist.
+#      
+#      facetCROSSLIST = [];   %Prepare to record all facets which are crossed by the ray.  This array is built on-the-fly, but since
+#                             %it ought to be relatively small (typically a list of <10) should not incur too much of a speed penalty.
+#      
+#      %----------
+#      % - 1 - Check for crossed vertices:
+#      %----------
+#      
+#      % Find which mesh facets contain a vertex which is crossed by the ray:
+#      vertexCROSSLIST = possibleCROSSLIST( (meshXYZ(possibleCROSSLIST,1,1)==gridCOx(loopX) & meshXYZ(possibleCROSSLIST,2,1)==gridCOy(loopY)) ...
+#                                         | (meshXYZ(possibleCROSSLIST,1,2)==gridCOx(loopX) & meshXYZ(possibleCROSSLIST,2,2)==gridCOy(loopY)) ...
+#                                         | (meshXYZ(possibleCROSSLIST,1,3)==gridCOx(loopX) & meshXYZ(possibleCROSSLIST,2,3)==gridCOy(loopY)) ...
+#                                         );
+#      
+#      if isempty(vertexCROSSLIST)==0  %Only continue the analysis if potential vertices were actually identified
+#
+#        checkindex = zeros(1,numel(vertexCROSSLIST));
+#
+#        while min(checkindex) == 0
+#          
+#          vertexindex             = find(checkindex==0,1,'first');
+#          checkindex(vertexindex) = 1;
+#        
+#          [temp.faces,temp.vertices] = CONVERT_meshformat(meshXYZ(vertexCROSSLIST,:,:));
+#          adjacentindex              = ismember(temp.faces,temp.faces(vertexindex,:));
+#          adjacentindex              = max(adjacentindex,[],2);
+#          checkindex(adjacentindex)  = 1;
+#        
+#          coN = COMPUTE_mesh_normals(meshXYZ(vertexCROSSLIST(adjacentindex),:,:));
+#        
+#          if max(coN(:,3))<0 || min(coN(:,3))>0
+#            facetCROSSLIST    = [facetCROSSLIST,vertexCROSSLIST(vertexindex)];
+#          else
+#            possibleCROSSLIST = [];
+#            correctionLIST    = [ correctionLIST; loopX,loopY ];
+#            checkindex(:)     = 1;
+#          end
+#        
+#        end
+#        
+#      end
+#      
+#      %----------
+#      % - 2 - Check for crossed facets:
+#      %----------
+#      
+#      if isempty(possibleCROSSLIST)==0  %Only continue the analysis if some nearby facets were actually identified
+#          
+#        for loopCHECKFACET = possibleCROSSLIST'
+#  
+#          %Check if ray crosses the facet.  This method is much (>>10 times) faster than using the built-in function 'inpolygon'.
+#          %Taking each edge of the facet in turn, check if the ray is on the same side as the opposing vertex.
+#        
+#          Y1predicted = meshXYZ(loopCHECKFACET,2,2) - ((meshXYZ(loopCHECKFACET,2,2)-meshXYZ(loopCHECKFACET,2,3)) * (meshXYZ(loopCHECKFACET,1,2)-meshXYZ(loopCHECKFACET,1,1))/(meshXYZ(loopCHECKFACET,1,2)-meshXYZ(loopCHECKFACET,1,3)));
+#          YRpredicted = meshXYZ(loopCHECKFACET,2,2) - ((meshXYZ(loopCHECKFACET,2,2)-meshXYZ(loopCHECKFACET,2,3)) * (meshXYZ(loopCHECKFACET,1,2)-gridCOx(loopX))/(meshXYZ(loopCHECKFACET,1,2)-meshXYZ(loopCHECKFACET,1,3)));
+#        
+#          if (Y1predicted > meshXYZ(loopCHECKFACET,2,1) && YRpredicted > gridCOy(loopY)) || (Y1predicted < meshXYZ(loopCHECKFACET,2,1) && YRpredicted < gridCOy(loopY))
+#            %The ray is on the same side of the 2-3 edge as the 1st vertex.
+#
+#            Y2predicted = meshXYZ(loopCHECKFACET,2,3) - ((meshXYZ(loopCHECKFACET,2,3)-meshXYZ(loopCHECKFACET,2,1)) * (meshXYZ(loopCHECKFACET,1,3)-meshXYZ(loopCHECKFACET,1,2))/(meshXYZ(loopCHECKFACET,1,3)-meshXYZ(loopCHECKFACET,1,1)));
+#            YRpredicted = meshXYZ(loopCHECKFACET,2,3) - ((meshXYZ(loopCHECKFACET,2,3)-meshXYZ(loopCHECKFACET,2,1)) * (meshXYZ(loopCHECKFACET,1,3)-gridCOx(loopX))/(meshXYZ(loopCHECKFACET,1,3)-meshXYZ(loopCHECKFACET,1,1)));
+#          
+#            if (Y2predicted > meshXYZ(loopCHECKFACET,2,2) && YRpredicted > gridCOy(loopY)) || (Y2predicted < meshXYZ(loopCHECKFACET,2,2) && YRpredicted < gridCOy(loopY))
+#              %The ray is on the same side of the 3-1 edge as the 2nd vertex.
+#
+#              Y3predicted = meshXYZ(loopCHECKFACET,2,1) - ((meshXYZ(loopCHECKFACET,2,1)-meshXYZ(loopCHECKFACET,2,2)) * (meshXYZ(loopCHECKFACET,1,1)-meshXYZ(loopCHECKFACET,1,3))/(meshXYZ(loopCHECKFACET,1,1)-meshXYZ(loopCHECKFACET,1,2)));
+#              YRpredicted = meshXYZ(loopCHECKFACET,2,1) - ((meshXYZ(loopCHECKFACET,2,1)-meshXYZ(loopCHECKFACET,2,2)) * (meshXYZ(loopCHECKFACET,1,1)-gridCOx(loopX))/(meshXYZ(loopCHECKFACET,1,1)-meshXYZ(loopCHECKFACET,1,2)));
+#            
+#              if (Y3predicted > meshXYZ(loopCHECKFACET,2,3) && YRpredicted > gridCOy(loopY)) || (Y3predicted < meshXYZ(loopCHECKFACET,2,3) && YRpredicted < gridCOy(loopY))
+#                %The ray is on the same side of the 1-2 edge as the 3rd vertex.
+#
+#                %The ray passes through the facet since it is on the correct side of all 3 edges
+#                facetCROSSLIST = [facetCROSSLIST,loopCHECKFACET];
+#            
+#              end %if
+#            end %if
+#          end %if
+#      
+#        end %for
+#    
+#
+#        %----------
+#        % - 3 - Find the z coordinate of the locations where the ray crosses each facet or vertex:
+#        %----------
+#
+#        gridCOzCROSS = zeros(size(facetCROSSLIST));
+#        for loopFINDZ = facetCROSSLIST
+#
+#          % METHOD:
+#          % 1. Define the equation describing the plane of the facet.  For a
+#          % more detailed outline of the maths, see:
+#          % http://local.wasp.uwa.edu.au/~pbourke/geometry/planeeq/
+#          %    Ax + By + Cz + D = 0
+#          %    where  A = y1 (z2 - z3) + y2 (z3 - z1) + y3 (z1 - z2)
+#          %           B = z1 (x2 - x3) + z2 (x3 - x1) + z3 (x1 - x2)
+#          %           C = x1 (y2 - y3) + x2 (y3 - y1) + x3 (y1 - y2)
+#          %           D = - x1 (y2 z3 - y3 z2) - x2 (y3 z1 - y1 z3) - x3 (y1 z2 - y2 z1)
+#          % 2. For the x and y coordinates of the ray, solve these equations to find the z coordinate in this plane.
+#
+#          planecoA = meshXYZ(loopFINDZ,2,1)*(meshXYZ(loopFINDZ,3,2)-meshXYZ(loopFINDZ,3,3)) + meshXYZ(loopFINDZ,2,2)*(meshXYZ(loopFINDZ,3,3)-meshXYZ(loopFINDZ,3,1)) + meshXYZ(loopFINDZ,2,3)*(meshXYZ(loopFINDZ,3,1)-meshXYZ(loopFINDZ,3,2));
+#          planecoB = meshXYZ(loopFINDZ,3,1)*(meshXYZ(loopFINDZ,1,2)-meshXYZ(loopFINDZ,1,3)) + meshXYZ(loopFINDZ,3,2)*(meshXYZ(loopFINDZ,1,3)-meshXYZ(loopFINDZ,1,1)) + meshXYZ(loopFINDZ,3,3)*(meshXYZ(loopFINDZ,1,1)-meshXYZ(loopFINDZ,1,2)); 
+#          planecoC = meshXYZ(loopFINDZ,1,1)*(meshXYZ(loopFINDZ,2,2)-meshXYZ(loopFINDZ,2,3)) + meshXYZ(loopFINDZ,1,2)*(meshXYZ(loopFINDZ,2,3)-meshXYZ(loopFINDZ,2,1)) + meshXYZ(loopFINDZ,1,3)*(meshXYZ(loopFINDZ,2,1)-meshXYZ(loopFINDZ,2,2));
+#          planecoD = - meshXYZ(loopFINDZ,1,1)*(meshXYZ(loopFINDZ,2,2)*meshXYZ(loopFINDZ,3,3)-meshXYZ(loopFINDZ,2,3)*meshXYZ(loopFINDZ,3,2)) - meshXYZ(loopFINDZ,1,2)*(meshXYZ(loopFINDZ,2,3)*meshXYZ(loopFINDZ,3,1)-meshXYZ(loopFINDZ,2,1)*meshXYZ(loopFINDZ,3,3)) - meshXYZ(loopFINDZ,1,3)*(meshXYZ(loopFINDZ,2,1)*meshXYZ(loopFINDZ,3,2)-meshXYZ(loopFINDZ,2,2)*meshXYZ(loopFINDZ,3,1));
+#
+#          if abs(planecoC) < 1e-14
+#            planecoC=0;
+#          end
+#      
+#          gridCOzCROSS(facetCROSSLIST==loopFINDZ) = (- planecoD - planecoA*gridCOx(loopX) - planecoB*gridCOy(loopY)) / planecoC;
+#        
+#        end %for
+#
+#        %Remove values of gridCOzCROSS which are outside of the mesh limits (including a 1e-12 margin for error).
+#        gridCOzCROSS = gridCOzCROSS( gridCOzCROSS>=meshZmin-1e-12 & gridCOzCROSS<=meshZmax+1e-12 );
+#      
+#        %Round gridCOzCROSS to remove any rounding errors, and take only the unique values:
+#        gridCOzCROSS = round(gridCOzCROSS*1e12)/1e12;
+#        gridCOzCROSS = unique(gridCOzCROSS);
+
+    return 1
+
+
+
+
+
+
 #--------------------------------------------------------------------    
 def GetSubWindowInformation(subWindowBounds,gridX,gridY,gridZ): 
 
@@ -975,8 +1156,8 @@ def TestVirtualVoronoi():
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
-    image = CreateVirtualGDL((200,200,100),27,4,200,10,5) 
-    SaveImage(100*(image.astype(np.uint8)),'TestGDL.tif')
+    image = CreateVirtualGDL((1000,1000,200),700,9,500,20,anisotropy=5) 
+    SaveImage(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
 #--------------------------------------------------------------------    
 def TestVirtualCCL():
@@ -989,4 +1170,4 @@ def TestVirtualCCL():
     
 #--------------------------------------------------------------------
 if __name__ == "__main__":
-    TestVirtualVoronoi()
+    TestVirtualGDL()

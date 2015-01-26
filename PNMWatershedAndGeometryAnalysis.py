@@ -16,10 +16,12 @@ import os, sys
 sys.path.append(os.getcwd()) 
 import tifffile as tff
 from collections import defaultdict
+import time
 
 
 def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},distanceType='euclidean'):
 
+    beginTime=time.time()
     structuringElement = np.ones((3,3,3))
     
     #Load image from disk
@@ -45,7 +47,11 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},
                              'porePhase':porePhase,'myImage':myImg.astype(np.bool)})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     
-
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
+    
+    
+    
 #----------------------------------------------------------------------------------------------
 def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},distanceType='euclidean'):
     #Phases=dict, phases['myphase']=codeForMyPhaseInImage
@@ -53,7 +59,7 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     pores=np.zeros(myImg.shape,dtype=np.uint32)
     watershedLines=np.zeros(myImg.shape,dtype=np.bool)
     
-    if distanceType=='euclidean':
+    if distanceType=='euclidean' or distanceType=='ITKDanielson':
         memoryType=np.float16    
     elif distanceType=='chamfer':
         memoryType=np.int8
@@ -62,12 +68,13 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     labelShift=[0]   
     for phaseName in phases.keys():
         phaseCode=phases[phaseName]
-        phaseImage= myImg==np.uint8(phaseCode) 
+        phaseImage= (myImg==np.uint8(phaseCode)).astype(np.bool) 
         
         poresPhase,watershedLinesPhase,distanceMapPhase = PoresWatershedSegmentationOnePhase(
                                     phaseImage,structuringElement,hContrast,distanceType=distanceType)
         
-        pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]
+        phaseImage=phaseImage.astype(np.bool)
+        pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0).astype(np.uint32)
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
         del phaseImage, poresPhase,watershedLinesPhase,distanceMapPhase
@@ -84,7 +91,9 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     
     
 #----------------------------------------------------------------------------------------------
-def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,distanceType='euclidean'):
+def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
+                                       distanceType='euclidean',markerChoice='Hmaxima',
+                                       watershedAlgo='ITK'):
     
     #calcul de la carte de distanceMap
     if distanceType=='euclidean':
@@ -97,41 +106,59 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,d
                                         metric='chessboard').astype(memoryType)
     elif distanceType=='ITKDanielson':
         memoryType=np.float16
-        itkimage = sitk.GetImageFromArray(phaseImage.astype(np.uint8))
+        itkimage = sitk.GetImageFromArray(np.logical_not(phaseImage).astype(np.uint8))
         itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
         distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
     
     
     #Choix des marqueurs pour la segmentation (centres des pores) : H-maxima :
-    #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise une 
-    #recontruction morphologique pour construire la carte de distance étêtée.
-    hContrast=hContrast
-    reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
-                                            ).astype(memoryType)
+    #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise  
+    #une recontruction morphologique pour construire la carte de distance étêtée.
     
-    if hContrast>0:
+    
+    if markerChoice=='Hmaxima' and hContrast>0:
+        hContrast=np.asarray(hContrast).astype(memoryType)
+        reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
+                                            ).astype(memoryType)
+        
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
+        del reconstructed
     else:
         local_maxi= feature.peak_local_max(distanceMap.astype(memoryType), 
                                            min_distance=10, indices=False)
         
-    del reconstructed
     
     markers = ndimage.measurements.label(local_maxi , structure=structuringElement)[0]
     
     del local_maxi
     
     #Calcul des lignes de partage de niveau 
-    _,watershedLines = mahotas.cwatershed(
+    if watershedAlgo=='Mahotas':
+        _,watershedLines = mahotas.cwatershed(
                                 (distanceMap.max()-distanceMap).astype(np.int8), 
                                 markers, Bc=structuringElement , return_lines=True)
-
+    elif watershedAlgo=='ITK':
+        itkMarkers= sitk.GetImageFromArray(markers)
+        itkDistance = sitk.GetImageFromArray(distanceMap.astype(np.float))
+        itkDistance = sitk.InvertIntensity(itkDistance)
+        
+        wsITK = sitk.MorphologicalWatershedFromMarkers(itkDistance,itkMarkers,
+                                                   markWatershedLine=True,
+                                                   fullyConnected=True)
+#        mask = itk.MaskImageFilter.IUC2IUC2IUC2.New(ws, fill)
+#        overlay = itk.LabelOverlayImageFilter.IUC2IUC2IRGBUC2.New(reader,
+#                                                                  mask,
+#                                                                  UseBackground=True)
+        ws=sitk.GetArrayFromImage(wsITK).astype(np.uint8) 
+        watershedLines= (ws==0).astype(np.bool)                                                           
+        watershedLines[np.logical_not(phaseImage)] = False                                                         
     del markers
     
     #Label des pores séparés par les lignes de partage de niveau
     pores=ndimage.measurements.label(np.logical_and(phaseImage,np.logical_not(watershedLines)), 
                                      structure=structuringElement 
                                      )[0]
+    pores[np.logical_not(phaseImage)] = 0
     
     return pores,watershedLines,distanceMap
     
@@ -272,8 +299,8 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
                                         Z+shiftZ*oneColumn] )
                 #TODO:horzcat au lieu de append pour avoir une seule matrice
         U=[set([neighboor[j][i] for j in range(len(neighboor))])-{0}  for i in range(nVox)]
-        #pour gagner en temps de calcul, pour trouver les colonnes à deux elements, retrancher 
-        #le max de chaque colonne puis count non zero (deux fois) 
+        #TODO pour gagner en temps de calcul: pour trouver les colonnes à deux elements,  
+        #retrancher le max de chaque colonne puis count non zero (deux fois) 
         linksToPores=[[[min(U[i]),max(U[i])],indices[i]] for i in range(nVox) if len(U[i])==2]
         correctionList=[indices[i] for i in range(nVox) if len(U[i])!=2]
         return linksToPores,correctionList
@@ -403,10 +430,10 @@ def PhaseBoundaryDetection(myImg,variance=2):
 #----------------------------------------------------------------------------------------------
 def Test():
     inputfile='testGDL.tif'
-    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_GDL_h4.mat'
-    hContrast=4
+    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_GDL_h4_euclidean.mat'
+    hContrast=2
     myphases={'void':0,'fiber':100,'binder':200}
-    ExtractNetwork(inputfile,outputfile,hContrast,phases=myphases,distanceType='euclidean')
+    ExtractNetwork(inputfile,outputfile,hContrast,phases=myphases,distanceType='chamfer')
 
 #----------------------------------------------------------------------------------------------
 
