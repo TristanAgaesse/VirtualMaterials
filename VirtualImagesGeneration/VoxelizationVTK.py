@@ -371,11 +371,14 @@ def CreatePolyhedron(points):
     nPoint = len(points)
 #    P0 = [0.0, 0.0, 0.0] 
 #    P1 = [1.0, 0.0, 0.0]
-     
+    
+    points=[[float(points[i][j]) for j in range(3)] for i in range(nPoint)]
+    
     # Create the points
-    points = vtk.vtkPoints()
+    VTKpoints = vtk.vtkPoints()
+    VTKpoints.SetNumberOfPoints(nPoint)
     for iPoint in range(nPoint):
-        points.InsertNextPoint(points[iPoint])
+        VTKpoints.SetPoint(iPoint,points[iPoint])
 
     # Create a hexahedron from the points
     hex = vtk.vtkHexahedron()
@@ -388,7 +391,7 @@ def CreatePolyhedron(points):
     
     # Add the points and hexahedron to an unstructured grid
     uGrid = vtk.vtkUnstructuredGrid()
-    uGrid.SetPoints(points)
+    uGrid.SetPoints(VTKpoints)
     uGrid.InsertNextCell(hex.GetCellType(), hex.GetPointIds())
     
     # Convert to vtk polydata object 
@@ -731,8 +734,8 @@ def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
     obbTree.SetDataSet(polydata)
     obbTree.BuildLocator()
     
-    for loopY in range(meshYminp,meshYmaxp+1):
-        for loopX in range(meshXminp,meshXmaxp+1):
+    for loopY in xrange(meshYminp,meshYmaxp+1):
+        for loopX in xrange(meshXminp,meshXmaxp+1):
             
             epsilon=(meshZmax-meshZmin)/10
             pSource=[gridCOx[loopX],gridCOy[loopY],meshZmax+epsilon]
@@ -1403,7 +1406,7 @@ def TestVirtualVoronoi():
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
-    image = CreateVirtualGDL(voxelNumbers=(1000,1000,200),nFiber=700,fiberRadius=9,
+    image = CreateVirtualGDL(voxelNumbers=(500,500,200),nFiber=30,fiberRadius=9,
                              fiberLength=500,binderThickness=8,anisotropy=5,randomSeed=0) 
     SaveImage(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
