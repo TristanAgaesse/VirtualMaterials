@@ -673,19 +673,21 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     countdirections = 0;
     
     if raydirection.find('x')>-1:
-      countdirections = countdirections + 1;
+      countdirections = countdirections + 1
+      rotatedMesh = meshXYZ[:,[1,2,0],:]
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
-          VoxelizeRayTracingZDirection(meshXYZ[:,[1,2,0],:],gridCOy,gridCOz,gridCOx),
+          VoxelizeRayTracingZDirection(rotatedMesh,gridCOy,gridCOz,gridCOx),
                                   axes=[2,0,1] )
     
     if raydirection.find('y')>-1:
-      countdirections = countdirections + 1;
+      countdirections = countdirections + 1
+      rotatedMesh = meshXYZ[:,[2,0,1],:]
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
-          VoxelizeRayTracingZDirection(meshXYZ[:,[2,0,1],:],gridCOz,gridCOx,gridCOy),
+          VoxelizeRayTracingZDirection(rotatedMesh,gridCOz,gridCOx,gridCOy),
                                   axes=[1,2,0] )
     
     if raydirection.find('z')>-1:
-      countdirections = countdirections + 1;
+      countdirections = countdirections + 1
       gridOUTPUT[:,:,:,countdirections-1] = VoxelizeRayTracingZDirectionVTK(
                                   vtkPolyDataObject,gridCOx,gridCOy,gridCOz)
     

@@ -14,6 +14,42 @@ import os
 
 sys.path.append(os.getcwd())
 import tifffile as tff
+import time
+
+#----------------------------------------------------------------------------------------------
+
+def FullMorphology(inputFileName,outputFileName,voxelLength=1,pressureList=[10],pressureCode=[110]):
+    
+    beginTime=time.time()
+            
+    myImg=tff.imread(inputFileName).astype(np.uint8)
+
+    inletVoxels = np.zeros(myImg.shape,dtype=bool)
+    inletVoxels[-1,:,:] = True
+    
+    #distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
+    memoryType=np.float16
+    itkimage = sitk.GetImageFromArray(np.logical_not(myImg==0).astype(np.uint8))
+    itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
+    distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType)
+
+
+    gamma=72e-3
+
+    pressureCode=np.asarray(pressureCode).astype(np.uint8)
+    
+    for i in range(len(pressureList)-1,-1,-1):
+        print('begin '+str(i))
+        pressure = pressureList[i]
+        water = FullMorphologyHydrophobicStep(distanceMap,2*gamma/(pressure*voxelLength),inletVoxels)
+        myImg[water] = pressureCode[i]
+        del water  
+    
+      
+    tff.imsave(outputFileName,myImg.astype(np.uint8))
+
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
 
 
 #----------------------------------------------------------------------------------------------
@@ -61,46 +97,7 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     return invadedVoxels
     
 
-#----------------------------------------------------------------------------------------------
 
-def main(inputFileName,outputFileName,voxelLength):
-            
-    myImg=tff.imread(inputFileName).astype(np.uint8)
-    
-    inletVoxels = np.zeros(myImg.shape,dtype=bool)
-    inletVoxels[-1,:,:] = True
-    
-    distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
-    
-#    saturation=np.zeros(distanceMap.max())
-#    
-#    for iStep in range(distanceMap.max()+1,1,-1):
-#        print(iStep)
-#        saturation[iStep-1]=np.count_nonzero(FullMorphologyHydrophobicStep(distanceMap,iStep,inletVoxels))
-#
-#
-#    return saturation
-    
-
-    gamma=72e-3
-    
-    #Calculs de répartition de l'eau pour 53 mbar, 39 mbar, 28 mbar, 22 mbar, 14 mbar 
-    pressureList=[5300,3900,2800,2200,1400]
-    #pressureList=[2200,1400]
-    
-    for i in range(len(pressureList)):
-        print('begin '+str(i))
-        pressure = pressureList[i]
-        water = FullMorphologyHydrophobicStep(distanceMap,2*gamma/(pressure*voxelLength),inletVoxels)
-        myImg[water] = int(100+pressure/100)
-        del water  
-    
-      
-    tff.imsave(outputFileName,myImg.astype(np.uint8))
     
 
 
-#----------------------------------------------------------------------------------------------
-    
-if __name__ == "__main__":
-    main()
