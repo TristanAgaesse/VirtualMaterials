@@ -19,7 +19,7 @@ from collections import defaultdict
 import time
 
 
-def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},distanceType='euclidean'):
+def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},distanceType='ITKDanielson'):
 
     beginTime=time.time()
     structuringElement = np.ones((3,3,3))
@@ -53,7 +53,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},
     
     
 #----------------------------------------------------------------------------------------------
-def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},distanceType='euclidean'):
+def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},distanceType='ITKDanielson'):
     #Phases=dict, phases['myphase']=codeForMyPhaseInImage
     
     pores=np.zeros(myImg.shape,dtype=np.uint32)
@@ -92,7 +92,7 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     
 #----------------------------------------------------------------------------------------------
 def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
-                                       distanceType='euclidean',markerChoice='Hmaxima',
+                                       distanceType='ITKDanielson',markerChoice='Hmaxima',
                                        watershedAlgo='ITK'):
     
     #calcul de la carte de distanceMap
