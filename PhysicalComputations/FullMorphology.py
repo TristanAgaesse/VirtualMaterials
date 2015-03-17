@@ -18,11 +18,11 @@ import time
 
 #----------------------------------------------------------------------------------------------
 
-def FullMorphology(inputFileName,outputFileName,voxelLength=1,pressureList=[10],pressureCode=[110]):
+def FullMorphology(inputImage,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3):
     
     beginTime=time.time()
             
-    myImg=tff.imread(inputFileName).astype(np.uint8)
+    myImg = inputImage
 
     inletVoxels = np.zeros(myImg.shape,dtype=bool)
     inletVoxels[-1,:,:] = True
@@ -34,8 +34,6 @@ def FullMorphology(inputFileName,outputFileName,voxelLength=1,pressureList=[10],
     distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType)
 
 
-    gamma=72e-3
-
     pressureCode=np.asarray(pressureCode).astype(np.uint8)
     
     for i in range(len(pressureList)-1,-1,-1):
@@ -46,11 +44,13 @@ def FullMorphology(inputFileName,outputFileName,voxelLength=1,pressureList=[10],
         del water  
     
       
-    tff.imsave(outputFileName,myImg.astype(np.uint8))
+      
+    
 
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))
 
+    return myImg.astype(np.uint8)
 
 #----------------------------------------------------------------------------------------------
 
@@ -96,8 +96,13 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     
     return invadedVoxels
     
-
-
     
+#----------------------------------------------------------------------------------------------
 
-
+def Test(inputFileName,outputFileName):
+    
+    inputImage=tff.imread(inputFileName).astype(np.uint8)
+    
+    outputImage = FullMorphology(inputImage,voxelLength=1,pressureList=[10],pressureCode=[110])
+    
+    tff.imsave(outputFileName,outputImage.astype(np.uint8))

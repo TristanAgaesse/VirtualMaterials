@@ -182,6 +182,7 @@ def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidR
     
     return image
 
+
 #--------------------------------------------------------------------
 def CreateVirtualAgglomerate(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
                              nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
@@ -191,19 +192,65 @@ def CreateVirtualAgglomerate(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
 
 
 #--------------------------------------------------------------------
-def CreateVirtualInterfaceGDLMPL(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
-                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
+                                 nCrack,randomSeed=1):
+    
+    #couche uniforme avec des vides aléatoires
+    
+    
+    #ajouter cracks    
+    
+    
+    return 1
+
+
+
+
+#--------------------------------------------------------------------
+def CreateVirtualInterfaceGDLMPL(randomSeed=0):
 
     #Create GDL Image
-
+    gdl = CreateVirtualGDL(voxelNumbers=(500,500,200),
+                           nFiber=30,fiberRadius=9,fiberLength=500,
+                           binderThickness=8,anisotropy=5,randomSeed=randomSeed)
 
     #Zoom on the bottom of GDL with resampling
 
 
-    #Create MPL Image
-
-
+    #Create MPL image
+    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
+                                       voidRadius,nVoid,
+                                       crackLength,nCrack,
+                                       randomSeed=1)
+                             
+    
+    
+    
     #Add the two images
+
+    #cas juxtaposition :
+    #mettre une image au dessus de l'autre
+
+
+
+
+    #cas superposition : 
+    #mettre la mpl, superposer la GDL. Superposition sur une epaisseur x
+
+
+
+
+    #cas intrusion de la MPL dans les pores exterieurs de la GDL :
+    #trouver les pores exterieurs avec full morphology. Ajouter la MPL dans le 
+    #masque défini par ces pores.
+    import FullMorphology
+    invadedVoxels = FullMorphology(inputImage,voxelLength=2,
+                                   pressureList=1.0/10,pressureCode=110,gamma=1)
+
+    mask = invadedVoxels==110
+
+
+
 
     return 1
 
