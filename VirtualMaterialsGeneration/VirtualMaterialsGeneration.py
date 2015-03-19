@@ -211,27 +211,25 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
 
     #Create GDL Image
     gdl = CreateVirtualGDL(voxelNumbers=(500,500,200),
-                           nFiber=30,fiberRadius=9,fiberLength=500,
+                           nFiber=100,fiberRadius=9,fiberLength=500,
                            binderThickness=8,anisotropy=5,randomSeed=randomSeed)
 
     #Zoom on the bottom of GDL with resampling
 
 
     #Create MPL image
-    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
-                                       voidRadius,nVoid,
-                                       crackLength,nCrack,
-                                       randomSeed=1)
-                             
-    
-    
+   
     
     #Add the two images
 
     #cas juxtaposition :
     #mettre une image au dessus de l'autre
 
-
+    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
+                                       voidRadius,nVoid,
+                                       crackLength,nCrack,
+                                       randomSeed=1)
+                             
 
 
     #cas superposition : 
@@ -243,11 +241,23 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
     #cas intrusion de la MPL dans les pores exterieurs de la GDL :
     #trouver les pores exterieurs avec full morphology. Ajouter la MPL dans le 
     #masque défini par ces pores.
+
+    wholeImage = 
+    top = 
+    
+    wholeImage[top] = gdl
+
     import FullMorphology
-    invadedVoxels = FullMorphology(inputImage,voxelLength=2,
+    invadedVoxels = FullMorphology(wholeImage,voxelLength=2,
                                    pressureList=1.0/10,pressureCode=110,gamma=1)
 
-    mask = invadedVoxels==110
+    mpl = invadedVoxels==110
+
+    wholeImage[mpl] = mplCode
+    
+        #add micro porosity
+
+
 
 
 
