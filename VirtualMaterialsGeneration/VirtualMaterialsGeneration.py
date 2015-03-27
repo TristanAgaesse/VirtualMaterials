@@ -29,6 +29,10 @@ import tifffile as tff
 def CreateVirtualGDL(voxelNumbers=(200,200,200),nFiber=20,fiberRadius=10,fiberLength=100,
                              binderThickness=8,anisotropy=1,randomSeed=1):
     
+    #TODO : change algorithm and input parameters :
+    #add fibers until a given fiber content is achieved. Add binder until a given porosity is achieved    
+
+    
     print('Create Virtual GDL')
     beginTime=time.time()
     
