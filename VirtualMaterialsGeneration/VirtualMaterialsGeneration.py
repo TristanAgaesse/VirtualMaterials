@@ -12,6 +12,7 @@ from scipy import ndimage
 import random
 from skimage import morphology
 import SimpleITK as sitk
+from mayavi import mlab
 import time
 import os
 import sys
@@ -26,17 +27,19 @@ import tifffile as tff
 
 
 #--------------------------------------------------------------------
-def CreateVirtualGDL(voxelNumbers=(200,200,200),nFiber=20,fiberRadius=10,fiberLength=100,
-                             binderThickness=8,anisotropy=1,randomSeed=1):
+def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,fiberLength=100,
+                             binderContent=0.3,anisotropy=1,randomSeed=1):
     
     #TODO : change algorithm and input parameters :
     #add fibers until a given fiber content is achieved. Add binder until a given porosity is achieved    
-
+    
     
     print('Create Virtual GDL')
     beginTime=time.time()
-    
+        
     random.seed(randomSeed)
+
+    assert(fiberContent+binderContent<=1)
     
     image=np.zeros(voxelNumbers,dtype=np.bool)
     bounds=(0.0, float(voxelNumbers[0]), 
@@ -48,8 +51,9 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),nFiber=20,fiberRadius=10,fiberLe
     gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)
     
     #Put cylinders according to a given random law
-    for iFiber in range(nFiber):
-        print(iFiber)
+    print('Adding fibers until fiberContent is reached')
+    fiberTotalVolume = 0.0
+    while fiberTotalVolume<fiberContent:
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
                   random.uniform(bounds[4], bounds[5]))
@@ -62,18 +66,47 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),nFiber=20,fiberRadius=10,fiberLe
         objImage = Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
         image = np.logical_or(image,objImage)
         
-    
+        fiberTotalVolume = float(np.count_nonzero(image))/np.size(image)        
+        print(fiberTotalVolume)
+        
     #Add binder
 #    ball = morphology.ball(binderThickness)
 #    binder = ndimage.morphology.binary_closing(image, structure=ball)
     
+    print('Adding binder until binderContent is reached')
+    binderTotalVolume = 0.0
+    binderThickness=1
+    
     myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
-    myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
-    myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
-    binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
     
-    binder = np.logical_and(binder,np.logical_not(image))    
+    while binderTotalVolume<binderContent :
+        print(binderTotalVolume)
+        
+        myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+        myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+        binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
     
+        binder = np.logical_and(binder,np.logical_not(image))    
+        
+        binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
+        
+        binderThickness += 1
+        
+#TODO : faire recherche dichotomique du bon binderThickness        
+#                =(a+b)/2. # Prendre le milieu de [a,b]
+#if f(c)==0:
+#    return c
+#    if f(a)>0:
+#        if f(c)>0:
+#            a, b = c, b # dichotomie a droite
+#            else:
+#                a, b = a, c # dichotomie a gauche
+#                else:
+#                    if f(c)>0:
+#                        a, b = a, c # dichotomie  gauche
+#                    else:
+#                        a, b = c, b
+        
     image = image.astype(np.uint8)
     image[binder] = 2    
     
@@ -228,12 +261,12 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
 
     #cas juxtaposition :
     #mettre une image au dessus de l'autre
-
-    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
-                                       voidRadius,nVoid,
-                                       crackLength,nCrack,
-                                       randomSeed=1)
-                             
+#
+#    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
+#                                       voidRadius,nVoid,
+#                                       crackLength,nCrack,
+#                                       randomSeed=1)
+#                             
 
 
     #cas superposition : 
@@ -246,8 +279,8 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
     #trouver les pores exterieurs avec full morphology. Ajouter la MPL dans le 
     #masque défini par ces pores.
 
-    wholeImage = 
-    top = 
+#    wholeImage = 
+#    top = 
     
     wholeImage[top] = gdl
 
@@ -1391,6 +1424,32 @@ def SaveImage(image,filename):
 
 
 #--------------------------------------------------------------------
+def VisualizeVolumeRendering(image):
+
+    mlab.pipeline.volume(mlab.pipeline.scalar_field(image))
+
+#    from tvtk.api import tvtk
+#    data = image
+#    i = tvtk.ImageData(spacing=(1, 1, 1), origin=(0, 0, 0))
+#    i.point_data.scalars = data.ravel()
+#    i.point_data.scalars.name = 'scalars'
+#    i.dimensions = data.shape
+
+
+#--------------------------------------------------------------------
+def VisualizeCutPlanes(image):
+    mlab.pipeline.image_plane_widget(mlab.pipeline.scalar_field(image),
+                                plane_orientation='x_axes',
+                                slice_index=10,
+                            )
+    mlab.pipeline.image_plane_widget(mlab.pipeline.scalar_field(image),
+                                plane_orientation='y_axes',
+                                slice_index=10,
+                            )
+    mlab.outline()
+
+
+#--------------------------------------------------------------------
 def ComputeVoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):    
     from scipy.spatial import Voronoi
     import numpy as np
@@ -1440,6 +1499,9 @@ def ComputeVoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):
      
     return vertices, fibres
 
+
+
+
 #--------------------------------------------------------------------
 #      Tests
 #--------------------------------------------------------------------
@@ -1469,8 +1531,8 @@ def TestVirtualVoronoi():
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
-    image = CreateVirtualGDL(voxelNumbers=(500,500,200),nFiber=30,fiberRadius=9,
-                             fiberLength=500,binderThickness=8,anisotropy=5,randomSeed=0) 
+    image = CreateVirtualGDL(voxelNumbers=(500,500,200),fiberContent=0.1,fiberRadius=9,
+                             fiberLength=500,binderContent=0.1,anisotropy=5,randomSeed=0) 
     SaveImage(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
    
@@ -1491,6 +1553,17 @@ def TestVoxelizePython():
     image=Voxelize(mesh,gridX,gridY,gridZ)
     SaveImage(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')
     
+#--------------------------------------------------------------------        
+def TestVisualization():
+    image = CreateVirtualGDL(voxelNumbers=(400,400,100),fiberContent=0.2,fiberRadius=9,
+                             fiberLength=400,binderContent=0.05,anisotropy=5,randomSeed=0)
+
+    VisualizeVolumeRendering(image)
+    VisualizeCutPlanes(image)
+    
+    
+    
+    
 #--------------------------------------------------------------------
 if __name__ == "__main__":
-    TestVirtualGDL()
+    TestVisualization()
