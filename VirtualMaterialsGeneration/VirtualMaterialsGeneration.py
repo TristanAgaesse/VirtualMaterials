@@ -18,6 +18,8 @@ import os
 import sys
 sys.path.append(os.path.pardir+"/Utilities")
 import tifffile as tff
+sys.path.append(os.path.pardir+"/PhysicalComputations")
+import FullMorphology
 
 
 
@@ -244,20 +246,20 @@ def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
 
 
 #--------------------------------------------------------------------
-def CreateVirtualInterfaceGDLMPL(randomSeed=0):
+def CreateVirtualInterfaceGDLMPL(penetrationLength=15):
 
     #Create GDL Image
-    gdl = CreateVirtualGDL(voxelNumbers=(500,500,200),
-                           nFiber=100,fiberRadius=9,fiberLength=500,
-                           binderThickness=8,anisotropy=5,randomSeed=randomSeed)
+    GDLVoxelNumbers = (400,400,100)
+    gdl = CreateVirtualGDL(voxelNumbers=GDLVoxelNumbers,fiberContent=0.2,fiberRadius=9,
+                             fiberLength=400,binderContent=0.05,anisotropy=4,randomSeed=0)
 
-    #Zoom on the bottom of GDL with resampling
-
-
-    #Create MPL image
-   
+    #Create interface image with GDL on top
+    interfaceVoxelNumber = (GDLVoxelNumbers[0],GDLVoxelNumbers[1],2*GDLVoxelNumbers[2])
+    interface = np.zeros(interfaceVoxelNumber,dtype=np.uint8)
     
-    #Add the two images
+    
+    
+    #Add the GDL
 
     #cas juxtaposition :
     #mettre une image au dessus de l'autre
@@ -282,15 +284,17 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
 #    wholeImage = 
 #    top = 
     
-    wholeImage[top] = gdl
+    interface[:,:,range(GDLVoxelNumbers[2])] = gdl
 
-    import FullMorphology
-    invadedVoxels = FullMorphology(wholeImage,voxelLength=2,
-                                   pressureList=1.0/10,pressureCode=110,gamma=1)
+    invadedVoxels = FullMorphology.FullMorphology(interface,voxelLength=2,
+                                   pressureList=[1.0/penetrationLength],pressureCode=[110],gamma=1)
 
     mpl = invadedVoxels==110
-
-    wholeImage[mpl] = mplCode
+    
+    mplCode = 3
+    
+    interface[mpl] = mplCode
+    
     
         #add micro porosity
 
@@ -299,7 +303,7 @@ def CreateVirtualInterfaceGDLMPL(randomSeed=0):
 
 
 
-    return 1
+    return interface
 
 
 #--------------------------------------------------------------------
@@ -1449,6 +1453,10 @@ def VisualizeCutPlanes(image):
     mlab.outline()
 
 
+def VisualizeIsoSurface(image):
+    mlab.contour3d(image)
+
+
 #--------------------------------------------------------------------
 def ComputeVoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):    
     from scipy.spatial import Voronoi
@@ -1553,6 +1561,7 @@ def TestVoxelizePython():
     image=Voxelize(mesh,gridX,gridY,gridZ)
     SaveImage(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')
     
+    
 #--------------------------------------------------------------------        
 def TestVisualization():
     image = CreateVirtualGDL(voxelNumbers=(400,400,100),fiberContent=0.2,fiberRadius=9,
@@ -1560,10 +1569,19 @@ def TestVisualization():
 
     VisualizeVolumeRendering(image)
     VisualizeCutPlanes(image)
-    
-    
+    VisualizeIsoSurface(image)
     
     
 #--------------------------------------------------------------------
+def TestInterfaceGDLMPL(): 
+
+    interface=CreateVirtualInterfaceGDLMPL(penetrationLength=40)   
+    
+    SaveImage(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL.tif')    
+    
+    #VisualizeIsoSurface(interface)
+    VisualizeCutPlanes(interface)
+    
+#--------------------------------------------------------------------
 if __name__ == "__main__":
-    TestVisualization()
+    TestInterfaceGDLMPL()
