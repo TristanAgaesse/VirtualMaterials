@@ -18,15 +18,32 @@ import time
 
 #----------------------------------------------------------------------------------------------
 
-def FullMorphology(inputImage,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3):
+def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3):
+    """inletFace=0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax"""
+    
+    
+    
     
     beginTime=time.time()
             
     myImg = inputImage
 
     inletVoxels = np.zeros(myImg.shape,dtype=bool)
-    inletVoxels[-1,:,:] = True
     
+    
+    if inletFace==0:
+        inletVoxels[0,:,:] = True
+    elif inletFace==1:
+        inletVoxels[-1,:,:] = True
+    elif inletFace==2:
+        inletVoxels[:,0,:] = True
+    elif inletFace==3:
+        inletVoxels[:,-1,:] = True
+    elif inletFace==4:
+        inletVoxels[:,:,0] = True
+    elif inletFace==5:
+        inletVoxels[:,:,-1] = True        
+        
     #distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
     memoryType=np.float16
     itkimage = sitk.GetImageFromArray(np.logical_not(myImg==0).astype(np.uint8))
@@ -63,17 +80,7 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     del indicesCenters
     
     
-    #Dilate with a ball of size capillaryLength
-    
-    #Scipy implementation of dilation
-    #ball=morphology.ball(capillaryLength)
-    #invadedVoxels=ndimage.morphology.binary_dilation(invadedVoxels, structure=ball)     
-    
-    #SimpleITK implementation of dilation
-    itkInvadedVoxels = sitk.GetImageFromArray(invadedVoxels.astype(np.uint8))
-    itkInvadedVoxels = sitk.BinaryDilate(itkInvadedVoxels, int(capillaryLength), sitk.sitkBall, 0.0, 1.0,  False)   
-    invadedVoxels=sitk.GetArrayFromImage(itkInvadedVoxels)  
-    invadedVoxels=invadedVoxels.astype(np.bool)  
+     
               
     #Keep only water connected with the inlet          
     structuringElement = np.ones((3,3,3))
@@ -92,6 +99,18 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     invadedVoxels=invadedVoxels.astype(np.bool)
     invadedVoxels[np.logical_not(foo)]=False
     invadedVoxels[foo]=True
+    
+    #Dilate with a ball of size capillaryLength
+    
+    #Scipy implementation of dilation
+    #ball=morphology.ball(capillaryLength)
+    #invadedVoxels=ndimage.morphology.binary_dilation(invadedVoxels, structure=ball)     
+    
+    #SimpleITK implementation of dilation
+    itkInvadedVoxels = sitk.GetImageFromArray(invadedVoxels.astype(np.uint8))
+    itkInvadedVoxels = sitk.BinaryDilate(itkInvadedVoxels, int(capillaryLength), sitk.sitkBall, 0.0, 1.0,  False)   
+    invadedVoxels=sitk.GetArrayFromImage(itkInvadedVoxels)  
+    invadedVoxels=invadedVoxels.astype(np.bool) 
     
     
     return invadedVoxels

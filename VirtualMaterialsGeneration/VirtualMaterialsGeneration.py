@@ -32,8 +32,8 @@ import FullMorphology
 def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,fiberLength=100,
                              binderContent=0.3,anisotropy=1,randomSeed=1):
     
-    #TODO : change algorithm and input parameters :
-    #add fibers until a given fiber content is achieved. Add binder until a given porosity is achieved    
+    #Algorithm :add fibers until a given fiber content is achieved. 
+    #   Add binder until a given porosity is achieved    
     
     
     print('Create Virtual GDL')
@@ -72,42 +72,45 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,
         print(fiberTotalVolume)
         
     #Add binder
-#    ball = morphology.ball(binderThickness)
-#    binder = ndimage.morphology.binary_closing(image, structure=ball)
     
     print('Adding binder until binderContent is reached')
-    binderTotalVolume = 0.0
-    binderThickness=1
     
-    myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    def GetBinder(image,binderThickness):
+        myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+        myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+        myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
+        binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
+        binder = np.logical_and(binder,np.logical_not(image))
+        return binder
+    
+    #recherche dichotomique de binderThickness correspondant au binderContent demande
+    binderTotalVolume = 0.0
+    binderThickness=1    
     
     while binderTotalVolume<binderContent :
         print(binderTotalVolume)
         
-        myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
-        myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
-        binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
-    
-        binder = np.logical_and(binder,np.logical_not(image))    
-        
+        binder = GetBinder(image,binderThickness)
         binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
         
         binderThickness += 1
         
-#TODO : faire recherche dichotomique du bon binderThickness        
-#                =(a+b)/2. # Prendre le milieu de [a,b]
-#if f(c)==0:
-#    return c
-#    if f(a)>0:
-#        if f(c)>0:
-#            a, b = c, b # dichotomie a droite
+       
+#guessBT =(upperBT+lowerBT)/2. 
+#binder = GetBinder(image,binderThickness)
+#binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
+#if f(guessBT)==0:
+#    return guessBT
+#    if f(upperBT)>0:
+#        if f(guessBT)>0:
+#            upperBT, lowerBT = guessBT, lowerBT # dichotomie a droite
 #            else:
-#                a, b = a, c # dichotomie a gauche
+#                upperBT, lowerBT = upperBT, guessBT # dichotomie a gauche
 #                else:
-#                    if f(c)>0:
-#                        a, b = a, c # dichotomie  gauche
+#                    if f(guessBT)>0:
+#                        upperBT, lowerBT = upperBT, guessBT # dichotomie  gauche
 #                    else:
-#                        a, b = c, b
+#                        upperBT, lowerBT = guessBT, lowerBT
         
     image = image.astype(np.uint8)
     image[binder] = 2    
@@ -248,46 +251,35 @@ def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
 #--------------------------------------------------------------------
 def CreateVirtualInterfaceGDLMPL(penetrationLength=15):
 
+    imageSize=(400,400,300)
+    
+    boundary=50
+    
     #Create GDL Image
-    GDLVoxelNumbers = (400,400,100)
-    gdl = CreateVirtualGDL(voxelNumbers=GDLVoxelNumbers,fiberContent=0.2,fiberRadius=9,
-                             fiberLength=400,binderContent=0.05,anisotropy=4,randomSeed=0)
+    GDLVoxelNumbers = (imageSize[0]+2*boundary,
+                       imageSize[1]+2*boundary,
+                       imageSize[2]/2)
+    
+    gdl = CreateVirtualGDL(voxelNumbers=GDLVoxelNumbers,
+                           fiberContent=0.2,fiberRadius=9,fiberLength=GDLVoxelNumbers[0],
+                           binderContent=0.05,anisotropy=4,randomSeed=0)
 
     #Create interface image with GDL on top
-    interfaceVoxelNumber = (GDLVoxelNumbers[0],GDLVoxelNumbers[1],2*GDLVoxelNumbers[2])
+    
+    interfaceVoxelNumber = (GDLVoxelNumbers[0]-2*boundary,
+                            GDLVoxelNumbers[1]-2*boundary,
+                            2*GDLVoxelNumbers[2])
     interface = np.zeros(interfaceVoxelNumber,dtype=np.uint8)
-    
-    
-    
-    #Add the GDL
 
-    #cas juxtaposition :
-    #mettre une image au dessus de l'autre
-#
-#    mpl = CreateVirtualLayerWithCracks(voxelNumbers=voxelNumbers,
-#                                       voidRadius,nVoid,
-#                                       crackLength,nCrack,
-#                                       randomSeed=1)
-#                             
+    interface[:,:,:GDLVoxelNumbers[2]]=gdl[boundary:GDLVoxelNumbers[0]-boundary,
+                                           boundary:GDLVoxelNumbers[1]-boundary,
+                                           :GDLVoxelNumbers[2]]
 
+    #Add MPL
 
-    #cas superposition : 
-    #mettre la mpl, superposer la GDL. Superposition sur une epaisseur x
-
-
-
-
-    #cas intrusion de la MPL dans les pores exterieurs de la GDL :
-    #trouver les pores exterieurs avec full morphology. Ajouter la MPL dans le 
-    #masque défini par ces pores.
-
-#    wholeImage = 
-#    top = 
-    
-    interface[:,:,range(GDLVoxelNumbers[2])] = gdl
-
-    invadedVoxels = FullMorphology.FullMorphology(interface,voxelLength=2,
-                                   pressureList=[1.0/penetrationLength],pressureCode=[110],gamma=1)
+    invadedVoxels = FullMorphology.FullMorphology(interface,inletFace=5,voxelLength=2,
+                                    pressureList=[1.0/penetrationLength],
+                                    pressureCode=[110],gamma=1)
 
     mpl = invadedVoxels==110
     
@@ -296,12 +288,6 @@ def CreateVirtualInterfaceGDLMPL(penetrationLength=15):
     interface[mpl] = mplCode
     
     
-        #add micro porosity
-
-
-
-
-
 
     return interface
 
@@ -1515,18 +1501,6 @@ def ComputeVoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):
 #--------------------------------------------------------------------
      
 #--------------------------------------------------------------------
-def Test():
-#    voxelNumbers = (100,100,100)
-#    image=np.zeros(voxelNumbers).astype(np.bool)
-#    bounds=(-5.0, 5.0, -5.0, 5.0, -5.0, 5.0)
-#    
-#    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-#    gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1]+1)
-#    gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2]+1)
-#   
-    return 1  
-    
-#--------------------------------------------------------------------    
 def TestVirtualVoronoi():    
     voxelNumbers=(200,200,200)
     imageBounds = (0.0,1.0,0.0,1.0,0.0,1.0)
@@ -1575,12 +1549,11 @@ def TestVisualization():
 #--------------------------------------------------------------------
 def TestInterfaceGDLMPL(): 
 
-    interface=CreateVirtualInterfaceGDLMPL(penetrationLength=40)   
+    interface=CreateVirtualInterfaceGDLMPL(penetrationLength=30)   
     
-    SaveImage(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL.tif')    
+    SaveImage(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL_penetration30.tif')    
     
-    #VisualizeIsoSurface(interface)
-    VisualizeCutPlanes(interface)
+
     
 #--------------------------------------------------------------------
 if __name__ == "__main__":
