@@ -19,36 +19,49 @@ from collections import defaultdict
 import time
 
 
+
+
+#----------------------------------------------------------------------------------------------
 def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},distanceType='ITKDanielson'):
+
 
     beginTime=time.time()
     structuringElement = np.ones((3,3,3))
     
+    
     #Load image from disk
     myImg=tff.imread(inputFileName).astype(np.uint8)    
     
+    
     #Perform pores segmentation
     print('PoresWatershedSegmentation')
+    
     pores,watershedLines,distanceMap,porePhase = PoresSegmentation(myImg,
                                                 structuringElement,hContrast,
                                                 distanceType=distanceType,phases=phases)
     
     
     print('FindLinks')
+    
     links,interfaceToPore=FindLinks(myImg,pores,watershedLines,structuringElement)
     
     
     print('AnalyseElementsGeometry')
+    
     PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
     
 
     print('Saving results to disk')
+    
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
                              'porePhase':porePhase,'myImage':myImg.astype(np.bool)})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     
+    
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))
+    
+    
     
     
     
@@ -75,13 +88,17 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
         
         phaseImage=phaseImage.astype(np.bool)
         pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0).astype(np.uint32)
+        
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
         del phaseImage, poresPhase,watershedLinesPhase,distanceMapPhase
+        
         labelShift.append(pores.max())
+        
         
     phaseBoundaries = PhaseBoundaryDetection(myImg)     
     watershedLines=np.logical_or(watershedLines,phaseBoundaries)
+    
     
     porePhase=np.zeros(pores.max(),dtype=np.uint8)    
     for i in range(len(labelShift)-1):
@@ -90,12 +107,18 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     return pores,watershedLines,distanceMap,porePhase
     
     
+    
+    
+    
+    
 #----------------------------------------------------------------------------------------------
 def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
                                        distanceType='ITKDanielson',markerChoice='Hmaxima',
                                        watershedAlgo='ITK'):
     
-    #calcul de la carte de distanceMap
+    
+    #Calcul de la carte de distance distanceMap
+    
     if distanceType=='euclidean':
         memoryType=np.float16
         distanceMap = ndimage.distance_transform_edt(phaseImage
@@ -132,7 +155,9 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
     
     del local_maxi
     
+    
     #Calcul des lignes de partage de niveau 
+    
     if watershedAlgo=='Mahotas':
         _,watershedLines = mahotas.cwatershed(
                                 (distanceMap.max()-distanceMap).astype(np.int8), 
@@ -154,13 +179,19 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
         watershedLines[np.logical_not(phaseImage)] = False                                                         
     del markers
     
-    #Label des pores séparés par les lignes de partage de niveau
+    
+    #Labeler des pores séparés par les lignes de partage de niveau
+    
     pores=ndimage.measurements.label(np.logical_and(phaseImage,np.logical_not(watershedLines)), 
                                      structure=structuringElement 
                                      )[0]
     pores[np.logical_not(phaseImage)] = 0
     
+    
     return pores,watershedLines,distanceMap
+    
+    
+    
     
 
 #----------------------------------------------------------------------------------------------
@@ -184,6 +215,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
                                             range(1,links.max()+1),
                                             np.size,np.int,0)
                                             
+                                            
     # Infos sur la forme, position des pores
     pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
                                                      index=range(1,pores.max()+1))
@@ -192,6 +224,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
     pores_volumes=ndimage.measurements.labeled_comprehension(
                                             pores, pores,range(1,pores.max()+1),
                                             np.size,np.int,0)
+    
+    
     
     PNMGeometricData=dict()
     PNMGeometricData['internalLinkCapillaryRadius']=linkRadiusDistanceMap.astype(np.float32)
@@ -250,6 +284,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
     
     
     return PNMGeometricData
+
+
 
 
 
@@ -393,6 +429,8 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     return links, interfaceToPore
 
 
+ 
+ 
  
 ##-----------------------------------------------------------------------------
 def PhaseBoundaryDetection(myImg,variance=2):    
