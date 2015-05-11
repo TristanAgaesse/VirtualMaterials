@@ -52,12 +52,14 @@ def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressu
 
 
     pressureCode=np.asarray(pressureCode).astype(np.uint8)
+    pressureList = np.asarray(pressureList)
+    ascendingOrder=np.argsort(pressureList)
     
     for i in range(len(pressureList)-1,-1,-1):
         print('begin '+str(i))
-        pressure = pressureList[i]
+        pressure = pressureList[ascendingOrder[i]]
         water = FullMorphologyHydrophobicStep(distanceMap,2*gamma/(pressure*voxelLength),inletVoxels)
-        myImg[water] = pressureCode[i]
+        myImg[water] = pressureCode[ascendingOrder[i]]
         del water  
     
       
