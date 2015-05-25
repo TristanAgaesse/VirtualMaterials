@@ -6,15 +6,12 @@ Created on Thu Nov 27 19:53:34 2014
 """
 
 import numpy as np
-#from skimage import morphology
 from scipy import ndimage
 import SimpleITK as sitk
-import sys
-import os
-
-#sys.path.append(os.path.pardir+"/Utilities")
 from VirtualMaterials.Utilities  import tifffile as tff
 import time
+
+#from skimage import morphology
 
 #----------------------------------------------------------------------------------------------
 

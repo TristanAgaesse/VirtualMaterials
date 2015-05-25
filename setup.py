@@ -25,7 +25,7 @@ setup(
         'scikit-image',
         'SimpleITK',
         'hdf5storage',
-        'mayavi'],     
+	'mayavi'],     
         
     description="A Python toolbox to create virtual material images and to compute their physical properties..",
     author='CEA LITEN',

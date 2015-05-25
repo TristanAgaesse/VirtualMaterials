@@ -7,18 +7,16 @@ Created on Mon Nov 10 09:39:57 2014
 import numpy as np
 import hdf5storage
 from scipy import ndimage
-#from skimage import io as skimio
 from skimage import morphology
 from skimage import feature
 import SimpleITK as sitk
-#import mahotas
-import os, sys
-#sys.path.append(os.path.pardir+"/Utilities") 
 from VirtualMaterials.Utilities  import tifffile as tff
 from collections import defaultdict
 import time
 import re 
 
+#import mahotas
+#from skimage import io as skimio
 
 
 #----------------------------------------------------------------------------------------------
