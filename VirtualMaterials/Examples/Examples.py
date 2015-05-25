@@ -46,10 +46,7 @@ def TestVirtualCCL():
     image = virtMatGen.CreateVirtualCatalystLayer((200,200,200),4,5000,50,200,2,30)
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
     
-    
-
-    
-    
+       
 #--------------------------------------------------------------------        
 def TestVisualization():
     image = virtMatGen.CreateVirtualGDL(voxelNumbers=(400,400,100),fiberContent=0.2,fiberRadius=9,

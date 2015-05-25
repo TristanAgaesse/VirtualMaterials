@@ -16,7 +16,8 @@ setup(
     packages=['VirtualMaterials',
               'VirtualMaterials.VirtualImages',
               'VirtualMaterials.Simulation',
-              'VirtualMaterials.Utilities'],
+              'VirtualMaterials.Utilities',
+              'VirtualMaterials.Examples'],
               
     install_requires = [
         'numpy',
