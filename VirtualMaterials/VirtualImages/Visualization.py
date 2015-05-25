@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon May 25 18:36:45 2015
 
-@author: greentoto
-"""
 
 import numpy as np
 import vtk

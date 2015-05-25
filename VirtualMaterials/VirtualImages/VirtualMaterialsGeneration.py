@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jan  2 18:50:02 2015
 
-@author: Tristan Agaesse
-"""
 import numpy as np
 import vtk
 from vtk.util import numpy_support

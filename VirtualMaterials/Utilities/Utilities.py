@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-
     
 from VirtualMaterials.Utilities  import tifffile as tff
 import numpy as np

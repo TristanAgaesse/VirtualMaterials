@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon May 25 18:34:40 2015
-
-@author: greentoto
-"""
-
 
 import numpy as np
 import vtk

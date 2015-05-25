@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Nov 27 19:53:34 2014
-
-@author: greentoto
-"""
 
 import numpy as np
 from scipy import ndimage

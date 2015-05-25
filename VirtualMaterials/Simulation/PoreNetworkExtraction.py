@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Nov 10 09:39:57 2014
 
-@author: Tristan Agaesse
-"""
+
 import numpy as np
 import hdf5storage
 from scipy import ndimage
