@@ -13,6 +13,7 @@ import random
 from skimage import morphology
 import SimpleITK as sitk
 from mayavi import mlab
+from scipy.spatial import Voronoi
 import time
 import os
 import sys
@@ -1531,8 +1532,6 @@ def VisualizeImageVTK(image):
 
 #--------------------------------------------------------------------
 def ComputeVoronoiPoints(nPoint,anisotropy,imageBounds,randomSeed=0):    
-    from scipy.spatial import Voronoi
-    import numpy as np
     
     random.seed(randomSeed)
     assert anisotropy>0

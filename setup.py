@@ -12,23 +12,22 @@ except ImportError:
 
 setup(
     name='VirtualMaterials',
-    packages=['OpenPNM',
-              'OpenPNM.Base',
-              'OpenPNM.Network',
-              'OpenPNM.Network.models',
-              'OpenPNM.Geometry',
-              'OpenPNM.Geometry.models',
-              'OpenPNM.Phases',
-              'OpenPNM.Phases.models',
-              'OpenPNM.Physics',
-              'OpenPNM.Physics.models',
-              'OpenPNM.Utilities',
-              'OpenPNM.Algorithms',
-              'OpenPNM.Postprocessing'],
-    version='1.1',
-    description="A framework for conducting pore network modeling simulations of multiphase transport in porous materials.",
-    author='OpenPNM Team',
+    packages=['VirtualMaterials',
+              'VirtualMaterials.SampleImages',
+              'VirtualMaterials.Simulation',
+              'VirtualMaterials.VirtualImages',
+              'VirtualMaterials.Utilities'],
+    install_requires = [
+        'numpy',
+        'vtk',
+        'scipy',
+        'scikit-image',
+        'SimpleITK',
+        'mayavi',
+        'hdf5storage'
+    ],        
+    description="A framework for handling virtual images of porous media.",
+    author='CEA LITEN',
     author_email='jeff.gostick@mcgill.ca',
-    download_url='https://github.com/pmeal/OpenPNM/',
-    url='https://github.com/pmeal/OpenPNM'
 )
+

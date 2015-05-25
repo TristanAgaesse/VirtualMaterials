@@ -17,7 +17,7 @@ sys.path.append(os.path.pardir+"/Utilities")
 import tifffile as tff
 from collections import defaultdict
 import time
-
+import re 
 
 
 
@@ -365,7 +365,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 
     def BuildInterfaceToPore(mydict) :
         mykeys= mydict.keys()
-        import re    
+           
         interfaceToPore=np.asarray([ [ int(re.search('\w+(?<=_)', mykeys[i]).group(0)[0:-1]),
                             int(re.search('(?<=_)\w+', mykeys[i]).group(0))] 
                             for i in range(len(mykeys))  ])
