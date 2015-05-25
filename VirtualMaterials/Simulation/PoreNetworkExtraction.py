@@ -13,8 +13,8 @@ from skimage import feature
 import SimpleITK as sitk
 #import mahotas
 import os, sys
-sys.path.append(os.path.pardir+"/Utilities") 
-import tifffile as tff
+#sys.path.append(os.path.pardir+"/Utilities") 
+from VirtualMaterials.Utilities  import tifffile as tff
 from collections import defaultdict
 import time
 import re 

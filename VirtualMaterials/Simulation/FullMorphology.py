@@ -12,8 +12,8 @@ import SimpleITK as sitk
 import sys
 import os
 
-sys.path.append(os.path.pardir+"/Utilities")
-import tifffile as tff
+#sys.path.append(os.path.pardir+"/Utilities")
+from VirtualMaterials.Utilities  import tifffile as tff
 import time
 
 #----------------------------------------------------------------------------------------------

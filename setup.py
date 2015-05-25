@@ -12,22 +12,22 @@ except ImportError:
 
 setup(
     name='VirtualMaterials',
+    
     packages=['VirtualMaterials',
-              'VirtualMaterials.SampleImages',
-              'VirtualMaterials.Simulation',
               'VirtualMaterials.VirtualImages',
+              'VirtualMaterials.Simulation',
               'VirtualMaterials.Utilities'],
+              
     install_requires = [
         'numpy',
         'vtk',
         'scipy',
         'scikit-image',
         'SimpleITK',
-        'mayavi',
-        'hdf5storage'
-    ],        
-    description="A framework for handling virtual images of porous media.",
+        'hdf5storage',
+        'mayavi'],     
+        
+    description="A Python toolbox to create virtual material images and to compute their physical properties..",
     author='CEA LITEN',
-    author_email='jeff.gostick@mcgill.ca',
 )
 

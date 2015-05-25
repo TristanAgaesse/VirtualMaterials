@@ -17,10 +17,10 @@ from scipy.spatial import Voronoi
 import time
 import os
 import sys
-sys.path.append(os.path.pardir+"/Utilities")
-import tifffile as tff
-sys.path.append(os.path.pardir+"/PhysicalComputations")
-import FullMorphology
+#sys.path.append(os.path.pardir+"/Utilities")
+from VirtualMaterials.Utilities  import tifffile as tff
+#sys.path.append(os.path.pardir+"/PhysicalComputations")
+from VirtualMaterials.Simulation  import FullMorphology
 
 
 
