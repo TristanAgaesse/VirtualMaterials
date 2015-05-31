@@ -53,8 +53,8 @@ def TestVisualization():
                              fiberLength=400,binderContent=0.05,anisotropy=5,randomSeed=0)
 
     Visualization.VisualizeVolumeRendering(image)
-    Visualization.VisualizeCutPlanes(image)
-    Visualization.VisualizeIsoSurface(image)
+#    Visualization.VisualizeCutPlanes(image)
+#    Visualization.VisualizeIsoSurface(image)
     
     
 #--------------------------------------------------------------------
