@@ -27,8 +27,10 @@ def CreateBall(center,radius):
     source.SetRadius(radius)
     source.SetThetaResolution(10)
     source.SetPhiResolution(10)
+    source.Update()
+    
     polydata=source.GetOutput()
-    polydata.Update()    
+#    polydata.Update()    
 
     return polydata
 
@@ -41,9 +43,10 @@ def CreateCylinder(center,axis,radius,height):
     source.SetRadius(radius)
     source.SetHeight(height)
     source.SetResolution(8)
+    source.Update()
     
     polydata=source.GetOutput()
-    polydata.Update()
+    #polydata.Update()
 
     #Perform rotation to get the rigth axis
     oldAxis = (0,1,0)
@@ -54,10 +57,15 @@ def CreateCylinder(center,axis,radius,height):
     polydata = MeshTranslate(polydata,translationVector)
     
     triFilter=vtk.vtkTriangleFilter()
-    triFilter.SetInput(polydata)
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        triFilter.SetInputData(polydata)
+    else:
+        triFilter.SetInput(polydata)
     triFilter.Update()
+    
     polydata=triFilter.GetOutput() 
-    polydata.Update()
+    #polydata.Update()
     
     return polydata
     
@@ -92,11 +100,15 @@ def CreatePolyhedron(points):
     
     # Convert to vtk polydata object 
     geometryFilter =  vtk.vtkGeometryFilter()
-    geometryFilter.SetInput(uGrid)
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        geometryFilter.SetInputData(uGrid)
+    else:
+        geometryFilter.SetInput(uGrid)
+    
     geometryFilter.Update()
     polydata = geometryFilter.GetOutput()
     
-    polydata.Update()
+    #polydata.Update()
     
     return polydata
     
@@ -116,7 +128,7 @@ def CreateEllipsoid(center,axis,xRadius,yRadius,zRadius):
     source.Update()
     
     polydata=source.GetOutput()
-    polydata.Update()
+    #polydata.Update()
     
     #Perform rotation to get the rigth axis
     oldAxis = (0,1,0)
@@ -138,7 +150,7 @@ def CreateRandomHills():
     source.SetParametricFunction(randomHills)
     source.Update()
     polydata = source.GetOutput()
-    polydata.Update()
+    #polydata.Update()
     
     return polydata
     
@@ -171,7 +183,12 @@ def CreateSpline():
 #    vtkPolyData.GetPointData().SetScalars(vtkFloatArray)
     
     vtkSplineFilter = vtk.vtkSplineFilter()
-    vtkSplineFilter.SetInput(vtkPolyData)
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        vtkSplineFilter.SetInputData(vtkPolyData)
+    else:
+        vtkSplineFilter.SetInput(vtkPolyData)
+    
     vtkSplineFilter.SetNumberOfSubdivisions(5*npts)
     vtkSplineFilter.Update()
     
@@ -180,9 +197,10 @@ def CreateSpline():
     vtkTubeFilter.SetRadius(0.15)
     vtkTubeFilter.SetNumberOfSides(10)
     vtkTubeFilter.CappingOn()    
+    vtkTubeFilter.Update()
     
     polydata = vtkTubeFilter.GetOutput()
-    polydata.Update()
+    #polydata.Update()
     
     return polydata    
     
@@ -196,7 +214,7 @@ def CreateTorus(center,axis):
     source.Update()
     
     polydata=source.GetOutput()
-    polydata.Update()    
+    #polydata.Update()    
     
     #Perform rotation to get the rigth axis
     oldAxis = (0,1,0)
@@ -250,10 +268,18 @@ def MeshTranslate(polydata,translationVector):
     transform.Translate(translationVector[0],translationVector[1],translationVector[2])    
     transformFilter=vtk.vtkTransformPolyDataFilter()
     transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        transformFilter.SetInputData(polydata)
+    else:
+        transformFilter.SetInput(polydata)    
+    
+    
+       
+    transformFilter.Update()    
     
     polydata = transformFilter.GetOutput()
-    polydata.Update()
+    #polydata.Update()
 
     return polydata
 
@@ -277,10 +303,18 @@ def MeshRotate(polydata,oldAxis,newAxis):
     
     transformFilter=vtk.vtkTransformPolyDataFilter()
     transformFilter.SetTransform(transform)
-    transformFilter.SetInput(polydata)   
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        transformFilter.SetInputData(polydata)
+    else:
+        transformFilter.SetInput(polydata)     
+    
+    
+       
+    transformFilter.Update()
     
     polydata = transformFilter.GetOutput()
-    polydata.Update()
+    #polydata.Update()
     
     return polydata
     
