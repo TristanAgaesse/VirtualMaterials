@@ -43,7 +43,22 @@ def TestVirtualGDL():
    
 #--------------------------------------------------------------------    
 def TestVirtualCCL():
-    image = virtMatGen.CreateVirtualCatalystLayer((200,200,200),4,5000,50,200,2,30)
+    
+    voxelNumbers=(200,200,200)
+    carbonGrainRadius=4
+    nCarbonGrain=5000
+    voidRadius=50
+    nVoid=200
+    nafionThickness=2
+    nafionCoveragePercentage=30
+    randomSeed=1    
+    
+    image = virtMatGen.CreateVirtualCatalystLayer(voxelNumbers=voxelNumbers,
+            carbonGrainRadius=carbonGrainRadius,nCarbonGrain=nCarbonGrain,
+            voidRadius=voidRadius,nVoid=nVoid,
+            nafionThickness=nafionThickness,nafionCoveragePercentage=nafionCoveragePercentage,
+            randomSeed=randomSeed)
+            
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
     
        

@@ -118,8 +118,11 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,
     
     
 #--------------------------------------------------------------------
-def CreateVirtualCatalystLayer(voxelNumbers,carbonGrainRadius,nCarbonGrain,voidRadius,nVoid,
-                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):  
+def CreateVirtualCatalystLayer(voxelNumbers=(200,200,200),
+                               carbonGrainRadius=4,nCarbonGrain=5000,
+                               voidRadius=50,nVoid=200,
+                               nafionThickness=2,nafionCoveragePercentage=30,
+                               randomSeed=1):  
     
     print('Create Virtual Active Layer')
     beginTime=time.time()
