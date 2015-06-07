@@ -4,7 +4,8 @@ from VirtualMaterials.Utilities  import tifffile as tff
 import numpy as np
 import vtk
 import SimpleITK as sitk    
-    
+from vtk.util import numpy_support    
+
 #--------------------------------------------------------------------
 #      Utilities
 #--------------------------------------------------------------------    
@@ -123,18 +124,16 @@ def NumpyToVTKImage(numpyImage):
 #--------------------------------------------------------------------
 def VTKImageToNumpy(vtkImage): 
 
+    vtkarray = vtkImage.GetPointData().GetScalars()
+    numpyImage = numpy_support.vtk_to_numpy(vtkarray)
 
-
-
-
-
-
-
+    _, h, _, d, _, w = vtkImage.GetWholeExtent()
+    numpyImageShape = (w+1,d+1,h+1)
+    
+    numpyImage = numpyImage.reshape(numpyImageShape)
+    
     return numpyImage    
-    
-    
-    
-    
+       
     
     
     

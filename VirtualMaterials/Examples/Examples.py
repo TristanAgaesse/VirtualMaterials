@@ -39,8 +39,19 @@ def TestVirtualVoronoi():
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
-    image = virtMatGen.CreateVirtualGDL(voxelNumbers=(500,500,200),fiberContent=0.1,fiberRadius=9,
-                             fiberLength=500,binderContent=0.1,anisotropy=5,randomSeed=0) 
+    
+    voxelNumbers=(500,500,200)
+    fiberContent=0.1
+    fiberRadius=9
+    fiberLength=500
+    binderContent=0.1
+    anisotropy=5
+    randomSeed=0
+    
+    image = virtMatGen.CreateVirtualGDL(voxelNumbers=voxelNumbers,
+                         fiberContent=fiberContent,fiberRadius=fiberRadius,fiberLength=fiberLength,
+                         binderContent=binderContent,
+                         anisotropy=anisotropy,randomSeed=randomSeed) 
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
    
