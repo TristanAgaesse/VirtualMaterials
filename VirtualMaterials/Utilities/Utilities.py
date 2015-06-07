@@ -123,11 +123,12 @@ def NumpyToVTKImage(numpyImage):
 
 #--------------------------------------------------------------------
 def VTKImageToNumpy(vtkImage): 
-
-    vtkarray = vtkImage.GetPointData().GetScalars()
+    
+    vtkImageCopy = vtkImage.ShallowCopy()
+    vtkarray = vtkImageCopy.GetPointData().GetScalars()
     numpyImage = numpy_support.vtk_to_numpy(vtkarray)
 
-    _, h, _, d, _, w = vtkImage.GetWholeExtent()
+    _, h, _, d, _, w = vtkImageCopy.GetExtent()
     numpyImageShape = (w+1,d+1,h+1)
     
     numpyImage = numpyImage.reshape(numpyImageShape)

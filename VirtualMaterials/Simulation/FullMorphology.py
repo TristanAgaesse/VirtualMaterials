@@ -15,7 +15,7 @@ def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressu
     
     
     
-    
+        
     beginTime=time.time()
             
     myImg = inputImage

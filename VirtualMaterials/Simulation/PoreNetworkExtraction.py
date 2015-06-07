@@ -17,7 +17,7 @@ import re
 
 
 #----------------------------------------------------------------------------------------------
-def ExtractNetwork(inputFileName,outputFileName,hContrast,phases={'void':False},distanceType='ITKDanielson'):
+def ExtractNetwork(inputFileName,outputFileName,hContrast=4,phases={'void':False},distanceType='ITKDanielson'):
 
 
     beginTime=time.time()

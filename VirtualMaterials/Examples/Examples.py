@@ -34,12 +34,10 @@ def TestVirtualVoronoi():
     image=virtMatGen.CreateVirtualVoronoiFoam(voxelNumbers=voxelNumbers,imageBounds=imageBounds,
                                               nPoint=nPoint,fiberRadius=fiberRadius,
                                               anisotropy=anisotropy,randomSeed=randomSeed)
-    
     Utilities.SaveImageTiff(255*(image.astype(np.uint8)),'TestVoronoi.tif')
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
-    
     voxelNumbers=(500,500,200)
     fiberContent=0.1
     fiberRadius=9
@@ -47,14 +45,12 @@ def TestVirtualGDL():
     binderContent=0.1
     anisotropy=5
     randomSeed=0
-    
     image = virtMatGen.CreateVirtualGDL(voxelNumbers=voxelNumbers,
                          fiberContent=fiberContent,fiberRadius=fiberRadius,fiberLength=fiberLength,
                          binderContent=binderContent,
                          anisotropy=anisotropy,randomSeed=randomSeed) 
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
-   
 #--------------------------------------------------------------------    
 def TestVirtualCCL():
     
@@ -66,7 +62,6 @@ def TestVirtualCCL():
     nafionThickness=2
     nafionCoveragePercentage=30
     randomSeed=1    
-    
     image = virtMatGen.CreateVirtualCatalystLayer(voxelNumbers=voxelNumbers,
             carbonGrainRadius=carbonGrainRadius,nCarbonGrain=nCarbonGrain,
             voidRadius=voidRadius,nVoid=nVoid,
@@ -74,7 +69,6 @@ def TestVirtualCCL():
             randomSeed=randomSeed)
             
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
-    
        
 #--------------------------------------------------------------------        
 def TestVisualization():
@@ -88,8 +82,6 @@ def TestVisualization():
     
 #--------------------------------------------------------------------
 def TestInterfaceGDLMPL(): 
-
     interface=virtMatGen.CreateVirtualInterfaceGDLMPL(penetrationLength=30)   
-    
     Utilities.SaveImageTiff(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL_penetration30.tif')    
     
