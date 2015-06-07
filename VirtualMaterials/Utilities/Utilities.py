@@ -93,5 +93,49 @@ def Resize(image,scale=(2,2,2),interpolator='NearestNeighbor'):
     return outputImage
     
     
+
+#--------------------------------------------------------------------
+def NumpyToVTKImage(numpyImage): 
+
+    dataImporter = vtk.vtkImageImport()
+    
+    shape=numpyImage.shape
+    shape=[int(shape[i]) for i in range(len(shape))]
+    w, d, h = shape
+    dataImporter.SetDataExtent(0, h-1, 0, d-1, 0, w-1)
+    dataImporter.SetWholeExtent(0, h-1, 0, d-1, 0, w-1)
+    
+    numpyImage=numpyImage.astype(np.uint8)
+    dataImporter.SetDataScalarTypeToUnsignedChar()
+    
+    
+    
+    dataImporter.CopyImportVoidPointer(numpyImage, numpyImage.nbytes)
+    dataImporter.SetNumberOfScalarComponents(1)
+        
+    dataImporter.Update()
+    vtkImage = dataImporter.GetOutput()
+
+    return vtkImage
+
+
+
+#--------------------------------------------------------------------
+def VTKImageToNumpy(vtkImage): 
+
+
+
+
+
+
+
+
+    return numpyImage    
+    
+    
+    
+    
+    
+    
     
     

@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import vtk
-from vtk.util import numpy_support
+#import vtk
+#from vtk.util import numpy_support
 import math
-from scipy import ndimage
+#from scipy import ndimage
 import random
-from skimage import morphology
 import SimpleITK as sitk
-from scipy.spatial import Voronoi
 import time
 
 from VirtualMaterials.Utilities  import tifffile as tff
@@ -24,8 +22,9 @@ from VirtualMaterials.VirtualImages  import Voxelization
 
 
 #--------------------------------------------------------------------
-def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,fiberLength=100,
-                             binderContent=0.3,anisotropy=1,randomSeed=1):
+def CreateVirtualGDL(voxelNumbers=(200,200,200),
+                     fiberContent=0.5,fiberRadius=10,fiberLength=100,
+                     binderContent=0.3,anisotropy=1,randomSeed=1):
     
     #Algorithm :add fibers until a given fiber content is achieved. 
     #   Add binder until a given porosity is achieved    
@@ -64,7 +63,7 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,
         image = np.logical_or(image,objImage)
         
         fiberTotalVolume = float(np.count_nonzero(image))/np.size(image)        
-        print(fiberTotalVolume)
+        print fiberTotalVolume,
         
     #Add binder
     
@@ -83,7 +82,7 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),fiberContent=0.5,fiberRadius=10,
     binderThickness=1    
     
     while binderTotalVolume<binderContent :
-        print(binderTotalVolume)
+        print binderTotalVolume,
         
         binder = GetBinder(image,binderThickness)
         binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
@@ -247,11 +246,13 @@ def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
 
 
 #--------------------------------------------------------------------
-def CreateVirtualInterfaceGDLMPL(penetrationLength=15):
+def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),penetrationLength=15):
 
-    imageSize=(400,400,300)
+    imageBoundaryThickness = 50
     
-    boundary=50
+    
+    imageSize = voxelNumbers
+    boundary = imageBoundaryThickness 
     
     #Create GDL Image
     GDLVoxelNumbers = (imageSize[0]+2*boundary,
@@ -309,8 +310,11 @@ def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,
 
 
 #--------------------------------------------------------------------
-def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed=0):
+def CreateVirtualVoronoiFoam(voxelNumbers=(200,200,200),imageBounds=(0.0,1.0,0.0,1.0,0.0,1.0),
+                             nPoint=200,fiberRadius=0.05,
+                             anisotropy=1,randomSeed=0):
     
+
     print('Create Voronoi')
     beginTime=time.time()
     
@@ -340,7 +344,7 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotr
         axis=end-origin
         center=tuple((end+origin)/2)
         mesh = BasicShapes.CreateCylinder(center,axis,fiberRadius,height)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ)
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
         image=np.logical_or(image,objImage)
       
       
@@ -349,7 +353,7 @@ def CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotr
         center = vertices[iVertice]
         
         mesh = BasicShapes.CreateBall(tuple(center),fiberRadius)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ)
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
         image=np.logical_or(image,objImage)
 
     #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)

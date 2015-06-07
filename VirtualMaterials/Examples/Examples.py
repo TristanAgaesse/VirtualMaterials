@@ -31,7 +31,10 @@ def TestVirtualVoronoi():
     fiberRadius=0.05
     anisotropy=3
     randomSeed=0
-    image=virtMatGen.CreateVirtualVoronoiFoam(voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed)
+    image=virtMatGen.CreateVirtualVoronoiFoam(voxelNumbers=voxelNumbers,imageBounds=imageBounds,
+                                              nPoint=nPoint,fiberRadius=fiberRadius,
+                                              anisotropy=anisotropy,randomSeed=randomSeed)
+    
     Utilities.SaveImageTiff(255*(image.astype(np.uint8)),'TestVoronoi.tif')
 
 #--------------------------------------------------------------------
