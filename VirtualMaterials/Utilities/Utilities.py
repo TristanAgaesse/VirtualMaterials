@@ -50,6 +50,8 @@ def ExtractSurface(image):
     
 #--------------------------------------------------------------------
 def Resize(image,scale=(2,2,2),interpolator='NearestNeighbor'):  
+    """ interpolator= 'NearestNeighbor', 'Linear' or 'BSpline'  """
+    
     
     if interpolator=='NearestNeighbor':
         sitkInterpolator =   sitk.sitkNearestNeighbor
@@ -124,11 +126,10 @@ def NumpyToVTKImage(numpyImage):
 #--------------------------------------------------------------------
 def VTKImageToNumpy(vtkImage): 
     
-    vtkImageCopy = vtkImage.ShallowCopy()
-    vtkarray = vtkImageCopy.GetPointData().GetScalars()
+    vtkarray = vtkImage.GetPointData().GetScalars()
     numpyImage = numpy_support.vtk_to_numpy(vtkarray)
 
-    _, h, _, d, _, w = vtkImageCopy.GetExtent()
+    _, h, _, d, _, w = vtkImage.GetExtent()
     numpyImageShape = (w+1,d+1,h+1)
     
     numpyImage = numpyImage.reshape(numpyImageShape)
