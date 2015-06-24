@@ -410,11 +410,12 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
     #Prepare the structure image
     image=np.zeros(voxelNumbers,dtype=np.bool)
     
-    imageBounds = polydataMesh.GetWholeBoundingBox()
+    imageBounds = polydataMesh.GetBounds()
+    margin=fiberRadius    
     
-    gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(imageBounds[2],imageBounds[3],voxelNumbers[1]+1)
-    gridZ=np.linspace(imageBounds[4],imageBounds[5],voxelNumbers[2]+1)
+    gridX=np.linspace(imageBounds[0]-margin,imageBounds[1]+margin,voxelNumbers[0]+1)
+    gridY=np.linspace(imageBounds[2]-margin,imageBounds[3]+margin,voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[4]-margin,imageBounds[5]+margin,voxelNumbers[2]+1)
     
     #Extract lines and points
     
