@@ -8,6 +8,7 @@ import math
 import random
 import SimpleITK as sitk
 import time
+import vtk
 
 from VirtualMaterials.Utilities  import tifffile as tff
 from VirtualMaterials.Simulation  import FullMorphology
@@ -400,6 +401,76 @@ def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
 
 
 
+#--------------------------------------------------------------------
+def CreateFibersOnMesh(polydataMesh,voxelNumbers,fiberRadius):
+    
+    print('Create FibersOnMesh')
+    beginTime=time.time()
+    
+    #Prepare the structure image
+    image=np.zeros(voxelNumbers,dtype=np.bool)
+    
+    imageBounds = polydataMesh.GetWholeBoundingBox()
+    
+    gridX=np.linspace(imageBounds[0],imageBounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(imageBounds[2],imageBounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(imageBounds[4],imageBounds[5],voxelNumbers[2]+1)
+    
+    #Extract lines and points
+    
+    edgeExtractor = vtk.vtkExtractEdges()    
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        edgeExtractor.SetInputData(polydataMesh)
+    else:
+        edgeExtractor.SetInput(polydataMesh)
+    edgeExtractor.Update()
+    
+    
+    points = edgeExtractor.GetOutput().GetPoints()
+    nVertice = int(points.GetNumberOfPoints())
+    vertices=[points.GetPoint(iPoint) for iPoint in range(nVertice)]
+    
+    output = edgeExtractor.GetOutput()
+    nFibre = int(output.GetNumberOfCells())
+    fibres = [ [int(output.GetCell(iFibre).GetPointId(0)),
+                int(output.GetCell(iFibre).GetPointId(1))]
+                for iFibre in range(nFibre)]
+
+    #Add cylinders and balls to the structure image
+    print(str(nFibre)+' fibers')
+    print(str(nVertice)+' vertices')
+    
+    for iFibre in range(nFibre):
+        print iFibre,         
+        iPoint1=fibres[iFibre][0]
+        iPoint2=fibres[iFibre][1]
+        origin=np.array(vertices[iPoint1])
+        end=np.array(vertices[iPoint2])
+        height=np.linalg.norm(end-origin)
+        axis=end-origin
+        center=tuple((end+origin)/2)
+        mesh = BasicShapes.CreateCylinder(center,axis,fiberRadius,height)
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        image=np.logical_or(image,objImage)
+      
+      
+    #spherical capings of cylinders      
+    for iVertice in range(nVertice):
+        center = vertices[iVertice]
+        
+        mesh = BasicShapes.CreateBall(tuple(center),fiberRadius)
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        image=np.logical_or(image,objImage)
+
+    #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)
+    
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))
+    
+    return image
+    
+    
 
  
     
