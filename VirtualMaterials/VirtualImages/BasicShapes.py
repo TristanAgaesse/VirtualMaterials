@@ -318,6 +318,69 @@ def MeshRotate(polydata,oldAxis,newAxis):
     
     return polydata
     
+#--------------------------------------------------------------------    
+def MeshRotateX(polydata,angle):    
+    
+    transform = vtk.vtkTransform()    
+    transform.RotateX(angle)
+    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        transformFilter.SetInputData(polydata)
+    else:
+        transformFilter.SetInput(polydata)     
+       
+    transformFilter.Update()
+    
+    polydata = transformFilter.GetOutput()
+    #polydata.Update()
+    
+    return polydata
+    
+#--------------------------------------------------------------------    
+def MeshRotateY(polydata,angle):    
+    
+    transform = vtk.vtkTransform()    
+    transform.RotateY(angle)
+    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        transformFilter.SetInputData(polydata)
+    else:
+        transformFilter.SetInput(polydata)     
+       
+    transformFilter.Update()
+    
+    polydata = transformFilter.GetOutput()
+    #polydata.Update()
+    
+    return polydata
+
+#--------------------------------------------------------------------    
+def MeshRotateZ(polydata,angle):    
+    
+    transform = vtk.vtkTransform()    
+    transform.RotateZ(angle)
+    
+    transformFilter=vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    
+    if vtk.vtkVersion.GetVTKMajorVersion()==6:
+        transformFilter.SetInputData(polydata)
+    else:
+        transformFilter.SetInput(polydata)     
+       
+    transformFilter.Update()
+    
+    polydata = transformFilter.GetOutput()
+    #polydata.Update()
+    
+    return polydata    
+    
     
     
     

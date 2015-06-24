@@ -13,6 +13,7 @@ import time
 
 from VirtualMaterials.Utilities  import tifffile as tff
 from VirtualMaterials.Simulation  import FullMorphology
+import VirtualMaterials as vmat
 
 #--------------------------------------------------------------------
 #      Voxelization
@@ -71,16 +72,20 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     
     if raydirection.find('x')>-1:
       countdirections = countdirections + 1
-      rotatedMesh = meshXYZ[:,[1,2,0],:]
+      #rotatedMesh = meshXYZ[:,[1,2,0],:]
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateY(vtkPolyDataObject,-90)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(rotatedMesh,-90)
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
-          VoxelizeRayTracingZDirection(rotatedMesh,gridCOy,gridCOz,gridCOx),
+          VoxelizeRayTracingZDirectionVTK(rotatedMesh,gridCOy,gridCOz,gridCOx),
                                   axes=[2,0,1] )
     
     if raydirection.find('y')>-1:
       countdirections = countdirections + 1
-      rotatedMesh = meshXYZ[:,[2,0,1],:]
+      #rotatedMesh = meshXYZ[:,[2,0,1],:]
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(vtkPolyDataObject,-90)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateX(rotatedMesh,-90)
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
-          VoxelizeRayTracingZDirection(rotatedMesh,gridCOz,gridCOx,gridCOy),
+          VoxelizeRayTracingZDirectionVTK(rotatedMesh,gridCOz,gridCOx,gridCOy),
                                   axes=[1,2,0] )
     
     if raydirection.find('z')>-1:

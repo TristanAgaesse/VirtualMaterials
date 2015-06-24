@@ -345,7 +345,7 @@ def CreateVirtualVoronoiFoam(voxelNumbers=(200,200,200),imageBounds=(0.0,1.0,0.0
         axis=end-origin
         center=tuple((end+origin)/2)
         mesh = BasicShapes.CreateCylinder(center,axis,fiberRadius,height)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='xyz')
         image=np.logical_or(image,objImage)
       
       
@@ -354,7 +354,7 @@ def CreateVirtualVoronoiFoam(voxelNumbers=(200,200,200),imageBounds=(0.0,1.0,0.0
         center = vertices[iVertice]
         
         mesh = BasicShapes.CreateBall(tuple(center),fiberRadius)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='xyz')
         image=np.logical_or(image,objImage)
 
     #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)
@@ -452,7 +452,7 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
         axis=end-origin
         center=tuple((end+origin)/2)
         mesh = BasicShapes.CreateCylinder(center,axis,fiberRadius,height)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='xyz')
         image=np.logical_or(image,objImage)
       
       
@@ -462,7 +462,7 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
         center = vertices[iVertice]
         
         mesh = BasicShapes.CreateBall(tuple(center),fiberRadius)
-        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
+        objImage=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='xyz')
         image=np.logical_or(image,objImage)
 
     #image = InsertSubimageInImage(image,voxelNumbers,gridRelativePosition)
