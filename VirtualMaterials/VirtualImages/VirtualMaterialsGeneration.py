@@ -458,6 +458,7 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
       
     #spherical capings of cylinders      
     for iVertice in range(nVertice):
+        print iVertice,
         center = vertices[iVertice]
         
         mesh = BasicShapes.CreateBall(tuple(center),fiberRadius)

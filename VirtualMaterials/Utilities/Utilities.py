@@ -21,6 +21,15 @@ def LoadImageTiff(filename):
     
     return image
 
+#--------------------------------------------------------------------
+def ReadVTKFile(filename):
+
+    reader = vtk.vtkPolyDataReader()
+    reader.SetFileName(filename)
+    reader.Update()
+    polydata = reader.GetOutput()
+
+    return polydata
 
 #--------------------------------------------------------------------
 def ExtractSurface(image):
