@@ -402,7 +402,7 @@ def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
 
 
 #--------------------------------------------------------------------
-def CreateFibersOnMesh(polydataMesh,voxelNumbers,fiberRadius):
+def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
     
     print('Create FibersOnMesh')
     beginTime=time.time()
