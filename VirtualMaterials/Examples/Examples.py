@@ -13,14 +13,15 @@ import VirtualMaterials.Utilities.Utilities as Utilities
 #--------------------------------------------------------------------
      
 #--------------------------------------------------------------------    
-def TestVoxelize():
-    mesh=BasicShapes.CreateCylinder((0,0,0),(1,0,0),15,100)
+def TestVoxelize(raydirection):
+    #mesh=BasicShapes.CreateCylinder((0,0,0),(1,0,0),15,100)
+    mesh=BasicShapes.CreateSpline()
     voxelNumbers=(100,100,100)
     bounds=mesh.GetBounds()
     gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0])
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1])
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2])
-    image=Voxelization.Voxelize(mesh,gridX,gridY,gridZ)
+    image=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection=raydirection)
     Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')     
     
 #--------------------------------------------------------------------

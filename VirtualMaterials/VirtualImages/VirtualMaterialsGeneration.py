@@ -430,7 +430,10 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
     
     points = edgeExtractor.GetOutput().GetPoints()
     nVertice = int(points.GetNumberOfPoints())
-    vertices=[points.GetPoint(iPoint) for iPoint in range(nVertice)]
+    vertices=[(float(points.GetPoint(iPoint)[0]),
+               float(points.GetPoint(iPoint)[1]),
+               float(points.GetPoint(iPoint)[2]))
+                   for iPoint in range(nVertice)]
     
     output = edgeExtractor.GetOutput()
     nFibre = int(output.GetNumberOfCells())

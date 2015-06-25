@@ -319,10 +319,19 @@ def MeshRotate(polydata,oldAxis,newAxis):
     return polydata
     
 #--------------------------------------------------------------------    
-def MeshRotateX(polydata,angle):    
-    
+def MeshRotateX(polydata,rotationCenter,angle):    
+    #Rotate about the center, rotation axis=x
+
     transform = vtk.vtkTransform()    
+    
+    center = rotationCenter
+    
+    polydata=MeshTranslate(polydata,(-center[0], -center[1], -center[2]))
+    
+#    transform.PostMultiply()
+#    transform.Translate(-center[0], -center[1], -center[2])
     transform.RotateX(angle)
+#    transform.Translate(center[0], center[1], center[2])
     
     transformFilter=vtk.vtkTransformPolyDataFilter()
     transformFilter.SetTransform(transform)
@@ -336,14 +345,23 @@ def MeshRotateX(polydata,angle):
     
     polydata = transformFilter.GetOutput()
     #polydata.Update()
+    
+    polydata=MeshTranslate(polydata,(center[0], center[1], center[2]))    
     
     return polydata
     
 #--------------------------------------------------------------------    
-def MeshRotateY(polydata,angle):    
+def MeshRotateY(polydata,rotationCenter,angle):    
+    #Rotate about the center, rotation axis=y
+
+    transform = vtk.vtkTransform()   
     
-    transform = vtk.vtkTransform()    
+    center = rotationCenter
+
+    polydata=MeshTranslate(polydata,(-center[0], -center[1], -center[2]))
+
     transform.RotateY(angle)
+    
     
     transformFilter=vtk.vtkTransformPolyDataFilter()
     transformFilter.SetTransform(transform)
@@ -357,13 +375,20 @@ def MeshRotateY(polydata,angle):
     
     polydata = transformFilter.GetOutput()
     #polydata.Update()
+    polydata=MeshTranslate(polydata,(center[0], center[1], center[2])) 
     
     return polydata
 
 #--------------------------------------------------------------------    
-def MeshRotateZ(polydata,angle):    
-    
+def MeshRotateZ(polydata,rotationCenter,angle):    
+    #Rotate about the center, rotation axis=z
+
     transform = vtk.vtkTransform()    
+    
+    center = rotationCenter
+    
+    polydata=MeshTranslate(polydata,(-center[0], -center[1], -center[2]))
+
     transform.RotateZ(angle)
     
     transformFilter=vtk.vtkTransformPolyDataFilter()
@@ -378,6 +403,8 @@ def MeshRotateZ(polydata,angle):
     
     polydata = transformFilter.GetOutput()
     #polydata.Update()
+    
+    polydata=MeshTranslate(polydata,(center[0], center[1], center[2]))     
     
     return polydata    
     

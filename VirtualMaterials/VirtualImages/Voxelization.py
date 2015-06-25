@@ -62,7 +62,6 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     gridCOy=np.linspace(boundSubgrid[2],boundSubgrid[3],nVoxSubImage[1])
     gridCOz=np.linspace(boundSubgrid[4],boundSubgrid[5],nVoxSubImage[2])
 
-
     voxcountX,voxcountY,voxcountZ = nVoxSubImage[0],nVoxSubImage[1],nVoxSubImage[2]
 
     
@@ -73,8 +72,9 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     if raydirection.find('x')>-1:
       countdirections = countdirections + 1
       #rotatedMesh = meshXYZ[:,[1,2,0],:]
-      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateY(vtkPolyDataObject,-90)
-      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(rotatedMesh,-90)
+      rotationCenter=(0,0,0)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateY(vtkPolyDataObject,rotationCenter,-90)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(rotatedMesh,rotationCenter,-90)
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
           VoxelizeRayTracingZDirectionVTK(rotatedMesh,gridCOy,gridCOz,gridCOx),
                                   axes=[2,0,1] )
@@ -82,8 +82,9 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     if raydirection.find('y')>-1:
       countdirections = countdirections + 1
       #rotatedMesh = meshXYZ[:,[2,0,1],:]
-      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(vtkPolyDataObject,-90)
-      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateX(rotatedMesh,-90)
+      rotationCenter=(0,0,0)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateZ(vtkPolyDataObject,rotationCenter,-90)
+      rotatedMesh=vmat.VirtualImages.BasicShapes.MeshRotateX(rotatedMesh,rotationCenter,-90)
       gridOUTPUT[:,:,:,countdirections-1] = np.transpose( 
           VoxelizeRayTracingZDirectionVTK(rotatedMesh,gridCOz,gridCOx,gridCOy),
                                   axes=[1,2,0] )
