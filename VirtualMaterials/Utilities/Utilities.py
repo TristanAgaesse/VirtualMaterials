@@ -117,11 +117,39 @@ def NumpyToVTKImage(numpyImage):
     dataImporter.SetDataExtent(0, h-1, 0, d-1, 0, w-1)
     dataImporter.SetWholeExtent(0, h-1, 0, d-1, 0, w-1)
     
-    numpyImage=numpyImage.astype(np.uint8)
-    dataImporter.SetDataScalarTypeToUnsignedChar()
-    
-    
-    
+    if numpyImage.dtype == np.uint8 :
+        dataImporter.SetDataScalarTypeToUnsignedChar()
+    elif numpyImage.dtype == np.int16 :
+        dataImporter.SetDataScalarTypeToShort()
+    elif numpyImage.dtype == np.int32 :
+        dataImporter.SetDataScalarTypeToInt()        
+    elif numpyImage.dtype == np.uint16 :
+        dataImporter.SetDataScalarTypeToUnsignedShort()    
+    elif numpyImage.dtype == np.float32 :
+        dataImporter.SetDataScalarTypeToFloat()    
+    elif numpyImage.dtype == np.float64 :
+        dataImporter.SetDataScalarTypeToDouble()
+    else:
+        numpyImage=numpyImage.astype(np.uint8)
+        dataImporter.SetDataScalarTypeToUnsignedChar()
+        
+#np_vtk = {numpy.character:vtk.VTK_UNSIGNED_CHAR,
+#                numpy.uint8:vtk.VTK_UNSIGNED_CHAR,
+#                numpy.uint16:vtk.VTK_UNSIGNED_SHORT,
+#                numpy.uint32:vtk.VTK_UNSIGNED_INT,
+#                numpy.uint64:vtk.VTK_UNSIGNED_LONG_LONG,
+#                numpy.int8:vtk.VTK_CHAR,
+#                numpy.int16:vtk.VTK_SHORT,
+#                numpy.int32:vtk.VTK_INT,
+#                numpy.int64:vtk.VTK_LONG_LONG,
+#                numpy.float32:vtk.VTK_FLOAT,
+#                numpy.float64:vtk.VTK_DOUBLE,
+#                numpy.complex64:vtk.VTK_FLOAT,
+#                numpy.complex128:vtk.VTK_DOUBLE}
+
+#    vtk_typecode = numpy_support.get_vtk_array_type(numpyImage.dtype)
+#    dataImporter.SetDataScalarType(vtk_typecode)	
+        
     dataImporter.CopyImportVoidPointer(numpyImage, numpyImage.nbytes)
     dataImporter.SetNumberOfScalarComponents(1)
         
