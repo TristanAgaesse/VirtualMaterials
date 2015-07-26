@@ -286,8 +286,7 @@ def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),penetrationLength=15
     mplCode = 3
     
     interface[mpl] = mplCode
-    
-    
+        
 
     return interface
 

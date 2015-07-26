@@ -2,18 +2,10 @@
 
 import numpy as np
 import vtk
-from vtk.util import numpy_support
 import math
-from scipy import ndimage
-import random
-from skimage import morphology
-import SimpleITK as sitk
-from scipy.spatial import Voronoi
-import time
-
-from VirtualMaterials.Utilities  import tifffile as tff
-from VirtualMaterials.Simulation  import FullMorphology
 import VirtualMaterials as vmat
+#from vtk.util import numpy_support
+
 
 #--------------------------------------------------------------------
 #      Voxelization
@@ -21,7 +13,7 @@ import VirtualMaterials as vmat
 
     
 #--------------------------------------------------------------------
-def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ,raydirection='xyz'):
+def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ,raydirection='xz'):
     #Voxelize the object on a window adapted to its bounds. The windows will 
     #be chosed to be a subsample or an extention of the whole image voxel 
     #gridX,Y,Z. This function uses VTK VoxelModel to voxelize the surface, 
@@ -97,7 +89,7 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     
     # Combine the results of each ray-tracing direction:
     if len(raydirection)>1:
-        gridOUTPUT = (np.sum(gridOUTPUT,axis=3) == len(raydirection)) #>=len(raydirection)/2.0
+        gridOUTPUT = (np.sum(gridOUTPUT,axis=3)>=len(raydirection)/2.0) # == len(raydirection))
     else:
         gridOUTPUT = gridOUTPUT[:,:,:,0]
         
@@ -212,14 +204,14 @@ def VTKRayCasting(polydataObbTree,pSource,pTarget):
    #can be set to NULL if you don’t want to receive that information."
 
     pointsVTKIntersectionData = pointsVTKintersection.GetData()
-    noPointsVTKIntersection = pointsVTKIntersectionData.GetNumberOfTuples()
+    nPointsVTKIntersection = pointsVTKIntersectionData.GetNumberOfTuples()
 #   pointsIntersection = []
-#    for idx in range(noPointsVTKIntersection):
+#    for idx in range(nPointsVTKIntersection):
 #        _tup = pointsVTKIntersectionData.GetTuple3(idx)
 #        pointsIntersection.append(_tup)
 
     pointsIntersection=[pointsVTKIntersectionData.GetTuple3(idx) 
-                                for idx in range(noPointsVTKIntersection)]
+                                for idx in range(nPointsVTKIntersection)]
     
     return pointsIntersection
 
