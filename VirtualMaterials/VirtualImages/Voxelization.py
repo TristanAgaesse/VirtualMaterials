@@ -89,7 +89,7 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
     
     # Combine the results of each ray-tracing direction:
     if len(raydirection)>1:
-        gridOUTPUT = (np.sum(gridOUTPUT,axis=3)>=len(raydirection)/2.0) # == len(raydirection))
+        gridOUTPUT = (np.sum(gridOUTPUT,axis=3)== len(raydirection)) # >=len(raydirection)/2.0)
     else:
         gridOUTPUT = gridOUTPUT[:,:,:,0]
         
