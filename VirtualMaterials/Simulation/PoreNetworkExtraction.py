@@ -17,12 +17,13 @@ import re
 
 
 #----------------------------------------------------------------------------------------------
-def ExtractNetwork(inputFileName,outputFileName,hContrast=4,phases={'void':False},distanceType='ITKDanielson'):
+def ExtractNetwork(inputFileName,outputFileName,phases={'void':False},hContrast=4):
 
 
     beginTime=time.time()
-    structuringElement = np.ones((3,3,3))
     
+    structuringElement = np.ones((3,3,3))
+    distanceType='ITKDanielson'
     
     #Load image from disk
     myImg=tff.imread(inputFileName).astype(np.uint8)    
@@ -32,7 +33,8 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast=4,phases={'void':False
     print('PoresWatershedSegmentation')
     
     pores,watershedLines,distanceMap,porePhase = PoresSegmentation(myImg,
-                                                structuringElement,hContrast,
+                                                structuringElement=structuringElement,
+                                                hContrast=hContrast,
                                                 distanceType=distanceType,phases=phases)
     
     
@@ -61,7 +63,7 @@ def ExtractNetwork(inputFileName,outputFileName,hContrast=4,phases={'void':False
     
     
 #----------------------------------------------------------------------------------------------
-def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},distanceType='ITKDanielson'):
+def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,3,3)),hContrast=4,distanceType='ITKDanielson'):
     #Phases=dict, phases['myphase']=codeForMyPhaseInImage
     
     pores=np.zeros(myImg.shape,dtype=np.uint32)
@@ -79,10 +81,12 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
         phaseImage= (myImg==np.uint8(phaseCode)).astype(np.bool) 
         
         poresPhase,watershedLinesPhase,distanceMapPhase = PoresWatershedSegmentationOnePhase(
-                                    phaseImage,structuringElement,hContrast,distanceType=distanceType)
+                            phaseImage,structuringElement=structuringElement,
+                            hContrast=hContrast,distanceType=distanceType)
         
         phaseImage=phaseImage.astype(np.bool)
-        pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0).astype(np.uint32)
+        pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0
+                                                                ).astype(np.uint32)
         
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
@@ -91,7 +95,7 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
         labelShift.append(pores.max())
         
         
-    phaseBoundaries = PhaseBoundaryDetection(myImg)     
+    phaseBoundaries = CannyEdgeDetection(myImg)     
     watershedLines=np.logical_or(watershedLines,phaseBoundaries)
     
     
@@ -107,7 +111,7 @@ def PoresSegmentation(myImg,structuringElement,hContrast,phases={'void':False},d
     
     
 #----------------------------------------------------------------------------------------------
-def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
+def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,3,3)),hContrast=4,
                                        distanceType='ITKDanielson',markerChoice='Hmaxima',
                                        watershedAlgo='ITK'):
     
@@ -188,102 +192,7 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement,hContrast,
     
     
     
-
-#----------------------------------------------------------------------------------------------
-def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
-     
-
-    # Infos sur la forme, position des liens internes
-    links_center_arg=ndimage.measurements.maximum_position(
-                                            distanceMap, links,
-                                            range(1,links.max()+1))
-                                            
-    links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))   
     
-    linkRadiusDistanceMap=ndimage.measurements.labeled_comprehension(
-                                            distanceMap, links, 
-                                            range(1,links.max()+1),
-                                            np.max,np.float16,0)    
-    
-    linkSurfaceGeometric=ndimage.measurements.labeled_comprehension(
-                                            links, links, 
-                                            range(1,links.max()+1),
-                                            np.size,np.int,0)
-                                            
-                                            
-    # Infos sur la forme, position des pores
-    pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
-                                                     index=range(1,pores.max()+1))
-                                                     
-    pores_center=np.transpose(np.squeeze(np.dstack(pores_center)))
-    pores_volumes=ndimage.measurements.labeled_comprehension(
-                                            pores, pores,range(1,pores.max()+1),
-                                            np.size,np.int,0)
-    
-    
-    
-    PNMGeometricData=dict()
-    PNMGeometricData['internalLinkCapillaryRadius']=linkRadiusDistanceMap.astype(np.float32)
-    PNMGeometricData['internalLinkGeometricSurface']=linkSurfaceGeometric.astype(np.int)
-    PNMGeometricData['internalLinkBarycenters']=links_center
-    PNMGeometricData['poreCenters']=pores_center
-    PNMGeometricData['poreVolumes']=pores_volumes
-    
-    
-    # Infos sur la forme, position des liens frontiere
-        
-    for iBoundary in range(6):
-        if iBoundary == 0:    
-            boundarySlice=pores[0,:,:]
-            boundaryDistances=distanceMap[0,:,:]
-            
-        elif iBoundary == 1:
-            boundarySlice=pores[-1,:,:]
-            boundaryDistances=distanceMap[-1,:,:]
-            
-        elif iBoundary == 2:
-            boundarySlice=pores[:,0,:]
-            boundaryDistances=distanceMap[:,0,:]
-            
-        elif iBoundary == 3:
-            boundarySlice=pores[:,-1,:]
-            boundaryDistances=distanceMap[:,-1,:]
-            
-        elif iBoundary == 4:
-            boundarySlice=pores[:,:,0]
-            boundaryDistances=distanceMap[:,:,0]
-            
-        elif iBoundary == 5:
-            boundarySlice=pores[:,:,-1]
-            boundaryDistances=distanceMap[:,:,-1]
-        
-        links_center_arg=ndimage.measurements.maximum_position(
-                                            boundaryDistances, boundarySlice, 
-                                            range(1,pores.max()+1))
-                                            
-        links_center=np.transpose(np.squeeze(np.dstack(links_center_arg))) 
-        
-        radiusDistanceMap=ndimage.measurements.labeled_comprehension(
-                                            boundaryDistances, boundarySlice, 
-                                            range(1,pores.max()+1),
-                                            np.max,np.float16,0)
-        
-        surfaceGeometric=ndimage.measurements.labeled_comprehension(
-                                            boundarySlice, boundarySlice, 
-                                            range(1,pores.max()+1),
-                                            np.size,np.int,0)
-                                
-        PNMGeometricData['boundaryCenters'+str(iBoundary)]=links_center
-        PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]=radiusDistanceMap.astype(np.float32)
-        PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)]=surfaceGeometric.astype(np.int)
-    
-    
-    return PNMGeometricData
-
-
-
-
-
 #---------------------------------------------------------------------------------------------- 
 def FindLinks(myImage,pores,watershedLines,structuringElement):
     #Trouve les liens. Algorithme :
@@ -368,16 +277,16 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
     
     
     
-    linksToPores,correctionList=StudyNeighbourhood(pores,indices,
+    linksToPores,correctionList = StudyNeighbourhood(pores,indices,
                                                    structuringElement,imageSize)
 
-    mydict=FillDict(linksToPores)
+    mydict = FillDict(linksToPores)
     
-    links=links.astype(np.int)
+    links = links.astype(np.int)
     
-    links=LabelLinks(mydict,links,imageSize)
+    links = LabelLinks(mydict,links,imageSize)
     
-    interfaceToPore=BuildInterfaceToPore(mydict)
+    interfaceToPore = BuildInterfaceToPore(mydict)
                
                
                
@@ -421,14 +330,229 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #            voxelsforcorrection = (voxelsforcorrection>=4)
 #            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
  
-    return links, interfaceToPore
+    return links, interfaceToPore    
+    
 
 
- 
+
+#----------------------------------------------------------------------------------------------
+def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
+    
+    
+    PNMGeometricData=dict()
+    
+    
+    # Pores : infos sur la forme, position des pores
+
+    pores_Center          = PoresGeometry_Center(pores)    
+    
+    pores_Volume          = PoresGeometry_Volume(pores)  
+        
+    pores_NeighborPhases  = PoresGeometry_NeighborPhases(myImg,pores,links)
+    
+    PNMGeometricData['poreCenters']         = pores_Center
+    PNMGeometricData['poreVolumes']         = pores_Volume
+    PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
+    
+    
+    # Liens internes : infos sur la forme et position des liens internes    
+    linkLabels = range(1,links.max()+1)
+    
+    links_Center                = LinksGeometry_Center(links,distanceMap,linkLabels)    
+    
+    links_InscribedSphereRadius = LinksGeometry_InscribedSphereRadius(links,distanceMap,linkLabels) 
+    
+    links_SurfaceArea           = LinksGeometry_SurfaceArea(links,linkLabels)
+    
+    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels)
+
+    links_NeighborPhases        = LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels)          
+
+    PNMGeometricData['internalLinkBarycenters']       = links_Center 
+    PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
+    PNMGeometricData['internalLinkGeometricSurface']  = links_SurfaceArea
+    PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
+    PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
+    
+    
+    # Infos sur la forme, position des liens frontiere
+        
+    for iBoundary in range(6):
+        if iBoundary == 0:    
+            boundarySlice=pores[0,:,:]
+            boundaryDistances=distanceMap[0,:,:]
+            
+        elif iBoundary == 1:
+            boundarySlice=pores[-1,:,:]
+            boundaryDistances=distanceMap[-1,:,:]
+            
+        elif iBoundary == 2:
+            boundarySlice=pores[:,0,:]
+            boundaryDistances=distanceMap[:,0,:]
+            
+        elif iBoundary == 3:
+            boundarySlice=pores[:,-1,:]
+            boundaryDistances=distanceMap[:,-1,:]
+            
+        elif iBoundary == 4:
+            boundarySlice=pores[:,:,0]
+            boundaryDistances=distanceMap[:,:,0]
+            
+        elif iBoundary == 5:
+            boundarySlice=pores[:,:,-1]
+            boundaryDistances=distanceMap[:,:,-1]
+        
+        linkLabels = range(1,pores.max()+1)
+                
+        links_center          = LinksGeometry_Center(boundarySlice,boundaryDistances,linkLabels)
+        
+        inscribedSphereRadius = LinksGeometry_InscribedSphereRadius(boundarySlice,boundaryDistances,linkLabels)
+        
+        surfaceArea           = LinksGeometry_SurfaceArea(boundarySlice,linkLabels)
+                                
+        PNMGeometricData['boundaryCenters'+str(iBoundary)]          = links_center
+        PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]  = inscribedSphereRadius
+        PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)] = surfaceArea
+    
+    
+    return PNMGeometricData
+
+
+
+
+
+#----------------------------------------------------------------------------------------------
+def PoresGeometry_Center(pores): 
+    
+    pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
+                                                     index=range(1,pores.max()+1))
+                                                     
+    pores_center=np.transpose(np.squeeze(np.dstack(pores_center)))
+
+    return pores_center
+
+
+#----------------------------------------------------------------------------------------------
+def PoresGeometry_Volume(pores):
+    
+    pores_volumes=ndimage.measurements.labeled_comprehension(
+                                            pores, pores,range(1,pores.max()+1),
+                                            np.size,np.int,0)
+
+    return pores_volumes
+
+
+#----------------------------------------------------------------------------------------------     
+def PoresGeometry_NeighborPhases(myImg,pores,links): 
+
+    nPore = pores.max()     
+    phases = np.setdiff1d(np.unique(myImg),0)
+    nPhase = phases.size
+     
+    surfaceComposition = np.zeros((nPore,nPhase))
+    
+    void= (myImg==0)
+    for iPore in range(nPore):
+        
+        dilatedPore = ndimage.binary_dilation(pores==iPore,
+                                              structure=np.ones((3,3,3),dtype=bool))        
+        
+        poreSurfaceNeighborhood = myImg[np.logical_and(dilatedPore,np.logical_not(void))]
+
+        surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
+                                            poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
+                                            phases,
+                                            np.size,np.int,0)
+        
+     
+    return surfaceComposition
+     
+     
+     
+     
+
+#----------------------------------------------------------------------------------------------
+def LinksGeometry_Center(links,distanceMap,linkLabels): 
+
+    links_center_arg=ndimage.measurements.maximum_position(
+                                            distanceMap, links, linkLabels)
+                                            
+    links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))
+
+    return links_center
+
+
+#----------------------------------------------------------------------------------------------
+def LinksGeometry_InscribedSphereRadius(links,distanceMap,linkLabels):
+
+    links_InscribedSphereRadius = ndimage.measurements.labeled_comprehension(
+                                            distanceMap, links, linkLabels,
+                                            np.max,np.float16,0).astype(np.float32)
+                                            
+    return links_InscribedSphereRadius
+    
+    
+#----------------------------------------------------------------------------------------------
+def LinksGeometry_SurfaceArea(links,linkLabels):
+    
+    links_SurfaceArea=ndimage.measurements.labeled_comprehension(
+                                            links, links, 
+                                            linkLabels,
+                                            np.size,np.int,0).astype(np.int)
+    return links_SurfaceArea
+    
+    
+#----------------------------------------------------------------------------------------------     
+def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels):     
+            
+    hydraulicDiameters = np.zeros(nLink)
+    
+    void= (myImg==0)
+    for iLink in linkLabels:
+        
+        dilatedLink = ndimage.binary_dilation(links==iLink,
+                                              structure=np.ones((3,3,3),dtype=bool))        
+        
+        linkNeighborhood = np.logical_and(dilatedLink,void)
+
+        volume = np.count_nonzero(linkNeighborhood)        
+        
+        surfaceArea =         
+        
+        hydraulicDiameters[iLink] = volume/surfaceArea
+     
+     
+     return 1
+     
+#----------------------------------------------------------------------------------------------     
+def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels):      
+     
+    phases = np.setdiff1d(np.unique(myImg),0)
+    nPhase = phases.size
+     
+    surfaceComposition = np.zeros((nLink,nPhase))
+    
+    void= (myImg==0)
+    for iLink in linkLabels:
+        
+        dilatedLink = ndimage.binary_dilation(links==iLink,
+                                              structure=np.ones((3,3,3),dtype=bool))        
+        
+        linkSurfaceNeighborhood = myImg[np.logical_and(dilatedLink,np.logical_not(void))]
+
+        surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
+                                            linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
+                                            phases,
+                                            np.size,np.int,0)
+        
+     return surfaceComposition
+
+
+
  
  
 ##-----------------------------------------------------------------------------
-def PhaseBoundaryDetection(myImg,variance=2):    
+def CannyEdgeDetection(myImg,variance=2):    
     #Uses ITK canny edge detector to detect boundaries between phases in the 
     #material image
 
@@ -454,8 +578,7 @@ def PhaseBoundaryDetection(myImg,variance=2):
 
     return phaseBoundaries
 
-
-
+     
      
      
      
