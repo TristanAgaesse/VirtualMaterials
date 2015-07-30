@@ -45,7 +45,7 @@ def ExtractNetwork(inputFileName,outputFileName,phases={'void':False},hContrast=
     
     print('AnalyseElementsGeometry')
     
-    PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap)
+    PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases=phases)
     
 
     print('Saving results to disk')
@@ -336,7 +336,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 
 
 #----------------------------------------------------------------------------------------------
-def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
+def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False}):
     
     
     PNMGeometricData=dict()
@@ -348,7 +348,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
-    pores_NeighborPhases  = PoresGeometry_NeighborPhases(myImg,pores,links)
+    pores_NeighborPhases  = PoresGeometry_NeighborPhases(myImg,pores,links,phases)
     
     PNMGeometricData['poreCenters']         = pores_Center
     PNMGeometricData['poreVolumes']         = pores_Volume
@@ -366,7 +366,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap):
     
     links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels)
 
-    links_NeighborPhases        = LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels)          
+    links_NeighborPhases        = LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,phases)          
 
     PNMGeometricData['internalLinkBarycenters']       = links_Center 
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
@@ -443,7 +443,7 @@ def PoresGeometry_Volume(pores):
 
 
 #----------------------------------------------------------------------------------------------     
-def PoresGeometry_NeighborPhases(myImg,pores,links): 
+def PoresGeometry_NeighborPhases(myImg,pores,links,phases): 
 
     nPore = pores.max()     
     phases = np.setdiff1d(np.unique(myImg),0)
@@ -525,11 +525,11 @@ def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels):
      return 1
      
 #----------------------------------------------------------------------------------------------     
-def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels):      
-     
+def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,phases):      
+    
     phases = np.setdiff1d(np.unique(myImg),0)
     nPhase = phases.size
-     
+    
     surfaceComposition = np.zeros((nLink,nPhase))
     
     void= (myImg==0)
@@ -549,8 +549,8 @@ def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels):
 
 
 
- 
- 
+
+
 ##-----------------------------------------------------------------------------
 def CannyEdgeDetection(myImg,variance=2):    
     #Uses ITK canny edge detector to detect boundaries between phases in the 
