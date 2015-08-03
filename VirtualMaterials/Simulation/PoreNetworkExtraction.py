@@ -352,7 +352,9 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
-    pores_NeighborPhases  = PoresGeometry_NeighborPhases(myImg,pores,links,poreLabelEnds,poreOrderLabels)
+    pores_NeighborPhases  = PoresGeometry_NeighborPhases(
+                                                 myImg,pores,links,
+                                                 poreLabelEnds,poreOrderLabels)
     
     PNMGeometricData['poreCenters']         = pores_Center
     PNMGeometricData['poreVolumes']         = pores_Volume
@@ -364,13 +366,18 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     links_Center                = LinksGeometry_Center(links,distanceMap,linkLabels)    
     
-    links_InscribedSphereRadius = LinksGeometry_InscribedSphereRadius(links,distanceMap,linkLabels) 
+    links_InscribedSphereRadius = LinksGeometry_InscribedSphereRadius(
+                                                links,distanceMap,linkLabels) 
     
     links_SurfaceArea           = LinksGeometry_SurfaceArea(links,linkLabels)
     
-    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,linkLabelEnds,linkOrderLabels)
+    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
+                                                myImg,pores,links,linkLabels,
+                                                linkLabelEnds,linkOrderLabels)
 
-    links_NeighborPhases        = LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,linkLabelEnds,linkOrderLabels)          
+    links_NeighborPhases        = LinksGeometry_NeighborPhases(
+                                                myImg,pores,links,linkLabels,
+                                                linkLabelEnds,linkOrderLabels)          
 
     PNMGeometricData['internalLinkBarycenters']       = links_Center 
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
@@ -410,7 +417,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                 
         links_center          = LinksGeometry_Center(boundarySlice,boundaryDistances,linkLabels)
         
-        inscribedSphereRadius = LinksGeometry_InscribedSphereRadius(boundarySlice,boundaryDistances,linkLabels)
+        inscribedSphereRadius = LinksGeometry_InscribedSphereRadius(
+                                    boundarySlice,boundaryDistances,linkLabels)
         
         surfaceArea           = LinksGeometry_SurfaceArea(boundarySlice,linkLabels)
                                 
@@ -520,7 +528,8 @@ def PoresGeometry_NeighborPhases(myImg,pores,links,poreLabelEnds,poreOrderLabels
         dilatedPore = ndimage.binary_dilation(poreImage,
                                               structure=np.ones((3,3,3),dtype=bool))        
         
-        poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,localMyImg.astype(np.bool))]
+        poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,
+                                                            localMyImg.astype(np.bool))]
 
         surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
                                             poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
@@ -529,10 +538,10 @@ def PoresGeometry_NeighborPhases(myImg,pores,links,poreLabelEnds,poreOrderLabels
         
      
     return surfaceComposition
-          
-     
-     
-     
+         
+    
+    
+    
 
 #----------------------------------------------------------------------------------------------
 def LinksGeometry_Center(links,distanceMap,linkLabels): 
@@ -662,7 +671,8 @@ def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,linkLabelEnds,link
         dilatedLink = ndimage.binary_dilation(linkImage,
                                               structure=np.ones((3,3,3),dtype=bool))        
         
-        linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,localMyImg.astype(np.bool))]
+        linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,
+                                                            localMyImg.astype(np.bool))]
 
         surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
                                             linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
