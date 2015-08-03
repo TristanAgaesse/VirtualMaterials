@@ -497,24 +497,30 @@ def PoresGeometry_Volume(pores):
 #----------------------------------------------------------------------------------------------
 @jit
 def PoresGeometry_NeighborPhases(myImg,pores,links,poreLabelEnds,poreOrderLabels): 
-
+    print("Pores_NeighborPhases")
     nPore = pores.max()     
     phases = np.setdiff1d(np.unique(myImg),0)
     nPhase = phases.size
      
     surfaceComposition = np.zeros((nPore,nPhase))
     
-    void= (myImg==0)
-        
+    imageShape = myImg.shape  
                                             
     for iPore in range(nPore):
         
-        poreImage = np.zeros(pores.shape,dtype=bool)
-        poreImage[GetVoxelOfLabel(iPore,poreLabelEnds,poreOrderLabels)]=True
+        voxels = GetVoxelOfLabel(iPore,poreLabelEnds,poreOrderLabels,imageShape)
+        
+        Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
+        Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
+        Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
+        
+        poreImage = pores[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+        localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]
+        
         dilatedPore = ndimage.binary_dilation(poreImage,
                                               structure=np.ones((3,3,3),dtype=bool))        
         
-        poreSurfaceNeighborhood = myImg[np.logical_and(dilatedPore,np.logical_not(void))]
+        poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,localMyImg.astype(np.bool))]
 
         surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
                                             poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
@@ -633,26 +639,30 @@ def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,linkLabelEnds,l
 #---------------------------------------------------------------------------------------------- 
 @jit 
 def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,linkLabelEnds,linkOrderLabels):      
-    
+    print("Links_NeighborPhases")
     phases = np.setdiff1d(np.unique(myImg),0)
     nPhase = phases.size
     
-    nLink = len(linkLabels)    
+    nLink = links.max()    
+    imageShape = myImg.shape   
     
-    void= (myImg==0)
     surfaceComposition = np.zeros((nLink,nPhase))
     
-    void= (myImg==0)
     for iLink in linkLabels:
         
-        linkImage = np.zeros(links.shape,dtype=bool)
-        linkImage[GetVoxelOfLabel(iLink,linkLabelEnds,linkOrderLabels)]=True        
+        voxels = GetVoxelOfLabel(iLink,linkLabelEnds,linkOrderLabels,imageShape)
+
+        Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
+        Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
+        Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
         
+        linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+        localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1] 
         
         dilatedLink = ndimage.binary_dilation(linkImage,
                                               structure=np.ones((3,3,3),dtype=bool))        
         
-        linkSurfaceNeighborhood = myImg[np.logical_and(dilatedLink,np.logical_not(void))]
+        linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,localMyImg.astype(np.bool))]
 
         surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
                                             linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
@@ -693,22 +703,24 @@ def CannyEdgeDetection(myImg,variance=2):
 
 
 #----------------------------------------------------------------------------------------------     
-def ParseLabeledImage(labelImage):
+def ParseLabeledImage(labeledImage):
             
-    labelImage = labelImage.reshape((1,labelImage.size))
+    labelImage = labeledImage.reshape((labeledImage.size))
     orderLabels = np.argsort(labelImage)
     sortedLabels = labelImage[orderLabels]
-    labelEnds=np.nonzero(np.roll(sortedLabels,-1)-sortedLabels)  
+    labelEnds=np.flatnonzero(np.roll(sortedLabels,-1)-sortedLabels)  
     assert(labelEnds[-1]<labelImage.size)
-    labelEnds=[labelEnds,labelImage.size]
+    labelEnds=np.append(labelEnds,labelImage.size-1)
 
     return labelEnds,orderLabels
     
 #----------------------------------------------------------------------------------------------    
-def GetVoxelOfLabel(iLabel,labelEnds,orderLabels):
+@jit
+def GetVoxelOfLabel(iLabel,labelEnds,orderLabels,imageShape):
     
     vRange = np.arange(labelEnds[iLabel]+1,labelEnds[iLabel+1])
     linearIndices = orderLabels[vRange]
+    linearIndices = np.unravel_index(linearIndices,imageShape)
     
     return linearIndices
     
