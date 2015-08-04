@@ -352,13 +352,13 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
-    pores_NeighborPhases  = PoresGeometry_NeighborPhases(
-                                                 myImg,pores,links,
-                                                 poreLabelEnds,poreOrderLabels)
+    #pores_NeighborPhases  = PoresGeometry_NeighborPhases(
+    #                                             myImg,pores,links,
+    #                                             poreLabelEnds,poreOrderLabels)
     
     PNMGeometricData['poreCenters']         = pores_Center
     PNMGeometricData['poreVolumes']         = pores_Volume
-    PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
+    #PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
     
     
     # Liens internes : infos sur la forme et position des liens internes    
@@ -371,19 +371,19 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     links_SurfaceArea           = LinksGeometry_SurfaceArea(links,linkLabels)
     
-    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
-                                                myImg,pores,links,linkLabels,
-                                                linkLabelEnds,linkOrderLabels)
+    #links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
+    #                                            myImg,pores,links,linkLabels,
+    #                                            linkLabelEnds,linkOrderLabels)
 
-    links_NeighborPhases        = LinksGeometry_NeighborPhases(
-                                                myImg,pores,links,linkLabels,
-                                                linkLabelEnds,linkOrderLabels)          
+    #links_NeighborPhases        = LinksGeometry_NeighborPhases(
+    #                                            myImg,pores,links,linkLabels,
+    #                                            linkLabelEnds,linkOrderLabels)          
 
     PNMGeometricData['internalLinkBarycenters']       = links_Center 
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
     PNMGeometricData['internalLinkGeometricSurface']  = links_SurfaceArea
-    PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
-    PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
+    #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
+    #PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
     
     # Infos sur la forme, position des liens frontiere
