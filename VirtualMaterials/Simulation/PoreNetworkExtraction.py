@@ -52,7 +52,8 @@ def ExtractNetwork(inputFileName,outputFileName,phases={'void':False},hContrast=
     print('Saving results to disk')
     
     PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
-                             'porePhase':porePhase,'myImage':myImg.astype(np.bool)})
+                             'imageLiens':links,'myImage':myImg.astype(np.bool),
+                             'porePhase':porePhase})
     hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
     
     
