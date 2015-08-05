@@ -476,12 +476,25 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
     
  
 #--------------------------------------------------------------------   
-def CreateTestImage():
-               
+def CreateTestImage_TetrahedronMedialAxis():
+    
+    #Image parameters
+    voxelNumbers = (100,100,100)
+    
+    image = 255*np.ones(voxelNumbers,dtype=np.uint8)
+    bounds=(0.0, float(voxelNumbers[0]), 
+        0.0, float(voxelNumbers[1]), 
+        0.0, float(voxelNumbers[2]))
+    
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)           
+           
+           
+    #Create elements meshes : 3 cylinders, 1 sphere      
     boxCenter = np.asarray( (50,50,50) )
     sphereRadius=20                 
     sphere = BasicShapes.CreateBall(boxCenter,sphereRadius)
-    
     
     cylinderRadius = 10
     
@@ -509,31 +522,25 @@ def CreateTestImage():
     heigth = 2*np.linalg.norm(axis)
     cylinder3 = BasicShapes.CreateCylinder(center,axis,cylinderRadius,heigth)
     
-    voxelNumbers = (100,100,100)
     
-    image=np.zeros(voxelNumbers,dtype=np.bool)
-    bounds=(0.0, float(voxelNumbers[0]), 
-        0.0, float(voxelNumbers[1]), 
-        0.0, float(voxelNumbers[2]))
+    #Fill image with voxelized elements
+    imSphere = Voxelization.Voxelize(sphere,gridX,gridY,gridZ,raydirection='z')
     
-    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
-    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
-    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)
+    imCylinder0 = Voxelization.Voxelize(cylinder0,gridX,gridY,gridZ,raydirection='z')
+
+    imCylinder1 = Voxelization.Voxelize(cylinder1,gridX,gridY,gridZ,raydirection='z')
+
+    imCylinder2 = Voxelization.Voxelize(cylinder2,gridX,gridY,gridZ,raydirection='z')
+
+    imCylinder3 = Voxelization.Voxelize(cylinder3,gridX,gridY,gridZ,raydirection='z')
+
+
+    image[imCylinder0] = 0
+    image[imCylinder1] = 0
+    image[imCylinder2] = 50
+    image[imCylinder3] = 100
+    image[imSphere] = 0
     
-    
-    objImage = Voxelization.Voxelize(sphere,gridX,gridY,gridZ,raydirection='z')
-    image = np.logical_or(image,objImage)
-    
-    objImage = Voxelization.Voxelize(cylinder0,gridX,gridY,gridZ,raydirection='z')
-    image = np.logical_or(image,objImage)
-    objImage = Voxelization.Voxelize(cylinder1,gridX,gridY,gridZ,raydirection='z')
-    image = np.logical_or(image,objImage)
-    objImage = Voxelization.Voxelize(cylinder2,gridX,gridY,gridZ,raydirection='z')
-    image = np.logical_or(image,objImage)
-    objImage = Voxelization.Voxelize(cylinder3,gridX,gridY,gridZ,raydirection='z')
-    image = np.logical_or(image,objImage)
-    
-    image = np.logical_not(image)
     
     return image
  
