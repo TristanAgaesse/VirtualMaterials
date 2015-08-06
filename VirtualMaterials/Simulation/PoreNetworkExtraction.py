@@ -60,7 +60,7 @@ def ExtractNetwork(inputFileName,outputFileName,phases={'void':False},hContrast=
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))
     
-    
+    return PNMGeometricData
     
     
     

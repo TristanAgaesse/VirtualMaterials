@@ -545,3 +545,77 @@ def CreateTestImage_TetrahedronMedialAxis():
     return image
  
     
+#--------------------------------------------------------------------   
+def CreateTestImage_TwoBalls():
+    
+    #Image parameters
+    voxelNumbers = (30,30,30)
+    
+    image = 255*np.ones(voxelNumbers,dtype=np.uint8)
+    bounds=(0.0, float(voxelNumbers[0]), 
+        0.0, float(voxelNumbers[1]), 
+        0.0, float(voxelNumbers[2]))
+    
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)           
+           
+           
+    #Create elements meshes : 2 spheres 
+    sphereRadius=10       
+           
+    center1 = np.asarray( (12,12,12) )
+    sphere1 = BasicShapes.CreateBall(center1,sphereRadius)
+    
+    center2 = np.asarray( (18,18,18) )
+    sphere2 = BasicShapes.CreateBall(center2,sphereRadius)   
+   
+    
+    #Fill image with voxelized elements
+    imSphere1 = Voxelization.Voxelize(sphere1,gridX,gridY,gridZ,raydirection='z')
+    imSphere2 = Voxelization.Voxelize(sphere2,gridX,gridY,gridZ,raydirection='z')
+
+    image[imSphere1] = 0
+    image[imSphere2] = 0
+    
+    return image
+    
+    
+#--------------------------------------------------------------------   
+def CreateTestImage_ThreeBalls():
+    
+    #Image parameters
+    voxelNumbers = (30,30,30)
+    
+    image = 255*np.ones(voxelNumbers,dtype=np.uint8)
+    bounds=(0.0, float(voxelNumbers[0]), 
+        0.0, float(voxelNumbers[1]), 
+        0.0, float(voxelNumbers[2]))
+    
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)           
+           
+           
+    #Create elements meshes : 2 spheres 
+    sphereRadius=10       
+           
+    center1 = np.asarray( (18,13,13) )
+    sphere1 = BasicShapes.CreateBall(center1,sphereRadius)
+    
+    center2 = np.asarray( (13,18,13) )
+    sphere2 = BasicShapes.CreateBall(center2,sphereRadius)   
+
+    center3 = np.asarray( (13,13,18) )
+    sphere3 = BasicShapes.CreateBall(center3,sphereRadius)
+    
+    #Fill image with voxelized elements
+    imSphere1 = Voxelization.Voxelize(sphere1,gridX,gridY,gridZ,raydirection='z')
+    imSphere2 = Voxelization.Voxelize(sphere2,gridX,gridY,gridZ,raydirection='z')
+    imSphere3 = Voxelization.Voxelize(sphere3,gridX,gridY,gridZ,raydirection='z')
+    
+    image[imSphere1] = 0
+    image[imSphere2] = 0
+    image[imSphere3] = 0
+    
+    return image
