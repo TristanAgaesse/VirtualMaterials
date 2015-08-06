@@ -97,8 +97,8 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
         labelShift.append(pores.max())
         
         
-    phaseBoundaries = CannyEdgeDetection(myImg)     
-    watershedLines=np.logical_or(watershedLines,phaseBoundaries)
+    #phaseBoundaries = CannyEdgeDetection(myImg)     
+    #watershedLines=np.logical_or(watershedLines,phaseBoundaries)
     
     
     porePhase=np.zeros(pores.max(),dtype=np.uint8)    
@@ -213,7 +213,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
         #Side bands to avoid unexpected boundary effects
     seSize=int(np.shape(structuringElement)[1]//2)
     sideBandes=np.ones((imageSize[0],imageSize[1],imageSize[2]), dtype=bool)
-    sideBandes[seSize:-1-seSize,seSize:-1-seSize,seSize:-1-seSize]=False
+    sideBandes[seSize:-seSize,seSize:-seSize,seSize:-seSize]=False
     watershedLines[sideBandes]=0
     
         #Remove useless parts of watershedLines
@@ -260,13 +260,14 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
         return mydict
                          
 
-    def LabelLinks(mydict,links,imageSize):
-        mykeys= mydict.keys()     
+    def LabelLinks(mydict,imageSize):
+        mykeys= mydict.keys()
+        labeledLinks=np.zeros(imageSize,dtype=np.int)
         for iLink in range(len(mykeys)):
             ind=mydict[mykeys[iLink]]
             X,Y,Z=np.unravel_index(ind,imageSize)
-            links[X,Y,Z] = iLink+1
-        return links
+            labeledLinks[X,Y,Z] = iLink+1
+        return labeledLinks
 
 
     def BuildInterfaceToPore(mydict) :
@@ -283,10 +284,8 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
                                                    structuringElement,imageSize)
 
     mydict = FillDict(linksToPores)
-    
-    links = links.astype(np.int)
-    
-    links = LabelLinks(mydict,links,imageSize)
+        
+    labeledLinks = LabelLinks(mydict,imageSize)
     
     interfaceToPore = BuildInterfaceToPore(mydict)
                
@@ -332,7 +331,7 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
 #            voxelsforcorrection = (voxelsforcorrection>=4)
 #            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
  
-    return links, interfaceToPore    
+    return labeledLinks, interfaceToPore    
     
 
 
