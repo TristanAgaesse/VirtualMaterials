@@ -231,10 +231,10 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
         X,Y,Z =np.unravel_index(indices,imageSize)
         oneColumn=np.ones(X.shape,dtype=np.int)        
         neighboor=[]
+        center = structuringElement.shape[0]//2
         for iSE in range(structuringElement.size):        
             xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
             if structuringElement[xIse,yIse,zIse]:
-                center = (structuringElement.shape[0]+1)/2
                 shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
                 neighboor.append( pores[X+shiftX*oneColumn,
                                         Y+shiftY*oneColumn,
