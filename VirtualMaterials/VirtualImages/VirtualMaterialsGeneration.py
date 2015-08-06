@@ -564,12 +564,12 @@ def CreateTestImage_TwoBalls():
     #Create elements meshes : 2 spheres 
     sphereRadius=10       
            
-    center1 = np.asarray( (12,12,12) )
+    center1 = np.asarray( (11,11,11) )
     sphere1 = BasicShapes.CreateBall(center1,sphereRadius)
     
-    center2 = np.asarray( (18,18,18) )
+    center2 = np.asarray( (19,19,19) )
     sphere2 = BasicShapes.CreateBall(center2,sphereRadius)   
-   
+    
     
     #Fill image with voxelized elements
     imSphere1 = Voxelization.Voxelize(sphere1,gridX,gridY,gridZ,raydirection='z')
@@ -598,15 +598,15 @@ def CreateTestImage_ThreeBalls():
            
            
     #Create elements meshes : 2 spheres 
-    sphereRadius=10       
+    sphereRadius=8       
            
-    center1 = np.asarray( (18,13,13) )
+    center1 = np.asarray( (19,11,11) )
     sphere1 = BasicShapes.CreateBall(center1,sphereRadius)
     
-    center2 = np.asarray( (13,18,13) )
+    center2 = np.asarray( (11,19,11) )
     sphere2 = BasicShapes.CreateBall(center2,sphereRadius)   
 
-    center3 = np.asarray( (13,13,18) )
+    center3 = np.asarray( (11,11,19) )
     sphere3 = BasicShapes.CreateBall(center3,sphereRadius)
     
     #Fill image with voxelized elements

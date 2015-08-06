@@ -714,7 +714,8 @@ def CannyEdgeDetection(myImg,variance=2):
 
 #----------------------------------------------------------------------------------------------     
 def ParseLabeledImage(labeledImage):
-            
+    
+    assert(labeledImage.min()<labeledImage.max())        
     labelImage = labeledImage.reshape((labeledImage.size))
     orderLabels = np.argsort(labelImage)
     sortedLabels = labelImage[orderLabels]

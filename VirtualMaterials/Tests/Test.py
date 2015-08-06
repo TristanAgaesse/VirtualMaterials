@@ -37,7 +37,7 @@ def TestExtractNetwork():
     imageFile = "temp_testImageTwoBalls.tif"
     tff.imsave(imageFile,image)
     outputFileName = "temp_pnmExtract_testImageTwoBalls"
-    PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(imageFile,outputFileName,phases={'void':0},hContrast=4)
+    PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(imageFile,outputFileName,phases={'void':0},hContrast=2)
     tff.imsave(outputFileName+"_imageLiens.tif",PNMGeometricData["imageLiens"].astype(np.uint32))    
     tff.imsave(outputFileName+"_imagePores.tif",PNMGeometricData["imagePores"].astype(np.uint32))
     
@@ -46,7 +46,7 @@ def TestExtractNetwork():
     imageFile ="temp_testImageThreeBalls.tif"
     tff.imsave(imageFile,image)
     outputFileName = "temp_pnmExtract_testImageThreeBalls"
-    PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(imageFile,outputFileName,phases={'void':0},hContrast=4)         
+    PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(imageFile,outputFileName,phases={'void':0},hContrast=2)         
     tff.imsave(outputFileName+"_imageLiens.tif",PNMGeometricData["imageLiens"].astype(np.uint32))    
     tff.imsave(outputFileName+"_imagePores.tif",PNMGeometricData["imagePores"].astype(np.uint32))
                   
