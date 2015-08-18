@@ -501,7 +501,7 @@ def PoresGeometry_Volume(pores):
 
      
 #----------------------------------------------------------------------------------------------
-@jit
+#@jit
 def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesCodes): 
     
     phasesCodes = np.asarray(phasesCodes)
@@ -525,8 +525,11 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
             Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
             Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
             
-            poreImage = pores[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+            #poreImage = pores[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+            
             localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]
+            poreImage = np.zeros(localMyImg.shape,dtype=np.bool)
+            poreImage[voxels[0]-Xmin,voxels[1]-Ymin,voxels[2]-Zmin]=True
             
             dilatedPore = ndimage.binary_dilation(poreImage,
                                                   structure=structElement)        
@@ -544,9 +547,49 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
      
     return surfaceComposition
          
+#----------------------------------------------------------------------------------------------    
+def __FastDilation__(image,structuringElement):    
+    
+    structuringElement= np.asarray(structuringElement)
+    center = structuringElement.shape[0]//2
+    image=image.astype(np.bool)    
+    
+    biggerImage = np.zeros(np.asarray(image.shape)+2*center,dtype=np.bool)
+    dilatedImage = np.zeros(biggerImage.shape,dtype=np.bool) 
+    
+    dim=image.ndim    
+    
+    #smallImageIndices=(center:-center-1,center:-center-1,center:-center-1)
+#    smallImageIndices = [np.arange(center,center+image.shape[iDim]) 
+#                            for iDim in range(dim)]
+    
+    smallImageIndices = [slice(center,center+image.shape[iDim]) 
+                            for iDim in range(dim)]
+    
+    biggerImage[smallImageIndices] = image
+    
+    #X,Y,Z = np.nonzero(biggerImage)
+    nnzIndices=np.nonzero(biggerImage)
+    oneColumn=np.ones(nnzIndices[0].size,dtype=np.int)        
+    
+    for iSE in range(structuringElement.size):        
+        #xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
+        iSEposition = np.unravel_index(iSE,structuringElement.shape)
+        #if structuringElement[xIse,yIse,zIse]:
+#            shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
+#            dilatedImage[X+shiftX*oneColumn,Y+shiftY*oneColumn,Z+shiftZ*oneColumn]=True
+        if structuringElement[iSEposition]:    
+            positionTrue=[]
+            for iDim in range(dim):
+                shift=iSEposition[iDim]-center
+                positionTrue.append( nnzIndices[iDim]+shift*oneColumn )
+                  
+            dilatedImage[positionTrue]=True
+                  
+    dilatedImage = dilatedImage[smallImageIndices]
     
     
-    
+    return dilatedImage
 
 #----------------------------------------------------------------------------------------------
 def LinksGeometry_Center(links,distanceMap,linkLabels): 
@@ -604,7 +647,7 @@ def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,voxelLookUpTabl
 
 
 #---------------------------------------------------------------------------------------------- 
-@jit 
+#@jit 
 def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesCodes):      
     
     phasesCodes = np.asarray(phasesCodes)
@@ -613,7 +656,7 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
     imageShape = myImg.shape   
     
     dimension = links.ndim                 
-    structElement=  np.ones(3*np.ones(dimension),dtype=bool) 
+    structElement=  np.ones(3*np.ones(dimension),dtype=np.bool) 
     
     linkLabels = np.asarray(linkLabels)
     nLinkLabel = linkLabels.size 
@@ -629,15 +672,19 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
                 Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
                 Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
                 
-                linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
-                localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1] 
+                localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]
+                linkImage = np.zeros(localMyImg.shape,dtype=np.bool)
+                linkImage[voxels[0]-Xmin,voxels[1]-Ymin,voxels[2]-Zmin]=True
+                #linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
                 
             elif dimension==2:
                 Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
                 Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
                 
-                linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1]       
                 localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1] 
+                linkImage = np.zeros(localMyImg.shape,dtype=np.bool)
+                linkImage[voxels[0]-Xmin,voxels[1]-Ymin]=True
+                #linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1]       
                 
                 
             dilatedLink = ndimage.binary_dilation(linkImage,
@@ -708,7 +755,7 @@ def BuildVoxelLookUpTable(labeledImage):
     return voxelLookUpTable
     
 #----------------------------------------------------------------------------------------------    
-@jit
+#@jit
 def GetVoxelOfLabel(numLabel,voxelLookUpTable):
     
     labelEnds,orderLabels,labelIndices,imageShape=voxelLookUpTable
@@ -717,16 +764,16 @@ def GetVoxelOfLabel(numLabel,voxelLookUpTable):
         iLabel = labelIndices[numLabel]
         if iLabel>0 or numLabel==0:
             vRange = np.arange(labelEnds[iLabel-1]+1,labelEnds[iLabel]+1)
-            linearIndices = orderLabels[vRange]
-            linearIndices = np.unravel_index(linearIndices,imageShape)
+            voxelIndices = orderLabels[vRange]
+            voxelIndices = np.unravel_index(voxelIndices,imageShape)
         else:
-            linearIndices=[]
+            voxelIndices=[]
         
     else:
-        linearIndices=[]
+        voxelIndices=[]
     
     
-    return linearIndices
+    return voxelIndices
     
     
     
