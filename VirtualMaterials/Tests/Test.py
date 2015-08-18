@@ -4,13 +4,23 @@ Created on Wed Aug  5 11:08:55 2015
 
 @author: greentoto
 """
+import numpy as np
 
-def TestExtractNetwork():
+
+#----------------------------------------------------------------------------------------------
+def RunAllTests():
+
+    Test_PoreNetworkExtraction_ExtractNetwork()
+    Test_PoreNetworkExtraction_ParseLabeledImage()
+                
+
+#----------------------------------------------------------------------------------------------
+def Test_PoreNetworkExtraction_ExtractNetwork():
 
     from VirtualMaterials.VirtualImages import VirtualMaterialsGeneration
     from VirtualMaterials.Simulation  import PoreNetworkExtraction
     from VirtualMaterials.Utilities  import tifffile as tff
-    import numpy as np
+    
     
     #Image 1
     image = VirtualMaterialsGeneration.CreateTestImage_TetrahedronMedialAxis()
@@ -50,4 +60,37 @@ def TestExtractNetwork():
     tff.imsave(outputFileName+"_imageLiens.tif",PNMGeometricData["imageLiens"].astype(np.uint32))    
     tff.imsave(outputFileName+"_imagePores.tif",PNMGeometricData["imagePores"].astype(np.uint32))
                   
-                  
+    print('Test_PoreNetworkExtraction_ExtractNetwork : ok')              
+
+
+
+#----------------------------------------------------------------------------------------------
+def Test_PoreNetworkExtraction_ParseLabeledImage():
+    
+    from VirtualMaterials.Simulation  import PoreNetworkExtraction    
+    
+    links=np.array([0, 0, 2, 1,2,1, 4])
+    voxelLookUpTable = PoreNetworkExtraction.BuildVoxelLookUpTable(links)
+    voxels1=PoreNetworkExtraction.GetVoxelOfLabel(1,voxelLookUpTable)
+    voxels2=PoreNetworkExtraction.GetVoxelOfLabel(2,voxelLookUpTable)
+    voxels3=PoreNetworkExtraction.GetVoxelOfLabel(3,voxelLookUpTable)
+    voxels4=PoreNetworkExtraction.GetVoxelOfLabel(4,voxelLookUpTable)
+
+    assert( np.all(voxels1==np.array([3, 5])) ) 
+    assert( np.all(voxels2==np.array([2,4])) )
+    assert( np.all(voxels3==np.array([])) ) 
+    assert( np.all(voxels4==np.array([6])) )  
+
+    print('Test_PoreNetworkExtraction_ParseLabeledImage : ok')                
+    
+
+
+
+
+
+
+
+    
+#----------------------------------------------------------------------------------------------
+if __name__ == '__main__':
+    RunAllTests()    

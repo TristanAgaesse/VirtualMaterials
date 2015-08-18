@@ -148,7 +148,7 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
         del reconstructed
     else:
-        local_maxi= feature.peak_local_max(distanceMap.astype(memoryType), 
+        local_maxi= feature.peak_local_max(distanceMap.astype(np.float), 
                                            min_distance=10, indices=False)
         
     
@@ -258,8 +258,8 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
             mydict[key[i][0]].append(linksToPores[key[i][1]][1])
 
         return mydict
-                         
-
+            
+             
     def LabelLinks(mydict,imageSize):
         mykeys= mydict.keys()
         labeledLinks=np.zeros(imageSize,dtype=np.int)
@@ -342,23 +342,26 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     PNMGeometricData=dict()
     
-    poreLabelEnds,poreOrderLabels = ParseLabeledImage(pores)
-    linkLabelEnds,linkOrderLabels = ParseLabeledImage(links)
+    poreVoxelLookUpTable = BuildVoxelLookUpTable(pores)
+    linkVoxelLookUpTable = BuildVoxelLookUpTable(links)
     
+    phasesCodes = np.setdiff1d(np.unique(myImg),0)
     
     # Pores : infos sur la forme, position des pores
+    poreLabels = range(1,pores.max()+1)
 
     pores_Center          = PoresGeometry_Center(pores)    
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
-    #pores_NeighborPhases  = PoresGeometry_NeighborPhases(
-    #                                             myImg,pores,links,
-    #                                             poreLabelEnds,poreOrderLabels)
+    
+    pores_NeighborPhases  = PoresGeometry_NeighborPhases( myImg,pores,poreLabels,
+                                                 poreVoxelLookUpTable,
+                                                 phasesCodes)
     
     PNMGeometricData['poreCenters']         = pores_Center
     PNMGeometricData['poreVolumes']         = pores_Volume
-    #PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
+    PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
     
     
     # Liens internes : infos sur la forme et position des liens internes    
@@ -371,19 +374,20 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     links_SurfaceArea           = LinksGeometry_SurfaceArea(links,linkLabels)
     
-    #links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
-    #                                            myImg,pores,links,linkLabels,
-    #                                            linkLabelEnds,linkOrderLabels)
+#    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
+#                                                myImg,pores,links,linkLabels,
+#                                                linkLabelEnds,linkOrderLabels)
 
-    #links_NeighborPhases        = LinksGeometry_NeighborPhases(
-    #                                            myImg,pores,links,linkLabels,
-    #                                            linkLabelEnds,linkOrderLabels)          
+    links_NeighborPhases        = LinksGeometry_NeighborPhases(
+                                                myImg,links,linkLabels,
+                                                linkVoxelLookUpTable, 
+                                                phasesCodes )          
 
     PNMGeometricData['internalLinkBarycenters']       = links_Center 
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
     PNMGeometricData['internalLinkGeometricSurface']  = links_SurfaceArea
     #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
-    #PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
+    PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
     
     # Infos sur la forme, position des liens frontiere
@@ -421,11 +425,17 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                                     boundarySlice,boundaryDistances,linkLabels)
         
         surfaceArea           = LinksGeometry_SurfaceArea(boundarySlice,linkLabels)
-                                
+                           
+        linkVoxelLookUpTable = BuildVoxelLookUpTable(boundarySlice)                   
+        links_NeighborPhases        = LinksGeometry_NeighborPhases(
+                                                boundarySlice,boundarySlice,linkLabels,
+                                                linkVoxelLookUpTable, 
+                                                phasesCodes )                   
+                           
         PNMGeometricData['boundaryCenters'+str(iBoundary)]          = links_center
         PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]  = inscribedSphereRadius
         PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)] = surfaceArea
-    
+        PNMGeometricData['boundaryNeighborPhases'+str(iBoundary)] = links_NeighborPhases
     
     return PNMGeometricData
 
@@ -454,88 +464,48 @@ def PoresGeometry_Volume(pores):
     return pores_volumes
 
 
-
-##----------------------------------------------------------------------------------------------
-#def PoresGeometry_NeighborPhases(myImg,pores,links,phases): 
-#
-#    nPore = pores.max()     
-#    phases = np.setdiff1d(np.unique(myImg),0)
-#    nPhase = phases.size
-#     
-#    surfaceComposition = np.zeros((nPore,nPhase))
-#    
-#    void= (myImg==0)
-#        
-#    itkPores = sitk.GetImageFromArray(pores)
-#    itkDilatedPores = sitk.GrayscaleDilate(itkPores, 1, sitk.sitkBall)   
-#    dilatedPores=sitk.GetArrayFromImage(itkDilatedPores)  
-#   
-#    dilatedPoresSurfaces = dilatedPores[np.logical_and(dilatedPores,np.logical_not(void))]    
-#    
-#    def Composition(dilatedPoreSurface):
-#         
-#        composition = ndimage.measurements.labeled_comprehension(
-#                                            dilatedPoreSurface, dilatedPoreSurface, 
-#                                            phases,
-#                                            np.size,np.int,0)
-#        return composition 
-#                            
-#                            
-#    surfaceComposition = ndimage.measurements.labeled_comprehension(
-#                                            myImg, dilatedPoresSurfaces, 
-#                                            range(1,nPore+1),
-#                                            Composition,np.int,0)                      
-#                                            
-##    for iPore in range(nPore):
-##        
-##        dilatedPore = ndimage.binary_dilation(pores==iPore,
-##                                              structure=np.ones((3,3,3),dtype=bool))        
-##        
-##        poreSurfaceNeighborhood = myImg[np.logical_and(dilatedPore,np.logical_not(void))]
-##
-##        surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
-##                                            poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
-##                                            phases,
-##                                            np.size,np.int,0)
-#        
-#     
-#    return surfaceComposition
-     
      
 #----------------------------------------------------------------------------------------------
 @jit
-def PoresGeometry_NeighborPhases(myImg,pores,links,poreLabelEnds,poreOrderLabels): 
-    print("Pores_NeighborPhases")
-    nPore = pores.max()     
-    phases = np.setdiff1d(np.unique(myImg),0)
-    nPhase = phases.size
-     
-    surfaceComposition = np.zeros((nPore,nPhase))
+def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesCodes): 
+    
+    phasesCodes = np.asarray(phasesCodes)
+    nPhase = phasesCodes.size
+    
+    poreLabels = np.asarray(poreLabels)
+    nPoreLabel = poreLabels.size 
+    surfaceComposition = np.zeros((nPoreLabel,nPhase))
     
     imageShape = myImg.shape  
-                                            
-    for iPore in range(nPore):
+                    
+    dimension = pores.ndim                 
+    structElement=  np.ones(3*np.ones(dimension),dtype=bool)           
+                        
+    for iPore in range(nPoreLabel):
         
-        voxels = GetVoxelOfLabel(iPore,poreLabelEnds,poreOrderLabels,imageShape)
+        voxels = GetVoxelOfLabel(poreLabels[iPore],voxelLookUpTable)
         
-        Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
-        Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
-        Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
-        
-        poreImage = pores[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
-        localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]
-        
-        dilatedPore = ndimage.binary_dilation(poreImage,
-                                              structure=np.ones((3,3,3),dtype=bool))        
-        
-        poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,
-                                                            localMyImg.astype(np.bool))]
-
-        surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
-                                            poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
-                                            phases,
-                                            np.size,np.int,0)
-        
+        if len(voxels)>0 :
+            Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
+            Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
+            Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
+            
+            poreImage = pores[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+            localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]
+            
+            dilatedPore = ndimage.binary_dilation(poreImage,
+                                                  structure=structElement)        
+            
+            poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,
+                                                                localMyImg.astype(np.bool))]
+    
+            surfaceComposition[iPore,:] = ndimage.measurements.labeled_comprehension(
+                                                poreSurfaceNeighborhood, poreSurfaceNeighborhood, 
+                                                phasesCodes,
+                                                np.size,np.int,0)
+        else:
+            surfaceComposition[iPore,:] = np.zeros(nPhase,dtype=np.int)
+            
      
     return surfaceComposition
          
@@ -575,7 +545,7 @@ def LinksGeometry_SurfaceArea(links,linkLabels):
     
     
 #---------------------------------------------------------------------------------------------- 
-def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,linkLabelEnds,linkOrderLabels):     
+def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,voxelLookUpTable):     
         
 #    nLink = len(linkLabels)    
 #    hydraulicDiameters = np.zeros(nLink)
@@ -596,88 +566,58 @@ def LinksGeometry_HydraulicDiameter(myImg,pores,links,linkLabels,linkLabelEnds,l
      
      
     return 1
-     
-##----------------------------------------------------------------------------------------------  
-#def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,phases):      
-#    
-#    phases = np.setdiff1d(np.unique(myImg),0)
-#    nPhase = phases.size
-#    
-#    nLink = len(linkLabels)    
-#    
-#    void= (myImg==0)
-##    surfaceComposition = np.zeros((nLink,nPhase))
-##    
-##    void= (myImg==0)
-##    for iLink in linkLabels:
-##        
-##        dilatedLink = ndimage.binary_dilation(links==iLink,
-##                                              structure=np.ones((3,3,3),dtype=bool))        
-##        
-##        linkSurfaceNeighborhood = myImg[np.logical_and(dilatedLink,np.logical_not(void))]
-##
-##        surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
-##                                            linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
-##                                            phases,
-##                                            np.size,np.int,0)
-#    
-#    itkLinks = sitk.GetImageFromArray(links)
-#    itkDilatedLinks = sitk.GrayscaleDilate(itkLinks, 1, sitk.sitkBall)   
-#    dilatedLinks=sitk.GetArrayFromImage(itkDilatedLinks)      
-#    
-#    dilatedLinksSurfaces = dilatedLinks[np.logical_and(dilatedLinks,np.logical_not(void))]     
-#    
-#    def Composition(dilatedLinkSurface):     
-#        
-#        composition = ndimage.measurements.labeled_comprehension(
-#                                            dilatedLinkSurface, dilatedLinkSurface, 
-#                                            phases,
-#                                            np.size,np.int,0)
-#        return composition 
-#                            
-#                            
-#    surfaceComposition = ndimage.measurements.labeled_comprehension(
-#                                            myImg, dilatedLinksSurfaces, 
-#                                            range(1,nLink+1),
-#                                            Composition,np.int,0)
-#        
-#        
-#        
-#    return surfaceComposition
+
 
 #---------------------------------------------------------------------------------------------- 
 @jit 
-def LinksGeometry_NeighborPhases(myImg,pores,links,linkLabels,linkLabelEnds,linkOrderLabels):      
-    print("Links_NeighborPhases")
-    phases = np.setdiff1d(np.unique(myImg),0)
-    nPhase = phases.size
+def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesCodes):      
     
-    nLink = links.max()    
+    phasesCodes = np.asarray(phasesCodes)
+    nPhase = phasesCodes.size
+    
     imageShape = myImg.shape   
     
-    surfaceComposition = np.zeros((nLink,nPhase))
+    dimension = links.ndim                 
+    structElement=  np.ones(3*np.ones(dimension),dtype=bool) 
     
-    for iLink in linkLabels:
+    linkLabels = np.asarray(linkLabels)
+    nLinkLabel = linkLabels.size 
+    surfaceComposition = np.zeros((nLinkLabel,nPhase))  
+    
+    for iLink in range(nLinkLabel):
         
-        voxels = GetVoxelOfLabel(iLink,linkLabelEnds,linkOrderLabels,imageShape)
-
-        Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
-        Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
-        Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
+        voxels = GetVoxelOfLabel(linkLabels[iLink],voxelLookUpTable)
         
-        linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
-        localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1] 
+        if len(voxels)>0:
+            if dimension==3:
+                Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
+                Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
+                Zmin,Zmax=max(voxels[2].min()-1,0),min(voxels[2].max()+1,imageShape[2]-1)       
+                
+                linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1]       
+                localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1,Zmin:Zmax+1] 
+                
+            elif dimension==2:
+                Xmin,Xmax=max(voxels[0].min()-1,0),min(voxels[0].max()+1,imageShape[0]-1)
+                Ymin,Ymax=max(voxels[1].min()-1,0),min(voxels[1].max()+1,imageShape[1]-1)
+                
+                linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1]       
+                localMyImg = myImg[Xmin:Xmax+1,Ymin:Ymax+1] 
+                
+                
+            dilatedLink = ndimage.binary_dilation(linkImage,
+                                                  structure=structElement)        
+            
+            linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,
+                                                                localMyImg.astype(np.bool))]
+    
+            surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
+                                                linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
+                                                phasesCodes,
+                                                np.size,np.int,0)
         
-        dilatedLink = ndimage.binary_dilation(linkImage,
-                                              structure=np.ones((3,3,3),dtype=bool))        
-        
-        linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,
-                                                            localMyImg.astype(np.bool))]
-
-        surfaceComposition[iLink,:] = ndimage.measurements.labeled_comprehension(
-                                            linkSurfaceNeighborhood, linkSurfaceNeighborhood, 
-                                            phases,
-                                            np.size,np.int,0)
+        else:
+            surfaceComposition[iLink,:] = np.zeros(nPhase,dtype=np.int)
         
     return surfaceComposition
 
@@ -713,42 +653,49 @@ def CannyEdgeDetection(myImg,variance=2):
 
 
 #----------------------------------------------------------------------------------------------     
-def ParseLabeledImage(labeledImage):
+def BuildVoxelLookUpTable(labeledImage):
     
-    assert(labeledImage.min()<labeledImage.max())        
+    imageShape = labeledImage.shape
+    
     labelImage = labeledImage.reshape((labeledImage.size))
     orderLabels = np.argsort(labelImage)
     sortedLabels = labelImage[orderLabels]
+    del labelImage
     labelEnds=np.flatnonzero(np.roll(sortedLabels,-1)-sortedLabels)  
-    assert(labelEnds[-1]<labelImage.size)
-    labelEnds=np.append(labelEnds,labelImage.size-1)
+    #labelEnds=np.append(labelEnds,labelImage.size-1)
 
-    return labelEnds,orderLabels
+    #what happens if labelled Image is filled with zeros ?
+    labelIndices = np.zeros(labeledImage.max()+1,dtype=np.int)
+    labelIndices[sortedLabels[labelEnds]]=np.arange(labelEnds.size)
+    
+    voxelLookUpTable = labelEnds,orderLabels,labelIndices,imageShape
+    
+    return voxelLookUpTable
     
 #----------------------------------------------------------------------------------------------    
 @jit
-def GetVoxelOfLabel(iLabel,labelEnds,orderLabels,imageShape):
+def GetVoxelOfLabel(numLabel,voxelLookUpTable):
     
-    vRange = np.arange(labelEnds[iLabel]+1,labelEnds[iLabel+1])
-    linearIndices = orderLabels[vRange]
-    linearIndices = np.unravel_index(linearIndices,imageShape)
+    labelEnds,orderLabels,labelIndices,imageShape=voxelLookUpTable
+    
+    if numLabel>=0 and numLabel<labelIndices.size:
+        iLabel = labelIndices[numLabel]
+        if iLabel>0 or numLabel==0:
+            vRange = np.arange(labelEnds[iLabel-1]+1,labelEnds[iLabel]+1)
+            linearIndices = orderLabels[vRange]
+            linearIndices = np.unravel_index(linearIndices,imageShape)
+        else:
+            linearIndices=[]
+        
+    else:
+        linearIndices=[]
+    
     
     return linearIndices
     
     
     
     
-    
-#----------------------------------------------------------------------------------------------
-def Test():
-    inputfile='testGDL.tif'
-    outputfile='/home/270.12-Modeling_PEMFC_Li/theseTristan/PSI_drainage_python/watershedTest_GDL_h4_euclidean.mat'
-    hContrast=2
-    myphases={'void':0,'fiber':100,'binder':200}
-    ExtractNetwork(inputfile,outputfile,hContrast,phases=myphases,distanceType='chamfer')
 
-#----------------------------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    Test()
     
