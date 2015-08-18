@@ -176,6 +176,33 @@ def VTKImageToNumpy(vtkImage):
     return numpyImage    
        
     
+#--------------------------------------------------------------------    
+def BestMemoryType(number):   
     
-    
-    
+    if number>=0:
+        if abs(number)<np.iinfo(np.uint8).max:
+            memoryType=np.uint8
+        elif abs(number)<np.iinfo(np.uint16).max:
+            memoryType=np.uint16
+        elif abs(number)<np.iinfo(np.uint32).max:
+            memoryType=np.uint32     
+        else:
+            memoryType=np.uint64   
+
+    else:
+        if abs(number)<np.iinfo(np.int8).max:
+            memoryType=np.int8
+        elif abs(number)<np.iinfo(np.int16).max:
+            memoryType=np.int16
+        elif abs(number)<np.iinfo(np.int32).max:
+            memoryType=np.int32     
+        else:
+            memoryType=np.int64        
+        
+        
+    return memoryType     
+            
+            
+            
+            
+            

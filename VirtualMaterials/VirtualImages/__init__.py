@@ -1,5 +1,4 @@
-__all__ = ["VirtualMaterialsGeneration", "BasicShapes", "Voxelization","Visualization"]
+__all__ = ["VirtualMaterialsGeneration", "BasicShapes", "Voxelization"]
 from . import VirtualMaterialsGeneration
 from . import BasicShapes
 from . import Voxelization
-from . import Visualization

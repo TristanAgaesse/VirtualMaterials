@@ -18,7 +18,7 @@ setup(
               'VirtualMaterials.Simulation',
               'VirtualMaterials.Utilities',
               'VirtualMaterials.Examples',
-              'VirtualMaterials.Tests'],
+              'VirtualMaterials.test'],
               
     install_requires = [
         'numpy',
@@ -27,7 +27,7 @@ setup(
         'scikit-image',
         'SimpleITK',
         'hdf5storage',
-	'mayavi'],     
+	      'mayavi'],     
         
     description="A Python toolbox to create virtual material images and to compute their physical properties..",
     author='CEA LITEN',

@@ -7,68 +7,98 @@ from scipy import ndimage
 from skimage import morphology
 from skimage import feature
 import SimpleITK as sitk
-from VirtualMaterials.Utilities  import tifffile as tff
+from VirtualMaterials.Utilities import tifffile as tff
+from VirtualMaterials.Utilities import Utilities as utilities    
 from collections import defaultdict
 import time
 import re 
 from numba import jit
-
+import os
 #import mahotas
 #from skimage import io as skimio
 
 
 #----------------------------------------------------------------------------------------------
-def ExtractNetwork(inputFileName,outputFileName,phases={'void':False},hContrast=4):
-
-
+def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
+    """Extract a pore network from an image.
+    :param image: numpy ndarray or imageFileName
+    :param phases: dict, {'PhaseName':PhaseCode in image,...}
+    :param hConstrast: value of hContrast
+    :return: dict containing the extraction results
+    
+    :Example:
+    
+    import VirtualMaterials.Simulations.PoreNetworkExtraction as pnex
+    ExtractionResult = pnex.ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4)
+    pnex.SaveResults('foo_extractionResults.mat',ExtractionResult)
+    """
+    
     beginTime=time.time()
     
     structuringElement = np.ones((3,3,3))
     distanceType='ITKDanielson'
     
-    #Load image from disk
-    myImg=tff.imread(inputFileName).astype(np.uint8)    
+    image,phases,hContrast = __ReadInputs__(image,phases,hContrast)
     
-    
-    #Perform pores segmentation
     print('PoresWatershedSegmentation')
     
-    pores,watershedLines,distanceMap,porePhase = PoresSegmentation(myImg,
-                                                structuringElement=structuringElement,
-                                                hContrast=hContrast,
-                                                distanceType=distanceType,phases=phases)
-    
+    pores,watershedLines,distanceMap,porePhase = PoresSegmentation(image,
+                                          structuringElement=structuringElement,
+                                          hContrast=hContrast,
+                                          distanceType=distanceType,phases=phases)
     
     print('FindLinks')
     
-    links,interfaceToPore=FindLinks(myImg,pores,watershedLines,structuringElement)
-    
+    links,interfaceToPore=FindLinks(image,pores,watershedLines,structuringElement)
     
     print('AnalyseElementsGeometry')
     
-    PNMGeometricData = AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases=phases)
+    ExtractionResult = AnalyseElementsGeometry(image,pores,links,distanceMap,phases=phases)
     
-
-    print('Saving results to disk')
     
-    PNMGeometricData.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
-                             'imageLiens':links,'myImage':myImg.astype(np.bool),
+    ExtractionResult.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
+                             'imageLiens':links,'myImage':image.astype(np.bool),
                              'porePhase':porePhase})
-    hdf5storage.savemat(outputFileName,mdict=PNMGeometricData)
-    
     
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))
     
-    return PNMGeometricData
+    return ExtractionResult
     
+    
+    
+#----------------------------------------------------------------------------------------------
+def __ReadInputs__(image,phases,hContrast):
+
+    if isinstance(image,basestring):
+        imageFileName=image
+        assert(os.path.isfile(imageFileName))
+        image=tff.imread(imageFileName).astype(np.uint8)    
+    else:
+        assert(isinstance(image,np.ndarray))
+        
+    assert(isinstance(phases,dict))
+    assert(isinstance(int(hContrast),int))
+    
+    
+    return image,phases,hContrast
+    
+
+#----------------------------------------------------------------------------------------------
+def SaveResults(outputFile,ExtractionResult):
+    
+    print('Saving results to disk')
+    assert( isinstance(outputFile,basestring) )   
+    assert(isinstance(ExtractionResult,dict) )
+    
+    hdf5storage.savemat(outputFile,mdict=ExtractionResult)
     
     
 #----------------------------------------------------------------------------------------------
 def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,3,3)),hContrast=4,distanceType='ITKDanielson'):
     #Phases=dict, phases['myphase']=codeForMyPhaseInImage
     
-    pores=np.zeros(myImg.shape,dtype=np.uint32)
+    pores=np.zeros(myImg.shape,dtype=np.uint8)
     watershedLines=np.zeros(myImg.shape,dtype=np.bool)
     
     if distanceType=='euclidean' or distanceType=='ITKDanielson':
@@ -87,8 +117,9 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
                             hContrast=hContrast,distanceType=distanceType)
         
         phaseImage=phaseImage.astype(np.bool)
+        memoryType=utilities.BestMemoryType(poresPhase.max()+pores.max())
         pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0
-                                                                ).astype(np.uint32)
+                                                                ).astype(memoryType)
         
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
@@ -187,6 +218,8 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
                                      structure=structuringElement 
                                      )[0]
     pores[np.logical_not(phaseImage)] = 0
+    memoryType=utilities.BestMemoryType(pores.max())
+    pores=pores.astype(memoryType)
     
     
     return pores,watershedLines,distanceMap
@@ -262,8 +295,10 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
              
     def LabelLinks(mydict,imageSize):
         mykeys= mydict.keys()
-        labeledLinks=np.zeros(imageSize,dtype=np.int)
-        for iLink in range(len(mykeys)):
+        nLink = len(mykeys)
+        memoryType = utilities.BestMemoryType(nLink)
+        labeledLinks=np.zeros(imageSize,dtype=memoryType)
+        for iLink in range(nLink):
             ind=mydict[mykeys[iLink]]
             X,Y,Z=np.unravel_index(ind,imageSize)
             labeledLinks[X,Y,Z] = iLink+1

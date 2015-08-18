@@ -5,7 +5,7 @@ import numpy as np
 import VirtualMaterials.VirtualImages.VirtualMaterialsGeneration  as virtMatGen
 from VirtualMaterials.VirtualImages  import BasicShapes
 from VirtualMaterials.VirtualImages  import Voxelization
-from VirtualMaterials.VirtualImages  import Visualization
+from VirtualMaterials.Utilities  import Visualization
 import VirtualMaterials.Utilities.Utilities as Utilities    
    
 #--------------------------------------------------------------------
