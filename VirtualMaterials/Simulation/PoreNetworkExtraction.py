@@ -57,7 +57,7 @@ def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
     
     
     ExtractionResult.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
-                             'imageLiens':links,'myImage':image.astype(np.bool),
+                             'imageLiens':links,'myImage':image,
                              'porePhase':porePhase})
     
     endTime=time.time()
@@ -73,10 +73,14 @@ def __ReadInputs__(image,phases,hContrast):
     if isinstance(image,basestring):
         imageFileName=image
         assert(os.path.isfile(imageFileName))
-        image=tff.imread(imageFileName).astype(np.uint8)    
+        image=tff.imread(imageFileName)    
     else:
         assert(isinstance(image,np.ndarray))
-        
+    
+    assert(image.min()>=0)
+    memoryType = utilities.BestMemoryType(image.max())    
+    image = image.astype(memoryType)
+    
     assert(isinstance(phases,dict))
     assert(isinstance(int(hContrast),int))
     
@@ -118,8 +122,9 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
         
         phaseImage=phaseImage.astype(np.bool)
         memoryType=utilities.BestMemoryType(poresPhase.max()+pores.max())
-        pores[phaseImage]=poresPhase[phaseImage]+labelShift[-1]*(poresPhase[phaseImage]>0
-                                                                ).astype(memoryType)
+        pores = pores.astype(memoryType)
+        pores[phaseImage]=(poresPhase[phaseImage]).astype(memoryType)+labelShift[-1]*(
+                           poresPhase[phaseImage]>0).astype(memoryType)
         
         watershedLines[phaseImage] = watershedLinesPhase[phaseImage]
         distanceMap[phaseImage] = distanceMapPhase[phaseImage]
