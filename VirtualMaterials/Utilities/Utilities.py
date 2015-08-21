@@ -204,5 +204,3 @@ def BestMemoryType(number):
             
             
             
-            
-            

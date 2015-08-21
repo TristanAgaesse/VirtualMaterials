@@ -150,7 +150,7 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
     
 #----------------------------------------------------------------------------------------------
 def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,3,3)),hContrast=4,
-                                       distanceType='ITKDanielson',markerChoice='Hmaxima',
+                                       distanceType='ITKDanielson',markerChoice='HmaximaSkimage',
                                        watershedAlgo='ITK'):
     
     
@@ -168,20 +168,33 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
         memoryType=np.float16
         itkimage = sitk.GetImageFromArray(np.logical_not(phaseImage).astype(np.uint8))
         itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
+        del itkimage
         distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
-    
+        del itkdistanceMap
     
     #Choix des marqueurs pour la segmentation (centres des pores) : H-maxima :
     #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise  
     #une recontruction morphologique pour construire la carte de distance étêtée.
     
     
-    if markerChoice=='Hmaxima' and hContrast>0:
+    if markerChoice=='HmaximaSkimage' and hContrast>0:
         hContrast=np.asarray(hContrast).astype(memoryType)
         reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
                                             ).astype(memoryType)
         
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
+        del reconstructed
+        
+    elif markerChoice=='HmaximaITK' and hContrast>0:    
+        hContrast=np.asarray(hContrast).astype(memoryType)
+        itkSeedimage = sitk.GetImageFromArray((distanceMap-hContrast).astype(np.float32))
+        itkMarkerImage = sitk.GetImageFromArray(distanceMap.astype(np.float32))
+        itkReconstructed = sitk.ReconstructionByDilation(itkSeedimage, itkMarkerImage)
+        del itkMarkerImage,itkSeedimage
+        reconstructed = sitk.GetArrayFromImage(itkReconstructed).astype(memoryType)                                    
+        del itkReconstructed
+
+        local_maxi=((distanceMap-reconstructed)>hContrast/10).astype(np.bool)
         del reconstructed
     else:
         local_maxi= feature.peak_local_max(distanceMap.astype(np.float), 
@@ -207,11 +220,13 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
         wsITK = sitk.MorphologicalWatershedFromMarkers(itkDistance,itkMarkers,
                                                    markWatershedLine=True,
                                                    fullyConnected=True)
+        del itkMarkers, itkDistance                                           
 #        mask = itk.MaskImageFilter.IUC2IUC2IUC2.New(ws, fill)
 #        overlay = itk.LabelOverlayImageFilter.IUC2IUC2IRGBUC2.New(reader,
 #                                                                  mask,
 #                                                                  UseBackground=True)
         ws=sitk.GetArrayFromImage(wsITK).astype(np.uint8) 
+        del wsITK
         watershedLines= (ws==0).astype(np.bool)                                                           
         watershedLines[np.logical_not(phaseImage)] = False                                                         
     del markers
@@ -691,6 +706,8 @@ def CannyEdgeDetection(myImg,variance=2):
     caster.SetOutputPixelType(sitk.sitkInt8)
     myItkImage = caster.Execute( myItkImage )
     phaseBoundaries = sitk.GetArrayFromImage(myItkImage).astype(np.bool)
+
+    del myItkImage, caster, canny, floatImage  
 
     return phaseBoundaries
 
