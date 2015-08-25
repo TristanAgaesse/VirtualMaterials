@@ -516,6 +516,8 @@ def PoresGeometry_Volume(pores):
                                             pores, pores,range(1,pores.max()+1),
                                             np.size,np.int,0)
 
+    pores_volumes = np.transpose(pores_volumes)
+
     return pores_volumes
 
 
@@ -565,7 +567,7 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
         else:
             surfaceComposition[iPore,:] = np.zeros(nPhase,dtype=np.int)
             
-     
+          
     return surfaceComposition
 
 #----------------------------------------------------------------------------------------------
@@ -585,7 +587,9 @@ def LinksGeometry_InscribedSphereRadius(links,distanceMap,linkLabels):
     links_InscribedSphereRadius = ndimage.measurements.labeled_comprehension(
                                             distanceMap, links, linkLabels,
                                             np.max,np.float16,0).astype(np.float32)
-                                            
+    
+    links_InscribedSphereRadius = np.transpose(links_InscribedSphereRadius)                                       
+    
     return links_InscribedSphereRadius
     
     
@@ -596,6 +600,9 @@ def LinksGeometry_SurfaceArea(links,linkLabels):
                                             links, links, 
                                             linkLabels,
                                             np.size,np.int,0).astype(np.int)
+    
+    links_SurfaceArea = np.transpose(links_SurfaceArea) 
+    
     return links_SurfaceArea
     
     
@@ -677,7 +684,8 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
         
         else:
             surfaceComposition[iLink,:] = np.zeros(nPhase,dtype=np.int)
-        
+     
+    
     return surfaceComposition
 
 
