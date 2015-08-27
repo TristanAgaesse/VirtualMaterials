@@ -18,7 +18,7 @@ class test_PoreNetworkExtraction(unittest.TestCase):
     
         #Image 1
         image = VirtualMaterialsGeneration.CreateTestImage_TetrahedronMedialAxis()
-        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void0':0,'void1':50,'void2':100},hContrast=4) 
+        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void0':0,'void1':50,'void2':100},seedMethod='hMaxima',seedParam=4) 
 
         nPore=5
         nInternalLink=2
@@ -35,7 +35,7 @@ class test_PoreNetworkExtraction(unittest.TestCase):
         image = VirtualMaterialsGeneration.CreateTestImage_TetrahedronMedialAxis()
         image[image==50]=0
         image[image==100]=0 
-        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},hContrast=4)
+        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},seedMethod='hMaxima',seedParam=4)
        
         nPore=5
         nInternalLink=4
@@ -50,7 +50,7 @@ class test_PoreNetworkExtraction(unittest.TestCase):
         
         #Image 3
         image = VirtualMaterialsGeneration.CreateTestImage_TwoBalls()
-        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},hContrast=2)
+        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},seedMethod='hMaxima',seedParam=2)
        
         nPore=2
         nInternalLink=1
@@ -64,7 +64,7 @@ class test_PoreNetworkExtraction(unittest.TestCase):
         
         #Image 4
         image = VirtualMaterialsGeneration.CreateTestImage_ThreeBalls()
-        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},hContrast=2)         
+        PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void':0},seedMethod='hMaxima',seedParam=2)         
        
         nPore=3
         nInternalLink=3

@@ -19,17 +19,18 @@ import os
 
 
 #----------------------------------------------------------------------------------------------
-def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
+def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},seedMethod='hMaxima',seedParam=4):
     """Extract a pore network from an image.
     :param image: numpy ndarray or imageFileName
     :param phases: dict, {'PhaseName':PhaseCode in image,...}
-    :param hConstrast: value of hContrast
+    :param seedMethod : "hMaxima" or "localMax"
+    :param seedParam: value of parameter used for seed method
     :return: dict containing the extraction results
     
     :Example:
     
     import VirtualMaterials.Simulations.PoreNetworkExtraction as pnex
-    ExtractionResult = pnex.ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4)
+    ExtractionResult = pnex.ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},seedMethod='hMaxima',seedParam=4)
     pnex.SaveResults('foo_extractionResults.mat',ExtractionResult)
     """
     
@@ -38,13 +39,13 @@ def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
     structuringElement = np.ones((3,3,3))
     distanceType='ITKDanielson'
     
-    image,phases,hContrast = __ReadInputs__(image,phases,hContrast)
+    image,phases,seedMethod,seedParam = __ReadInputs__(image,phases,seedMethod,seedParam)
     
     print('PoresWatershedSegmentation')
     
     pores,watershedLines,distanceMap,porePhase = PoresSegmentation(image,
                                           structuringElement=structuringElement,
-                                          hContrast=hContrast,
+                                          seedMethod=seedMethod,seedParam=seedParam,
                                           distanceType=distanceType,phases=phases)
     
     print('FindLinks')
@@ -58,7 +59,8 @@ def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
     
     ExtractionResult.update({'interfaceToPore':interfaceToPore,'imagePores':pores,
                              'imageLiens':links,'myImage':image,
-                             'porePhase':porePhase})
+                             'porePhase':porePhase,
+                             'seedMethod':seedMethod,'seedParam':seedParam})
     
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))
@@ -68,7 +70,7 @@ def ExtractNetwork(image=np.ones((3,3,3)),phases={'void':False},hContrast=4):
     
     
 #----------------------------------------------------------------------------------------------
-def __ReadInputs__(image,phases,hContrast):
+def __ReadInputs__(image,phases,seedMethod,seedParam):
 
     if isinstance(image,basestring):
         imageFileName=image
@@ -82,10 +84,12 @@ def __ReadInputs__(image,phases,hContrast):
     image = image.astype(memoryType)
     
     assert(isinstance(phases,dict))
-    assert(isinstance(int(hContrast),int))
+    assert(isinstance(int(seedParam),int))
+    
+    assert(seedMethod=="hMaxima" or seedMethod=="localMax"  )  
     
     
-    return image,phases,hContrast
+    return image,phases,seedMethod,seedParam
     
 
 #----------------------------------------------------------------------------------------------
@@ -99,7 +103,7 @@ def SaveResults(outputFile,ExtractionResult):
     
     
 #----------------------------------------------------------------------------------------------
-def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,3,3)),hContrast=4,distanceType='ITKDanielson'):
+def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,3,3)),seedMethod='hMaxima',seedParam=4,distanceType='ITKDanielson'):
     #Phases=dict, phases['myphase']=codeForMyPhaseInImage
     
     pores=np.zeros(myImg.shape,dtype=np.uint8)
@@ -118,7 +122,7 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
         
         poresPhase,watershedLinesPhase,distanceMapPhase = PoresWatershedSegmentationOnePhase(
                             phaseImage,structuringElement=structuringElement,
-                            hContrast=hContrast,distanceType=distanceType)
+                            seedMethod=seedMethod,seedParam=seedParam,distanceType=distanceType)
         
         phaseImage=phaseImage.astype(np.bool)
         memoryType=utilities.BestMemoryType(poresPhase.max()+pores.max())
@@ -150,9 +154,9 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
     
     
 #----------------------------------------------------------------------------------------------
-def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,3,3)),hContrast=4,
-                                       distanceType='ITKDanielson',markerChoice='HmaximaSkimage',
-                                       watershedAlgo='ITK'):
+def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,3,3)),
+                                       distanceType='ITKDanielson',watershedAlgo='ITK',
+                                       seedMethod='hMaxima',seedParam=4):
     
     
     #Calcul de la carte de distance distanceMap
@@ -177,17 +181,23 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
     #maxima de la carte de distance dont les pics sont étêtés d'une hauteur h. Utilise  
     #une recontruction morphologique pour construire la carte de distance étêtée.
     
+    hMaximaLib='skimage'
     
-    if markerChoice=='HmaximaSkimage' and hContrast>0:
-        hContrast=np.asarray(hContrast).astype(memoryType)
+    if seedMethod=='localMax':
+        seedParam=int(seedParam)
+        local_maxi= feature.peak_local_max(distanceMap.astype(np.float), 
+                                           min_distance=seedParam, indices=False)
+    
+    elif seedMethod=='hMaxima' and hMaximaLib=='skimage' and seedParam>0:
+        hContrast=np.asarray(seedParam).astype(memoryType)
         reconstructed=morphology.reconstruction(distanceMap-hContrast, distanceMap
                                             ).astype(memoryType)
         
         local_maxi=(distanceMap-reconstructed).astype(np.bool)
         del reconstructed
         
-    elif markerChoice=='HmaximaITK' and hContrast>0:    
-        hContrast=np.asarray(hContrast).astype(memoryType)
+    elif seedMethod=='hMaxima' and hMaximaLib=='ITK' and seedParam>0:    
+        hContrast=np.asarray(seedParam).astype(memoryType)
         itkSeedimage = sitk.GetImageFromArray((distanceMap-hContrast).astype(np.float32))
         itkMarkerImage = sitk.GetImageFromArray(distanceMap.astype(np.float32))
         itkReconstructed = sitk.ReconstructionByDilation(itkSeedimage, itkMarkerImage)
@@ -197,9 +207,8 @@ def PoresWatershedSegmentationOnePhase(phaseImage,structuringElement=np.ones((3,
 
         local_maxi=((distanceMap-reconstructed)>hContrast/10).astype(np.bool)
         del reconstructed
-    else:
-        local_maxi= feature.peak_local_max(distanceMap.astype(np.float), 
-                                           min_distance=10, indices=False)
+        
+
         
     
     markers = ndimage.measurements.label(local_maxi , structure=structuringElement)[0]
