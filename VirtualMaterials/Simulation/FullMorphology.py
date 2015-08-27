@@ -3,7 +3,6 @@
 import numpy as np
 from scipy import ndimage
 import SimpleITK as sitk
-from VirtualMaterials.Utilities  import tifffile as tff
 import time
 
 #from skimage import morphology
@@ -110,12 +109,4 @@ def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
     return invadedVoxels
     
     
-#----------------------------------------------------------------------------------------------
 
-def Test(inputFileName,outputFileName):
-    
-    inputImage=tff.imread(inputFileName).astype(np.uint8)
-    
-    outputImage = FullMorphology(inputImage,voxelLength=1,pressureList=[10],pressureCode=[110])
-    
-    tff.imsave(outputFileName,outputImage.astype(np.uint8))

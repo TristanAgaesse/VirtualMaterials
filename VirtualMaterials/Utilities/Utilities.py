@@ -11,11 +11,14 @@ from vtk.util import numpy_support
 #--------------------------------------------------------------------    
     
 #--------------------------------------------------------------------
-def SaveImageTiff(image,filename):
+def WriteTiff(image,filename):
+    """ :param : image,filename """
+    
     tff.imsave(filename,image.astype(np.uint8))
 
 #--------------------------------------------------------------------
-def LoadImageTiff(filename):
+def ReadTiff(filename):
+    """ :param : filename """
     
     image=tff.imread(filename)
     

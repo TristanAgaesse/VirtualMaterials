@@ -7,7 +7,7 @@ from scipy import ndimage
 from skimage import morphology
 from skimage import feature
 import SimpleITK as sitk
-from VirtualMaterials.Utilities import tifffile as tff
+#from VirtualMaterials.Utilities import tifffile as tff
 from VirtualMaterials.Utilities import Utilities as utilities    
 from collections import defaultdict
 import time
@@ -73,7 +73,7 @@ def __ReadInputs__(image,phases,hContrast):
     if isinstance(image,basestring):
         imageFileName=image
         assert(os.path.isfile(imageFileName))
-        image=tff.imread(imageFileName)    
+        image=utilities.ReadTiff(imageFileName)    
     else:
         assert(isinstance(image,np.ndarray))
     

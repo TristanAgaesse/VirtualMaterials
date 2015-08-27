@@ -11,9 +11,12 @@ import unittest
 def allTests():
     
     from VirtualMaterials.test.test_PoreNetworkExtraction import test_PoreNetworkExtraction
-
+    from VirtualMaterials.test.test_FullMorphology import test_FullMorphology
+    
+    
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(test_PoreNetworkExtraction))
+    suite.addTest(unittest.makeSuite(test_FullMorphology))
     
     return suite
     
