@@ -5,7 +5,7 @@ import vtk
 import math
 import VirtualMaterials as vmat
 #from vtk.util import numpy_support
-
+#from numba import jit
 
 #--------------------------------------------------------------------
 #      Voxelization
@@ -13,6 +13,7 @@ import VirtualMaterials as vmat
 
     
 #--------------------------------------------------------------------
+#@jit    
 def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ,raydirection='xz'):
     #Voxelize the object on a window adapted to its bounds. The windows will 
     #be chosed to be a subsample or an extention of the whole image voxel 
@@ -36,6 +37,7 @@ def Voxelize(vtkPolyDataObject,gridX,gridY,gridZ,raydirection='xz'):
 
 
 #-----------------------------------------------------------------------------
+#@jit
 def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection='z'):
 
     #Count the number of voxels in each direction:
@@ -98,6 +100,7 @@ def VoxelizeRayTracing(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirection=
 
 
 #-----------------------------------------------------------------------------
+#@jit
 def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
     
     #Identify the min and max x,y coordinates (cm) of the mesh:
@@ -125,15 +128,20 @@ def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
     #Identify the min and max x,y,z coordinates of each facet:
     
     
-    correctionLIST = []    
-    
     #Construct octree of the mesh for fast access to its geometry
     obbTree = vtk.vtkOBBTree()
     obbTree.SetDataSet(polydata)
     obbTree.BuildLocator()
     
-    for loopY in xrange(meshYminp,meshYmaxp+1):
-        for loopX in xrange(meshXminp,meshXmaxp+1):
+    #correctionLIST = []  
+    
+    Yrange=range(meshYminp,meshYmaxp+1)
+    Xrange=range(meshXminp,meshXmaxp+1)
+    
+    correctionLIST = np.zeros( (len(Xrange),len(Yrange)) )    
+    
+    for loopY in Yrange:
+        for loopX in Xrange:
             
             epsilon=(meshZmax-meshZmin)/10
             pSource=[gridCOx[loopX],gridCOy[loopY],meshZmax+epsilon]
@@ -143,8 +151,9 @@ def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
             
             if len(pointsIntersection)>0: 
 
-              gridCOzCROSS=np.asarray([pointsIntersection[i][2] for i in range(len(pointsIntersection))])
-                
+              #gridCOzCROSS=np.asarray([pointsIntersection[i][2] for i in range(len(pointsIntersection))])
+              gridCOzCROSS=pointsIntersection[:,2]
+              
               #Remove values of gridCOzCROSS which are outside of the mesh limits (including a 1e-12 margin for error).
               gridCOzCROSS = gridCOzCROSS[ np.logical_and(
                   np.greater_equal(gridCOzCROSS,(meshZmin-1e-12)*np.ones(gridCOzCROSS.shape)),
@@ -162,13 +171,18 @@ def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
                                     
                       image[loopX,loopY,voxelsINSIDE] = 1
               elif len(gridCOzCROSS)>0:
-                  correctionLIST.append([loopX,loopY])
-        
+                  #correctionLIST.append([loopX,loopY])
+                  correctionLIST[loopX-meshXminp,loopY-meshYminp]=1
     
     # USE INTERPOLATION TO FILL IN THE RAYS WHICH COULD NOT BE VOXELISED
     #For rays where the voxelisation did not give a clear result, the ray is
     #computed by interpolating from the surrounding rays.    
 
+    nzX,nzY=np.nonzero(correctionLIST)
+    nzX,nzY = nzX+meshXminp,nzY+meshYminp
+    #correctionLIST=[[nzX[i],nzY[i]] for i in range(nzX.size)]
+    
+    correctionLIST=np.transpose(np.vstack((nzX,nzY)))
     image=InterpolateRemainingVoxels(correctionLIST,sampleDimensions,image)
     
     return image
@@ -178,6 +192,7 @@ def VoxelizeRayTracingZDirectionVTK(polydata,gridCOx,gridCOy,gridCOz):
 
 
 #-----------------------------------------------------------------------------
+#@jit
 def VTKRayCasting(polydataObbTree,pSource,pTarget):
 #https://pyscience.wordpress.com/2014/09/21/ray-casting-with-python-and-vtk-intersecting-linesrays-with-surface-meshes/
 
@@ -210,49 +225,77 @@ def VTKRayCasting(polydataObbTree,pSource,pTarget):
 #        _tup = pointsVTKIntersectionData.GetTuple3(idx)
 #        pointsIntersection.append(_tup)
 
-    pointsIntersection=[pointsVTKIntersectionData.GetTuple3(idx) 
-                                for idx in range(nPointsVTKIntersection)]
+#    pointsIntersection=np.asarray([pointsVTKIntersectionData.GetTuple3(idx) 
+#                                for idx in range(nPointsVTKIntersection)])
     
+    pointsIntersection=np.zeros((nPointsVTKIntersection,3))
+    for i in range(nPointsVTKIntersection):
+        pointsIntersection[i,:]=pointsVTKIntersectionData.GetTuple3(i)
+     
     return pointsIntersection
 
 
 #-----------------------------------------------------------------------------
+#@jit
 def InterpolateRemainingVoxels(correctionLIST,sampleDimensions,image):
     
-    countCORRECTIONLIST = len(correctionLIST)
+#    nzX,nzY = correctionLIST
+#    correctionLIST=[[nzX[i],nzY[i]] for i in range(nzX.size)]    
+    
+    countCORRECTIONLIST = correctionLIST.shape[0]
     
     if countCORRECTIONLIST>0:
         
         #If necessary, add a one-pixel border around the x and y edges of the
         #array.  This prevents an error if the code tries to interpolate a ray at
         #the edge of the x,y grid.
-        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
-        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
-        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
-        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
+#        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
+#        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))])==sampleDimensions[0]-1
+#        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
+#        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))])==sampleDimensions[1]-1
+    
+    
+        cond0 = np.min(correctionLIST[:,0] )==0
+        cond1 = np.max(correctionLIST[:,0])==sampleDimensions[0]-1
+        cond2 = np.min(correctionLIST[:,1])==0
+        cond3 = np.max(correctionLIST[:,1])==sampleDimensions[1]-1
+    
     
         if cond0 or cond1 or cond2 or cond3:
             image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
                                 image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
             image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
                                 image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
-            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
-                                            for i in range(len(correctionLIST)) ]
-        
+#            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
+#                                            for i in range(len(correctionLIST)) ]
+            correctionLIST = correctionLIST+1
+                                            
         for loopC in range(countCORRECTIONLIST):
+#            voxelsforcorrection = np.squeeze( np.sum( [ 
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
+#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
+#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
+#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
+#                ], axis=0 ) )
+#            voxelsforcorrection = (voxelsforcorrection>=4)
+#            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
+            
             voxelsforcorrection = np.squeeze( np.sum( [ 
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
-                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
-                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
-                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
+                image[correctionLIST[loopC,0]-1,correctionLIST[loopC,1]-1,:],
+                image[correctionLIST[loopC,0]-1,correctionLIST[loopC,1],:],
+                image[correctionLIST[loopC,0]-1,correctionLIST[loopC,1]+1,:],
+                image[correctionLIST[loopC,0],correctionLIST[loopC,1]-1,:],
+                image[correctionLIST[loopC,0],correctionLIST[loopC,1]+1,:],
+                image[correctionLIST[loopC,0]+1,correctionLIST[loopC,1]-1,:],
+                image[correctionLIST[loopC,0]+1,correctionLIST[loopC,1],:],
+                image[correctionLIST[loopC,0]+1,correctionLIST[loopC,1]+1,:],
                 ], axis=0 ) )
             voxelsforcorrection = (voxelsforcorrection>=4)
             image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
-        
     #Remove the one-pixel border surrounding the array, if this was added
     #previously.
     if image.shape[0]>sampleDimensions[0] or image.shape[1]>sampleDimensions[1]:
@@ -636,7 +679,8 @@ def InterpolateRemainingVoxels(correctionLIST,sampleDimensions,image):
 
 
 
-#--------------------------------------------------------------------    
+#-------------------------------------------------------------------- 
+#@jit   
 def GetSubWindowInformation(subWindowBounds,gridX,gridY,gridZ): 
 
     nVoxGridX = len(gridX)-1  
@@ -681,7 +725,8 @@ def GetSubWindowInformation(subWindowBounds,gridX,gridY,gridZ):
     
     return nVoxSubImage,boundSubgrid,gridRelativePosition
 
-#--------------------------------------------------------------------    
+#-------------------------------------------------------------------- 
+#@jit   
 def InsertSubimageInImage(subImage,nVoxImage,gridRelativePosition): 
     
     subNxMin,subNxMax,subNyMin,subNyMax,subNzMin,subNzMax = gridRelativePosition   
