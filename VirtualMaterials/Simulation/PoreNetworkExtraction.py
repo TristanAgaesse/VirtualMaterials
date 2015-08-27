@@ -141,6 +141,7 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
     for i in range(len(labelShift)-1):
         porePhase[np.arange(labelShift[i],labelShift[i+1])]=int(phases[phases.keys()[i]])
     
+    
     return pores,watershedLines,distanceMap,porePhase
     
     
@@ -516,8 +517,6 @@ def PoresGeometry_Volume(pores):
                                             pores, pores,range(1,pores.max()+1),
                                             np.size,np.int,0)
 
-    pores_volumes = np.transpose(pores_volumes)
-
     return pores_volumes
 
 
@@ -588,8 +587,6 @@ def LinksGeometry_InscribedSphereRadius(links,distanceMap,linkLabels):
                                             distanceMap, links, linkLabels,
                                             np.max,np.float16,0).astype(np.float32)
     
-    links_InscribedSphereRadius = np.transpose(links_InscribedSphereRadius)                                       
-    
     return links_InscribedSphereRadius
     
     
@@ -600,8 +597,6 @@ def LinksGeometry_SurfaceArea(links,linkLabels):
                                             links, links, 
                                             linkLabels,
                                             np.size,np.int,0).astype(np.int)
-    
-    links_SurfaceArea = np.transpose(links_SurfaceArea) 
     
     return links_SurfaceArea
     
