@@ -430,6 +430,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     PNMGeometricData['poreVolumes']         = pores_Volume
     PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
     
+    del pores_Center,pores_Volume,pores_NeighborPhases
+    
     
     # Liens internes : infos sur la forme et position des liens internes    
     linkLabels = range(1,links.max()+1)
@@ -456,6 +458,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
     PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
+    del links_Center, links_InscribedSphereRadius, links_SurfaceArea, links_NeighborPhases  
     
     # Infos sur la forme, position des liens frontiere
         
@@ -504,6 +507,8 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
         PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)] = surfaceArea
         PNMGeometricData['boundaryNeighborPhases'+str(iBoundary)] = links_NeighborPhases
     
+        del links_center,inscribedSphereRadius,surfaceArea,links_NeighborPhases
+        
     return PNMGeometricData
 
 
