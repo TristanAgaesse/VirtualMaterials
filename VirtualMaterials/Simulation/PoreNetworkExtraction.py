@@ -349,12 +349,14 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
                                                    structuringElement,imageSize)
 
     mydict = FillDict(linksToPores)
-        
+    
+    del linksToPores  
+    
     labeledLinks = LabelLinks(mydict,imageSize)
     
     interfaceToPore = BuildInterfaceToPore(mydict)
                
-               
+    del mydict           
                
     #2) Trouver les lien le plus présent parmis les voisins des voxels restants
 
