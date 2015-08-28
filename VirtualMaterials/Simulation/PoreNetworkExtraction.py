@@ -409,9 +409,6 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     PNMGeometricData=dict()
     
-    poreVoxelLookUpTable = BuildVoxelLookUpTable(pores)
-    linkVoxelLookUpTable = BuildVoxelLookUpTable(links)
-    
     phasesCodes = np.setdiff1d(np.unique(myImg),0)
     
     # Pores : infos sur la forme, position des pores
@@ -421,7 +418,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
-    
+    poreVoxelLookUpTable  = BuildVoxelLookUpTable(pores)
     pores_NeighborPhases  = PoresGeometry_NeighborPhases( myImg,pores,poreLabels,
                                                  poreVoxelLookUpTable,
                                                  phasesCodes)
@@ -430,10 +427,12 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     PNMGeometricData['poreVolumes']         = pores_Volume
     PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
     
-    del pores_Center,pores_Volume,pores_NeighborPhases
+    del poreVoxelLookUpTable,pores_Center,pores_Volume,pores_NeighborPhases
     
     
     # Liens internes : infos sur la forme et position des liens internes    
+    
+    
     linkLabels = range(1,links.max()+1)
     
     links_Center                = LinksGeometry_Center(links,distanceMap,linkLabels)    
@@ -446,7 +445,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
 #    links_HydraulicDiameter     = LinksGeometry_HydraulicDiameter(
 #                                                myImg,pores,links,linkLabels,
 #                                                linkLabelEnds,linkOrderLabels)
-
+    linkVoxelLookUpTable        = BuildVoxelLookUpTable(links)
     links_NeighborPhases        = LinksGeometry_NeighborPhases(
                                                 myImg,links,linkLabels,
                                                 linkVoxelLookUpTable, 
@@ -458,7 +457,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
     PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
-    del links_Center, links_InscribedSphereRadius, links_SurfaceArea, links_NeighborPhases  
+    del linkVoxelLookUpTable,links_Center,links_InscribedSphereRadius,links_SurfaceArea,links_NeighborPhases  
     
     # Infos sur la forme, position des liens frontiere
         
