@@ -137,8 +137,8 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
         labelShift.append(pores.max())
         
         
-    #phaseBoundaries = CannyEdgeDetection(myImg)     
-    #watershedLines=np.logical_or(watershedLines,phaseBoundaries)
+    phaseBoundaries = SobelEdgeDetection(myImg)     
+    watershedLines=np.logical_or(watershedLines,phaseBoundaries)
     
     
     porePhase=np.zeros(pores.max(),dtype=np.uint8)    
@@ -358,46 +358,6 @@ def FindLinks(myImage,pores,watershedLines,structuringElement):
                
     del mydict           
                
-    #2) Trouver les lien le plus présent parmis les voisins des voxels restants
-
-
-#  countCORRECTIONLIST = len(correctionLIST)
-    
-     
-#    if countCORRECTIONLIST>0:
-#        
-#        #If necessary, add a one-pixel border around the x and y edges of the
-#        #array.  This prevents an error if the code tries to interpolate a ray at
-#        #the edge of the x,y grid.
-#        cond0 = min([correctionLIST[i][0] for i in range(len(correctionLIST))])==0
-#        cond1 = max([correctionLIST[i][0] for i in range(len(correctionLIST))]
-#                                                    )==sampleDimensions[0]-1
-#        cond2 = min([correctionLIST[i][1] for i in range(len(correctionLIST))])==0
-#        cond3 = max([correctionLIST[i][1] for i in range(len(correctionLIST))]
-#                                                    )==sampleDimensions[1]-1
-#    
-#        if cond0 or cond1 or cond2 or cond3:
-#            image = np.hstack( (np.zeros((sampleDimensions[0],1,sampleDimensions[2])),
-#                                image,np.zeros((sampleDimensions[0],1,sampleDimensions[2]))))
-#            image = np.vstack( (np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2])),
-#                                image,np.zeros((1,sampleDimensions[1]+2,sampleDimensions[2]))))
-#            correctionLIST = [ [correctionLIST[i][0]+1,correctionLIST[i][1]+1] 
-#                                            for i in range(len(correctionLIST)) ]
-#        
-#        for loopC in range(countCORRECTIONLIST):
-#            voxelsforcorrection = np.squeeze( np.max( [ 
-#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]-1,:],
-#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1],:],
-#                image[correctionLIST[loopC][0]-1,correctionLIST[loopC][1]+1,:],
-#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]-1,:],
-#                image[correctionLIST[loopC][0],correctionLIST[loopC][1]+1,:],
-#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]-1,:],
-#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1],:],
-#                image[correctionLIST[loopC][0]+1,correctionLIST[loopC][1]+1,:],
-#                ], axis=0 ) )
-#            voxelsforcorrection = (voxelsforcorrection>=4)
-#            image[correctionLIST[loopC][0],correctionLIST[loopC][1],voxelsforcorrection] = 1
- 
     return labeledLinks, interfaceToPore    
     
 
@@ -729,6 +689,23 @@ def CannyEdgeDetection(myImg,variance=2):
 
     return phaseBoundaries
 
+#-----------------------------------------------------------------------------
+def SobelEdgeDetection(myImg):    
+    #Uses ITK sobel edge detector to detect boundaries between phases in the 
+    #material image
+
+    #Load image into SimpleITK
+    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
+    caster = sitk.CastImageFilter()
+    caster.SetOutputPixelType(sitk.sitkFloat32)
+    floatImage = caster.Execute( myItkImage )
+
+    itkEdges = sitk.SobelEdgeDetection(floatImage)
+    phaseBoundaries = sitk.GetArrayFromImage(itkEdges).astype(np.bool)
+
+    del myItkImage,floatImage,itkEdges  
+
+    return phaseBoundaries
 
 
 #----------------------------------------------------------------------------------------------     

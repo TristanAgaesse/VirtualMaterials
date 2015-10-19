@@ -21,8 +21,8 @@ class test_PoreNetworkExtraction(unittest.TestCase):
         PNMGeometricData = PoreNetworkExtraction.ExtractNetwork(image=image,phases={'void0':0,'void1':50,'void2':100},seedMethod='hMaxima',seedParam=4) 
 
         nPore=5
-        nInternalLink=2
-        interfaceToPore = np.array([[3, 4] ,[4, 5]])
+        nInternalLink=4
+        interfaceToPore = np.array([[1, 4] ,[2, 4] ,[3, 4] ,[4, 5]])
         porePhase = np.array([100 , 50 ,  0  , 0 ,  0])
         
         self.assertTrue(PNMGeometricData['imagePores'].max()==nPore)

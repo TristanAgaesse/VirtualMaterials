@@ -22,7 +22,7 @@ def TestVoxelize(raydirection):
     gridY=np.linspace(bounds[3],bounds[2],voxelNumbers[1])
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2])
     image=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection=raydirection)
-    Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')     
+    Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')     
     
 #--------------------------------------------------------------------
 def TestVirtualVoronoi():    
@@ -35,7 +35,7 @@ def TestVirtualVoronoi():
     image=virtMatGen.CreateVirtualVoronoiFoam(voxelNumbers=voxelNumbers,imageBounds=imageBounds,
                                               nPoint=nPoint,fiberRadius=fiberRadius,
                                               anisotropy=anisotropy,randomSeed=randomSeed)
-    Utilities.SaveImageTiff(255*(image.astype(np.uint8)),'TestVoronoi.tif')
+    Utilities.WriteTiff(255*(image.astype(np.uint8)),'TestVoronoi.tif')
 
 #--------------------------------------------------------------------
 def TestVirtualGDL():
@@ -50,7 +50,7 @@ def TestVirtualGDL():
                          fiberContent=fiberContent,fiberRadius=fiberRadius,fiberLength=fiberLength,
                          binderContent=binderContent,
                          anisotropy=anisotropy,randomSeed=randomSeed) 
-    Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestBigGDL.tif')
+    Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestBigGDL.tif')
     
 #--------------------------------------------------------------------    
 def TestVirtualCCL():
@@ -69,7 +69,7 @@ def TestVirtualCCL():
             nafionThickness=nafionThickness,nafionCoveragePercentage=nafionCoveragePercentage,
             randomSeed=randomSeed)
             
-    Utilities.SaveImageTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
+    Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
        
 #--------------------------------------------------------------------        
 def TestVisualization():
@@ -84,5 +84,5 @@ def TestVisualization():
 #--------------------------------------------------------------------
 def TestInterfaceGDLMPL(): 
     interface=virtMatGen.CreateVirtualInterfaceGDLMPL(penetrationLength=30)   
-    Utilities.SaveImageTiff(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL_penetration30.tif')    
+    Utilities.WriteTiff(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL_penetration30.tif')    
     
