@@ -21,7 +21,7 @@ Developping tutorial
 	pip uninstall VirtualMaterials
 	pip install ./VirtualMaterials      
 
-	The you should run the tests to check that everything works :
+	Then you should run the tests to check that everything works :
 	python ./VirtualMaterials/VirtualMaterials/test/test_AllTests.py
 
 	In windows the command lines can be entered in a ipython console using !pip and !python instead of pip and python
