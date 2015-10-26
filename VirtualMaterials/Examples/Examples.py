@@ -23,6 +23,7 @@ def TestVoxelize(raydirection):
     gridZ=np.linspace(bounds[5],bounds[4],voxelNumbers[2])
     image=Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection=raydirection)
     Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestVoxelizePython.tif')     
+    return image    
     
 #--------------------------------------------------------------------
 def TestVirtualVoronoi():    
@@ -36,7 +37,8 @@ def TestVirtualVoronoi():
                                               nPoint=nPoint,fiberRadius=fiberRadius,
                                               anisotropy=anisotropy,randomSeed=randomSeed)
     Utilities.WriteTiff(255*(image.astype(np.uint8)),'TestVoronoi.tif')
-
+    return image 
+    
 #--------------------------------------------------------------------
 def TestVirtualGDL():
     voxelNumbers=(500,500,200)
@@ -51,6 +53,7 @@ def TestVirtualGDL():
                          binderContent=binderContent,
                          anisotropy=anisotropy,randomSeed=randomSeed) 
     Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestBigGDL.tif')
+    return image 
     
 #--------------------------------------------------------------------    
 def TestVirtualCCL():
@@ -70,7 +73,8 @@ def TestVirtualCCL():
             randomSeed=randomSeed)
             
     Utilities.WriteTiff(100*(image.astype(np.uint8)),'TestCCL.tif')
-       
+    return image 
+    
 #--------------------------------------------------------------------        
 def TestVisualization():
     image = virtMatGen.CreateVirtualGDL(voxelNumbers=(400,400,100),fiberContent=0.2,fiberRadius=9,
@@ -85,4 +89,4 @@ def TestVisualization():
 def TestInterfaceGDLMPL(): 
     interface=virtMatGen.CreateVirtualInterfaceGDLMPL(penetrationLength=30)   
     Utilities.WriteTiff(50*(interface.astype(np.uint8)),'TestInterfaceGDLMPL_penetration30.tif')    
-    
+    return interface 
