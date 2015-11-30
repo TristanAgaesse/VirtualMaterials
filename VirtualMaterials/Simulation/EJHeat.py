@@ -5,7 +5,7 @@ Created on Mon Nov 30 11:32:23 2015
 @author: ta240184
 """
 import numpy as np
-import math
+import scipy.sparse as sp
 
 def EJ_heat(S,beta,d,errtol,maxit):
 #    % Explicit jump effective thermal conductivity
@@ -29,89 +29,113 @@ def EJ_heat(S,beta,d,errtol,maxit):
     N = NX*NY*NZ
     H = (d=='x')/NX +(d=='y')/NY+(d=='z')/NZ
     B = np.zeros(np.shape(S)) # B same size as S also in 1d cases
-    B[:] = beta[1+S]; # beta indices start with 1, not 0
-    i,j,k = ind2sub((NX, NY, NZ),find(B ~= B[[-1,range(1,Nx-1)],:,:]))
-    isb = EjHeat.__mysub2ind__(EjHeat.__damod__(i-1,NX),j,k)
-    isf = EjHeat.__mysub2ind__(i,j,k)
-    i,j,k = ind2sub((NX, NY, NZ),find(B ~= B[:,[end 1:end-1],:]))
-    jsb = EjHeat.__mysub2ind__(i,EjHeat.__damod__(j-1,NY),k)
-    jsf = EjHeat.__mysub2ind__(i,j,k)
-    i,j,k = ind2sub((NX, NY, NZ),find(B ~= B[:,:,[end 1:end-1]]))
-    ksb = EjHeat.__mysub2ind__(i,j,EjHeat.__damod__(k-1,NZ))
-    ksf = EjHeat.__mysub2ind__(i,j,k)
+#???    B[:] = beta[1+S] # beta indices start with 1, not 0
+    
+    shift=np.hstack((np.asarray([-1]),np.arange(0,Nx-1)))
+    i,j,k = np.unravel_index(np.flatnonzero(B!=B[shift,:,:]),(NX, NY, NZ))
+    isb = __mysub2ind__(__damod__(i-1,NX),j,k)
+    isf = __mysub2ind__(i,j,k)
+    
+    shift=np.hstack((np.asarray([-1]),np.arange(0,Ny-1)))
+    i,j,k = np.unravel_index(np.flatnonzero(B != B[:,shift,:]),(NX, NY, NZ))
+    jsb = __mysub2ind__(i,__damod__(j-1,NY),k)
+    jsf = __mysub2ind__(i,j,k)
+    
+    shift=np.hstack((np.asarray([-1]),np.arange(0,Nz-1)))
+    i,j,k = np.unravel_index(np.flatnonzero(B != B[:,:,shift]),(NX, NY, NZ))
+    ksb = __mysub2ind__(i,j,__damod__(k-1,NZ))
+    ksf = __mysub2ind__(i,j,k)
+    
     li = len(isf)
     lj = len(jsf)
     lk = len(ksf)
     l = li+lj+lk
-    iind = [1:li]
-    jind = li+[1:lj]
-    kind = lj+li+[1:lk]
-    Bi = (B[isf]-B[isb])./(B[isf]+B[isb])
-    Bj = (B[jsf]-B[jsb])./(B[jsf]+B[jsb])
-    Bk = (B[ksf]-B[ksb])./(B[ksf]+B[ksb])
-    F2 = -2*[double(d=='x')*Bi[:];double(d=='y')*Bj[:];double(d=='z')*Bk[:]]
-    Psi = sparse([isb isf jsb jsf ksb ksf ],...
-    [iind iind jind jind kind kind],...
-    -0.5/H*np.ones((1,2*l),N,l)
-    D = sparse([iind iind jind jind kind kind],...
-    [isf isb jsf jsb ksf ksb ],...
-    2/H*[Bi -Bi Bj -Bj Bk -Bk ],l,N)
-    [MM,NM,LM] = ndgrid(2*(math.cos((2*pi/NX)*[0:NX-1])-1)/H^2,...
-    2*(math.cos((2*pi/NY)*[0:NY-1])-1)/H^2,...
-    2*(math.cos((2*pi/NZ)*[0:NZ-1])-1)/H^2)
-    PDM = [MM+NM+LM] 
+    iind = np.arange(1,li+1)
+    jind = li+np.arange(1,lj+1)
+    kind = lj+li+np.arange(1,lk+1)
+    
+    Bi = (B[isf]-B[isb])/(B[isf]+B[isb])
+    Bj = (B[jsf]-B[jsb])/(B[jsf]+B[jsb])
+    Bk = (B[ksf]-B[ksb])/(B[ksf]+B[ksb])
+    
+    F2 = -2*np.vstack((float(d=='x')*Bi[:],
+                       float(d=='y')*Bj[:],
+                       float(d=='z')*Bk[:]))
+        
+    row_ind = np.hstack((isb, isf, jsb, jsf, ksb, ksf))
+    col_ind = np.hstack((iind, iind, jind, jind, kind, kind))
+    data = -0.5/H*np.ones((1,2*l))
+    Psi = sp.sparse.csr_matrix((data,(row_ind,col_ind)),shape=(N,l))
+    
+    row_ind = np.hstack((iind, iind, jind, jind, kind, kind))
+    col_ind = np.hstack((isf, isb, jsf, jsb, ksf, ksb))
+    data = 2/H*np.hstack((Bi, -Bi, Bj, -Bj, Bk, -Bk))
+    D = sp.sparse.csr_matrix((data,(row_ind,col_ind)),shape=(l,N))
+    
+    MM,NM,LM = np.meshgrid(2*(np.cos((2*pi/NX)*np.arange(0,NX))-1)/H^2,
+                           2*(np.cos((2*pi/NY)*np.arange(0,NY))-1)/H^2,
+                           2*(np.cos((2*pi/NZ)*np.arange(0,NZ))-1)/H^2,
+                           indexing='ij')
+    PDM = MM+NM+LM 
     del MM, LM, NM
-    PDM[1,1,1] = 1
-    G,e,I = EjHeat.__bicgstab__(EjHeat.__AM__,F2,errtol,maxit)
-    U = EjHeat.__poisson__(-Psi*G) 
-    del global PDM
-    B_l,RR = EjHeat.__findBAndRelResidual__(N,d)
+    PDM[0,0,0] = 1
+    
+    G,e,I = __bicgstab__(__AM__,F2,errtol,maxit)
+    
+    U = __poisson__(-Psi.dot(G)) 
+    
+    del PDM
+    
+    B_l,RR = __findBAndRelResidual__(N,d)
     
     return U,B_l,RR,I
 
+
 #------------------------------------------------------
-def __findBAndRelResidual(N,d)__:
+def __findBAndRelResidual__(N,d):
     global NX, NY, NZ, H, U, G, B, F2, isf, isb, jsf, jsb, ksf, ksb, iind, jind, kind, Psi, D
-    i = range(1:N)
+    i = np.arange(1,N+1)
     B = B[:]
-    IF = EjHeat.__damod__(i+1,NX)+math.floor((i-1)/NX)*NX
-    IB = EjHeat.__damod__(i-1,NX)+math.floor((i-1)/NX)*NX
+    B_l = np.zeros(3)
+    IF = __damod__(i+1,NX)+np.floor((i-1)/NX)*NX
+    IB = __damod__(i-1,NX)+np.floor((i-1)/NX)*NX
     US = U[IF]+U[IB] # begin evaluation of Laplacian
-    BS1 = B.*( (U[IF]-U[IB])/2/H + (d=='x')) 
+    BS1 = B*( (U[IF]-U[IB])/2/H + (d=='x')) 
     del IF, IB
     if ~isempty(isb): # iind is "right jump" for isb
-        BS1[isb] = BS1[isb] - B[np.transpose(isb)].*G[iind]/4 # (23)
-        BS1[isf] = BS1[isf] + B[np.transpose(isf)].*G[iind]/4 # (23)
-    B_l[1] = np.sum(BS1)/N 
+        BS1[isb] = BS1[isb] - B[np.transpose(isb)]*G[iind]/4 # (23)
+        BS1[isf] = BS1[isf] + B[np.transpose(isf)]*G[iind]/4 # (23)
+    B_l[0] = np.sum(BS1)/N 
     del BS1 # (22)
     
-    JF = EjHeat.__damod__(i+NX,NX*NY)+math.floor((i-1)/(NX*NY))*NX*NY
-    JB = EjHeat.__damod__(i-NX,NX*NY)+math.floor((i-1)/(NX*NY))*NX*NY
+    JF = __damod__(i+NX,NX*NY)+np.floor((i-1)/(NX*NY))*NX*NY
+    JB = __damod__(i-NX,NX*NY)+np.floor((i-1)/(NX*NY))*NX*NY
     US = US+U[JF]+U[JB] # continue Laplacian
-    BS2 = B.*( (U[JF]-U[JB])/2/H + (d=='y'))
+    BS2 = B*( (U[JF]-U[JB])/2/H + (d=='y'))
     del JF, JB
     if ~isempty(jsb): # jind is "back jump" for jsb
-        BS2[jsb] = BS2[jsb] - B[np.transpose(jsb)].*G[jind]/4
-        BS2[jsf] = BS2[jsf] + B[np.transpose(jsf)].*G[jind]/4
-    B_l[2] = np.sum(BS2)/N 
+        BS2[jsb] = BS2[jsb] - B[np.transpose(jsb)]*G[jind]/4
+        BS2[jsf] = BS2[jsf] + B[np.transpose(jsf)]*G[jind]/4
+    B_l[1] = np.sum(BS2)/N 
     del BS2
     
-    KF = EjHeat.__damod__(i+NX*NY,NX*NY*NZ)
-    KB = EjHeat.__damod__(i-NX*NY,NX*NY*NZ)
+    KF = __damod__(i+NX*NY,NX*NY*NZ)
+    KB = __damod__(i-NX*NY,NX*NY*NZ)
     US = US+U[KF]+U[KB] # continue Laplacian
-    BS3 = B.*( (U[KF]-U[KB])/2/H + (d=='z')) 
+    BS3 = B*( (U[KF]-U[KB])/2/H + (d=='z')) 
     del KF, KB
     if ~isempty(ksb): # kind is "top jump" for ksb,
-        BS3[ksb] = BS3[ksb] - B[np.transpose(ksb)].*G[kind]/4
-        BS3[ksf] = BS3[ksf] + B[np.transpose(ksf)].*G[kind]/4
-    B_l[3] = np.sum(BS3)/N
+        BS3[ksb] = BS3[ksb] - B[np.transpose(ksb)]*G[kind]/4
+        BS3[ksf] = BS3[ksf] + B[np.transpose(ksf)]*G[kind]/4
+    B_l[2] = np.sum(BS3)/N
     del BS3
     
-    F = -Psi*F2
-    if norm(F) < eps:
+    F = -Psi.dot(F2)
+    if np.linalg.norm(F) < eps:
         RR = 0;
     else:
-        RR = norm(F-(US-6*U)/H^2+Psi*(D*U))/norm(F);
+        RR = np.linalg.norm(F-(US-6*U)/H^2+Psi.dot(D.dot(U))
+                                )/np.linalg.norm(F);
     
     
     return B_l,RR
@@ -120,10 +144,10 @@ def __findBAndRelResidual(N,d)__:
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __mysub2ind__(i,j,k):
     global NX, NY, NZ
-    if ~isempty(i):
-        l = np.transpose(sub2ind((NX,NY,NZ),i,j,k))
+    if not len(i)==0:
+        l = np.transpose(np.ravel_multi_index((i,j,k),(NX,NY,NZ)))
     else:
-        l = []
+        l = np.array([])
     
     return l
 
@@ -131,7 +155,7 @@ def __mysub2ind__(i,j,k):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __damod__(m,n):
-    d = m - math.floor((m-1)./n).*n
+    d = m - np.floor((m-1)/n)*n
     return d
 
 
@@ -139,9 +163,9 @@ def __damod__(m,n):
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __poisson__(f):
     global NX, NY, NZ, N, PDM
-    FM = fftn(reshape(f,(NX,NY,NZ))
-    UM = FM./PDM
-    y = real(reshape(ifftn(UM),N,1))
+    FM = np.fft.fftn(np.reshape(f,(NX,NY,NZ)))
+    UM = FM/PDM
+    y = np.real(np.reshape(np.fft.ifftn(UM),(N,1)))
     return y
 
 
@@ -149,7 +173,7 @@ def __poisson__(f):
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __AM__(x):
     global Psi, D
-    y = x-D*(EjHeat.__poisson__(Psi*x));
+    y = x-D.dot(__poisson__(Psi.dot(x)))
     return y
 
 
@@ -158,11 +182,14 @@ def __bicgstab__(atv,b, errtol, kmax):
 #    % Bi-CGSTAB solver for linear systems
 #    % C. T. Kelley, December 16, 1994
 #    % adapted by Andreas L. Wiegmann, March 23, 2006
-    n, error, x, errtol = len(b), [], np.zeros(n,1), errtol*norm(b)
+    n = len(b)
+    error, x, errtol = [], np.zeros(n,1), errtol*np.linalg.norm(b)
     rho, r, SHOW = np.zeros((kmax+1,1)), b, False
-    hatr0, total_iters, k, rho[0], alpha, omega = r, 0, 0, 1, 1, 1
-    v, p, rho[1] = np.zeros((n,1)), np.zeros((n,1)), np.transpose(hatr0)*r
-    zeta = norm(r)
+    hatr0, total_iters, k, alpha, omega = r, 0, 0, 1, 1
+    v, p = np.zeros((n,1)), np.zeros((n,1))
+    rho[0] = 1
+    rho[1] = np.matmul(np.transpose(hatr0),r)
+    zeta = np.linalg.norm(r)
     error.append(zeta)
     
     while ((zeta > errtol) and (k < kmax)):
@@ -172,25 +199,24 @@ def __bicgstab__(atv,b, errtol, kmax):
         beta = (rho[k]/rho[k-1])*(alpha/omega)
         p = r+beta*(p - omega*v)
         v = atv(p)
-        tau = np.transpose(hatr0)*v
+        tau = np.matmul(np.transpose(hatr0),v)
         if tau==0:
             raise Exception('Bi-CGSTAB breakdown, tau=0')
         alpha = rho[k]/tau
         s = r-alpha*v;
         t = atv(s)
-        tau = np.transpose(t)*t
+        tau = np.matmul(np.transpose(t),t)
         if tau==0:
             raise Exception('Bi-CGSTAB breakdown, t=0')
-        omega = np.transpose(t)*s/tau
-        rho[k+1] = -omega*(np.transpose(hatr0)*t)
+        omega = np.matmul(np.transpose(t),s)/tau
+        rho[k+1] = -omega*(np.matmul(np.transpose(hatr0),t))
         x = x+alpha*p+omega*s
         r = s-omega*t
-        zeta = norm(r)
+        zeta = np.linalg.norm(r)
         total_iters = k
         error.append(zeta)
         if SHOW: 
-            print(['BICGSTAB: ',sprintf('%4d, ',k),...
-                'err = ',sprintf('%.16e ',error[k]/error[0])]);
+            print('BICGSTAB: %4d, err = %.16e ' %(k,error[k]/error[0]))
                 
     return x, error, total_iters
 
