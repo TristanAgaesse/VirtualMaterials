@@ -100,8 +100,10 @@ def __findBAndRelResidual__(N,d):
     i = np.arange(0,N)
     B = np.ravel(B)
     B_l = np.zeros(3)
-    IF = __damod__(i+1,NX)+np.floor(i/float(NX)).astype(np.int64)*NX
-    IB = __damod__(i-1,NX)+np.floor(i/float(NX)).astype(np.int64)*NX
+#    IF = __damod__(i+1,NX)+np.floor(i/float(NX)).astype(np.int64)*NX
+#    IB = __damod__(i-1,NX)+np.floor(i/float(NX)).astype(np.int64)*NX
+    IF = __damod__(i+NZ*NY,NX*NY*NZ)
+    IB = __damod__(i-NZ*NY,NX*NY*NZ)
     US = U[IF]+U[IB] # begin evaluation of Laplacian
     BS1 = B*( (U[IF]-U[IB])/2/H + (d=='x')) 
     del IF, IB
@@ -111,8 +113,10 @@ def __findBAndRelResidual__(N,d):
     B_l[0] = np.sum(BS1)/float(N) 
     del BS1 # (22)
     
-    JF = __damod__(i+NX,NX*NY)+np.floor(i/float(NX*NY)).astype(np.int64)*NX*NY
-    JB = __damod__(i-NX,NX*NY)+np.floor(i/float(NX*NY)).astype(np.int64)*NX*NY
+#    JF = __damod__(i+NX,NX*NY)+np.floor(i/float(NX*NY)).astype(np.int64)*NX*NY
+#    JB = __damod__(i-NX,NX*NY)+np.floor(i/float(NX*NY)).astype(np.int64)*NX*NY
+    JF = __damod__(i+NZ,NZ*NY)+np.floor(i/float(NZ*NY)).astype(np.int64)*NZ*NY
+    JB = __damod__(i-NZ,NZ*NY)+np.floor(i/float(NZ*NY)).astype(np.int64)*NZ*NY
     US = US+U[JF]+U[JB] # continue Laplacian
     BS2 = B*( (U[JF]-U[JB])/2/H + (d=='y'))
     del JF, JB
@@ -122,8 +126,10 @@ def __findBAndRelResidual__(N,d):
     B_l[1] = np.sum(BS2)/float(N) 
     del BS2
     
-    KF = __damod__(i+NX*NY,NX*NY*NZ)
-    KB = __damod__(i-NX*NY,NX*NY*NZ)
+#    KF = __damod__(i+NX*NY,NX*NY*NZ)
+#    KB = __damod__(i-NX*NY,NX*NY*NZ)
+    KF = __damod__(i+1,NZ)+np.floor(i/float(NZ)).astype(np.int64)*NZ
+    KB = __damod__(i-1,NZ)+np.floor(i/float(NZ)).astype(np.int64)*NZ    
     US = US+U[KF]+U[KB] # continue Laplacian
     BS3 = B*( (U[KF]-U[KB])/2/H + (d=='z')) 
     del KF, KB
