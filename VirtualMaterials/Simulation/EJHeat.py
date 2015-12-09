@@ -91,9 +91,9 @@ def EJ_heat(S,beta,d,errtol,maxit):
     
     B_l,RR = __findBAndRelResidual__(N,d)
     
-    U=__reshapeU__(U)
+    temperature=__reshapeU__(U)
     
-    return U,B_l,RR,I
+    return temperature,B_l,RR,I
 
 
 #------------------------------------------------------
@@ -154,15 +154,12 @@ def __findBAndRelResidual__(N,d):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __reshapeU__(U):
-#    N=NX*NY*NZ
-#    i = np.arange(0,N)
-#    x,y,z=np.unravel_index(i,(NX, NY, NZ),order='F')
-#    temp = np.zeros((NX,NY,NZ))
-#    temp[x,y,z]=U[i]
     
-    temp= np.reshape(U,(NX,NY,NZ),order='F')
+    temperature = np.reshape(U,(NX,NY,NZ),order='F')
+    temperature = temperature-temperature.min()
+    temperature = temperature/float(temperature.max())
     
-    return temp
+    return temperature
     
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def __mysub2ind__(i,j,k):
