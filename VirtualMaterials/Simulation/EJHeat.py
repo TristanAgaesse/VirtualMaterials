@@ -91,7 +91,7 @@ def EJ_heat(S,beta,d,errtol,maxit):
     
     B_l,RR = __findBAndRelResidual__(N,d)
     
-    temperature=__reshapeU__(U)
+    temperature=__reshapeU__(U,d)
     
     return temperature,B_l,RR,I
 
@@ -153,12 +153,26 @@ def __findBAndRelResidual__(N,d):
     return B_l,RR
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-def __reshapeU__(U):
+def __reshapeU__(U,d):
     
     temperature = np.reshape(U,(NX,NY,NZ),order='F')
-    temperature = temperature-temperature.min()
-    temperature = temperature/float(temperature.max())
     
+    H = (d=='x')/float(NX) +(d=='y')/float(NY)+(d=='z')/float(NZ)
+    
+    if d=='x':
+        for i in range(NX):
+            temperature[i,:,:] = temperature[i,:,:]+H*i
+    elif d=='y':
+        for i in range(NY):
+            temperature[:,i,:] = temperature[:,i,:]+H*i
+    elif d=='z':
+        for i in range(NZ):
+            temperature[:,:,i] = temperature[:,:,i]+H*i        
+    
+#    temperature = temperature-temperature.min()
+#    temperature = temperature/float(temperature.max())
+        
+        
     return temperature
     
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
