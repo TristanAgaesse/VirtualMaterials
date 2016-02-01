@@ -1,0 +1,40 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.CreateTestImage_Layered" group="sources">
+    <CompoundSourceProxy id="4474" servers="1">
+      <Proxy group="sources" type="ProgrammableSource" id="4363" servers="1" compound_name="ProgrammableSource1">
+        <Property name="InformationScript" id="4363.InformationScript" number_of_elements="1">
+          <Element index="0" value="shape = (100,100,100)&#xa;&#xa;import numpy as np&#xa;&#xa;shape=[int(shape[i]) for i in range(len(shape))]&#xa;w, d, h = shape&#xa;&#xa;#Provide required information to paraview&#xa;import vtk&#xa;from vtk.util import numpy_support&#xa;executive = self.GetExecutive()&#xa;outInfo = executive.GetOutputInformation(0)&#xa;outInfo.Set(executive.WHOLE_EXTENT(), 0, h-1, 0, d-1, 0, w-1)&#xa;outInfo.Set(vtk.vtkDataObject.SPACING(), 1, 1, 1)&#xa;dataType = 2 # VTK_Unsigned_Char&#xa;numberOfComponents = 1&#xa;vtk.vtkDataObject.SetPointDataActiveScalarInfo(outInfo, dataType, numberOfComponents)&#xa;"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4363.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="6"/>
+          <Domain name="enum" id="4363.OutputDataSetType.enum">
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4363.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4363.Script" number_of_elements="1">
+          <Element index="0" value="#Creates a layered structure&#xa;import numpy as np&#xa;&#xa;voxelNumbers=(100,100,100)&#xa;image = np.zeros(voxelNumbers,dtype=np.uint8)&#xa;&#xa;zInds=np.arange(21,40,dtype=np.int)      &#xa;image[:,:,zInds]=100&#xa;&#xa;zInds=np.arange(61,80,dtype=np.int)      &#xa;image[:,:,zInds]=200&#xa;&#xa;&#xa;import VirtualMaterials as vmat&#xa;import vtk&#xa;from vtk.util import numpy_support&#xa;&#xa;shape=image.shape&#xa;shape=[int(shape[i]) for i in range(len(shape))]&#xa;&#xa;#Convert numpy array to vtk image&#xa;dataImporter = vtk.vtkImageImport()&#xa;dataImporter.CopyImportVoidPointer(image, image.nbytes)&#xa;dataImporter.SetDataScalarTypeToUnsignedChar()&#xa;dataImporter.SetNumberOfScalarComponents(1)&#xa;w, d, h = shape&#xa;dataImporter.SetDataExtent(0, h-1, 0, d-1, 0, w-1)&#xa;dataImporter.SetWholeExtent(0, h-1, 0, d-1, 0, w-1)&#xa;dataImporter.Update() &#xa;&#xa;self.GetOutput().DeepCopy( dataImporter.GetOutput())&#xa;executive = self.GetExecutive()"/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Parameters" proxy_name="ProgrammableSource1" exposed_name="Parameters"/>
+        <Property name="PythonPath" proxy_name="ProgrammableSource1" exposed_name="Python Path"/>
+        <Property name="Script" proxy_name="ProgrammableSource1" exposed_name="Script"/>
+        <Property name="InformationScript" proxy_name="ProgrammableSource1" exposed_name="Script (RequestInformation)"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableSource1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
