@@ -1,0 +1,53 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.CreateVoxelizedTubeFilter_test" group="filters">
+    <CompoundSourceProxy id="4978" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4821" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4821.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="4821.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="4821.InformationScript" number_of_elements="1">
+          <Element index="0" value="from paraview import util&#xa; &#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;shape=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;#shape = self.GetOutputDataObject(0).GetExtent()&#xa;&#xa;&#xa;util.SetOutputWholeExtent(self, shape)&#xa;&#xa; &#xa;&#xa;"/>
+        </Property>
+        <Property name="Input" id="4821.Input" number_of_elements="1">
+          <Domain name="groups" id="4821.Input.groups"/>
+          <Domain name="input_type" id="4821.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4821.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="6"/>
+          <Domain name="enum" id="4821.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4821.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4821.Script" number_of_elements="1">
+          <Element index="0" value="voxelNumbers = (200,200,200)&#xa;tubeRadius = 0.00000001&#xa;&#xa;&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;&#xa;pdi = self.GetInputDataObject(0,0)&#xa;&#xa;image=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVoxelizedTubeFilter(pdi,voxelNumbers,tubeRadius)&#xa;&#xa;vtkOutputImage=vmat.Utilities.Utilities.NumpyToVTKImage(image.astype(np.uint8))&#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;wholeExtent=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;vtkOutputImage.SetExtent(wholeExtent)&#xa;&#xa;self.GetOutputDataObject(0).DeepCopy( vtkOutputImage)"/>
+        </Property>
+        <Property name="UpdateExtentScript" id="4821.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter1" exposed_name="Parameters"/>
+        <Property name="InformationScript" proxy_name="ProgrammableFilter1" exposed_name="RequestInformation Script"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>

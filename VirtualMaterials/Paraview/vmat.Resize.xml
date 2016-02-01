@@ -1,0 +1,54 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.Resize" group="filters">
+    <CompoundSourceProxy id="3976" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="3859" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="3859.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="3859.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="3859.InformationScript" number_of_elements="1">
+          <Element index="0" value="#Resize filter&#xa;&#xa;from paraview import util&#xa; &#xa;outputSize = self.GetOutputDataObject(0).GetExtent()&#xa;&#xa;util.SetOutputWholeExtent(self, outputSize)"/>
+        </Property>
+        <Property name="Input" id="3859.Input" number_of_elements="1">
+          <Domain name="groups" id="3859.Input.groups"/>
+          <Domain name="input_type" id="3859.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="3859.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="8"/>
+          <Domain name="enum" id="3859.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="3859.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="3859.Script" number_of_elements="1">
+          <Element index="0" value="#Resize filter&#xa;&#xa;resizeFactor = (3,3,3)&#xa;interpolator = &#x27;NearestNeighbor&#x27;     &#xa;#interpolator= &#x27;NearestNeighbor&#x27;, &#x27;Linear&#x27; or &#x27;BSpline&#x27;&#xa;&#xa;&#xa;&#xa;&#xa;&#xa;import VirtualMaterials as vmat&#xa;pdi = self.GetInputDataObject(0,0)&#xa;&#xa;numpyInputImage=vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;numpyOutputImage = vmat.Utilities.Utilities.Resize(&#xa;        numpyInputImage,scale=resizeFactor,interpolator=interpolator)&#xa;&#xa;vtkOutputImage=vmat.Utilities.Utilities.NumpyToVTKImage(numpyOutputImage)&#xa;&#xa;self.GetOutputDataObject(0).DeepCopy( vtkOutputImage)&#xa;&#xa;&#xa;"/>
+        </Property>
+        <Property name="UpdateExtentScript" id="3859.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="CopyArrays" proxy_name="ProgrammableFilter1" exposed_name="Copy Arrays"/>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter1" exposed_name="Parameters"/>
+        <Property name="InformationScript" proxy_name="ProgrammableFilter1" exposed_name="RequestInformation Script"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>

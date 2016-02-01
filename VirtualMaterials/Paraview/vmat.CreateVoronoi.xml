@@ -1,0 +1,39 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.CreateVoronoi" group="sources">
+    <CompoundSourceProxy id="3949" servers="1">
+      <Proxy group="sources" type="ProgrammableSource" id="3613" servers="1" compound_name="ProgrammableSource1">
+        <Property name="InformationScript" id="3613.InformationScript" number_of_elements="1">
+          <Element index="0" value="shape = (200,200,200)&#xa;&#xa;import numpy as np&#xa;&#xa;shape=[int(shape[i]) for i in range(len(shape))]&#xa;w, d, h = shape&#xa;&#xa;#Provide required information to paraview&#xa;import vtk&#xa;from vtk.util import numpy_support&#xa;executive = self.GetExecutive()&#xa;outInfo = executive.GetOutputInformation(0)&#xa;outInfo.Set(executive.WHOLE_EXTENT(), 0, h-1, 0, d-1, 0, w-1)&#xa;outInfo.Set(vtk.vtkDataObject.SPACING(), 1, 1, 1)&#xa;dataType = 2 # VTK_Unsigned_Char&#xa;numberOfComponents = 1&#xa;vtk.vtkDataObject.SetPointDataActiveScalarInfo(outInfo, dataType, numberOfComponents)&#xa;"/>
+        </Property>
+        <Property name="OutputDataSetType" id="3613.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="6"/>
+          <Domain name="enum" id="3613.OutputDataSetType.enum">
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="3613.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="3613.Script" number_of_elements="1">
+          <Element index="0" value="#Creates a voronoi structure&#xa;&#xa;voxelNumbers=(200,200,200)&#xa;imageBounds = (0.0,1.0,0.0,1.0,0.0,1.0)&#xa;nPoint=200&#xa;fiberRadius=0.05&#xa;anisotropy=3&#xa;randomSeed=0&#xa;  &#xa;&#xa;import VirtualMaterials as vmat&#xa;import vtk&#xa;from vtk.util import numpy_support&#xa;import numpy as np&#xa;&#xa;data_matrix=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualVoronoiFoam(&#xa;    voxelNumbers,imageBounds,nPoint,fiberRadius,anisotropy,randomSeed)&#xa;&#xa;&#xa;data_matrix=100*(data_matrix.astype(np.uint8))&#xa;shape=data_matrix.shape&#xa;shape=[int(shape[i]) for i in range(len(shape))]&#xa;&#xa;#Convert numpy array to vtk image&#xa;dataImporter = vtk.vtkImageImport()&#xa;dataImporter.CopyImportVoidPointer(data_matrix, data_matrix.nbytes)&#xa;dataImporter.SetDataScalarTypeToUnsignedChar()&#xa;dataImporter.SetNumberOfScalarComponents(1)&#xa;w, d, h = shape&#xa;dataImporter.SetDataExtent(0, h-1, 0, d-1, 0, w-1)&#xa;dataImporter.SetWholeExtent(0, h-1, 0, d-1, 0, w-1)&#xa;dataImporter.Update() &#xa;&#xa;self.GetOutput().DeepCopy( dataImporter.GetOutput())&#xa;executive = self.GetExecutive()"/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="PythonPath" proxy_name="ProgrammableSource1" exposed_name="Python Path"/>
+        <Property name="Script" proxy_name="ProgrammableSource1" exposed_name="Script"/>
+        <Property name="InformationScript" proxy_name="ProgrammableSource1" exposed_name="Script (RequestInformation)"/>
+      </ExposedProperties>
+      <OutputPort name="Voronoi" proxy="ProgrammableSource1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
