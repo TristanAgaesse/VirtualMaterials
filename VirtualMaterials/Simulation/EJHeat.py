@@ -8,6 +8,7 @@ import numpy as np
 import scipy as sp
 import math
 import sys
+import time
 
 def EJ_heat(S,beta,d,errtol,maxit):
 #    % Explicit jump effective thermal conductivity
@@ -25,6 +26,10 @@ def EJ_heat(S,beta,d,errtol,maxit):
 #    % B_l   effective conductivity
 #    % RR    relative residual
 #    % I number of iterations
+    
+    print('Ej-Heat')    
+    
+    beginTime=time.time()    
     
     global Psi, D, NX, NY, NZ,N, H, PDM, U, G, B, F2, isb, isf, jsb, jsf, ksb, ksf, iind, jind, kind
     NX,NY,NZ = np.shape(S)
@@ -93,6 +98,10 @@ def EJ_heat(S,beta,d,errtol,maxit):
     
     temperature=__reshapeU__(U,d)
     
+    
+    endTime=time.time()
+    print("Time spent : {} s".format(endTime-beginTime))    
+    
     return temperature,B_l,RR,I
 
 
@@ -156,21 +165,21 @@ def __findBAndRelResidual__(N,d):
 def __reshapeU__(U,d):
     
     temperature = np.reshape(U,(NX,NY,NZ),order='F')
-    
-    H = (d=='x')/float(NX) +(d=='y')/float(NY)+(d=='z')/float(NZ)
-    
-    if d=='x':
-        for i in range(NX):
-            temperature[i,:,:] = temperature[i,:,:]+H*i
-    elif d=='y':
-        for i in range(NY):
-            temperature[:,i,:] = temperature[:,i,:]+H*i
-    elif d=='z':
-        for i in range(NZ):
-            temperature[:,:,i] = temperature[:,:,i]+H*i        
-    
-#    temperature = temperature-temperature.min()
-#    temperature = temperature/float(temperature.max())
+#    
+#    H = (d=='x')/float(NX) +(d=='y')/float(NY)+(d=='z')/float(NZ)
+#    
+#    if d=='x':
+#        for i in range(NX):
+#            temperature[i,:,:] = temperature[i,:,:]+H*i
+#    elif d=='y':
+#        for i in range(NY):
+#            temperature[:,i,:] = temperature[:,i,:]+H*i
+#    elif d=='z':
+#        for i in range(NZ):
+#            temperature[:,:,i] = temperature[:,:,i]+H*i        
+#    
+    temperature = temperature-temperature.min()
+    temperature = temperature/float(temperature.max())
         
         
     return temperature
@@ -219,7 +228,7 @@ def __bicgstab__(atv,b, errtol, kmax):
 #    % adapted by Andreas L. Wiegmann, March 23, 2006
     n = np.size(b)
     error, x, errtol = [], np.zeros(n), errtol*np.linalg.norm(b)
-    rho, r, SHOW = np.zeros((kmax+1)), b, False
+    rho, r, SHOW = np.zeros((kmax+2)), b, False
     hatr0, total_iters, k, alpha, omega = r, 0, 0, 1.0, 1.0
     v, p = np.zeros((n)), np.zeros((n))
     rho[0] = 1.0
