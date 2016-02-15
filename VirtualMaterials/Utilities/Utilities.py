@@ -107,7 +107,29 @@ def Resize(image,scale=(2,2,2),interpolator='NearestNeighbor'):
     
     return outputImage
     
+#--------------------------------------------------------------------    
+def DistanceMap(image):   
+    """ Returns the Danielsson Distance Map of the image : for each 
+    zero voxel, the min distance to a non zero voxel"""
     
+    memoryType=np.float16
+    itkimage = sitk.GetImageFromArray(image.astype(np.uint8))
+    itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
+    del itkimage
+    distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
+    del itkdistanceMap 
+    
+    return distanceMap
+    
+    
+#--------------------------------------------------------------------    
+def CoveringRadiusMap(image):    
+    """ Returns the Covering Radius Map of the image """
+    distanceMap = DistanceMap(image)
+    
+    
+    coveringRadiusMap = 1
+    return coveringRadiusMap
 
 #--------------------------------------------------------------------
 def NumpyToVTKImage(numpyImage): 
