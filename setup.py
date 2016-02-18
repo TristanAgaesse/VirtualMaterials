@@ -12,6 +12,7 @@ except ImportError:
 
 setup(
     name='VirtualMaterials',
+    description="A Python toolbox to create virtual material images and to compute their physical properties..",
     
     packages=['VirtualMaterials',
               'VirtualMaterials.VirtualImages',
@@ -23,14 +24,12 @@ setup(
               
     install_requires = [
         'numpy',
-        'vtk',
         'scipy',
         'scikit-image',
         'SimpleITK',
         'hdf5storage',
 	      'mayavi'],     
         
-    description="A Python toolbox to create virtual material images and to compute their physical properties..",
     author='CEA LITEN',
 )
 
