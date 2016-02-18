@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Nov 30 11:32:23 2015
 
-@author: ta240184
-"""
 import numpy as np
 import scipy as sp
 import math

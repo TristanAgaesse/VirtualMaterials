@@ -18,7 +18,8 @@ setup(
               'VirtualMaterials.Simulation',
               'VirtualMaterials.Utilities',
               'VirtualMaterials.Examples',
-              'VirtualMaterials.test'],
+              'VirtualMaterials.test',
+              'VirtualMaterials.ImageCleaning'],
               
     install_requires = [
         'numpy',
