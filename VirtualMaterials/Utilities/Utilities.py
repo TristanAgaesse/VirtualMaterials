@@ -12,21 +12,29 @@ from vtk.util import numpy_support
     
 #--------------------------------------------------------------------
 def WriteTiff(image,filename):
-    """ :param : image,filename """
+    """ Writes a numpy array on the disk as a tiff file .
+    :param: image
+    :param: filename 
+    """
     
     tff.imsave(filename,image.astype(np.uint8))
 
 #--------------------------------------------------------------------
 def ReadTiff(filename):
-    """ :param : filename """
-    
+    """ Reads a .tiff file from the disk.
+    :param : filename 
+    :return: numpy array    
+    """
     image=tff.imread(filename)
     
     return image
 
 #--------------------------------------------------------------------
 def ReadVTKFile(filename):
-
+    """ Reads a .vtk file from the disk.
+    :param : filename 
+    :return: vtk polydata   
+    """
     reader = vtk.vtkPolyDataReader()
     reader.SetFileName(filename)
     reader.Update()
@@ -36,24 +44,17 @@ def ReadVTKFile(filename):
 
 #--------------------------------------------------------------------
 def ExtractSurface(image):
-        
+    """ Extracts the surface of an image using vtkDiscreteMarchingCubes
+    :param : image 
+    :return: surface (vtk polydata object)  
+    """    
         
     #Convert numpy array to vtk image
-    shape=image.shape
-    shape=[int(shape[i]) for i in range(len(shape))]
-        
-    dataImporter = vtk.vtkImageImport()
-    dataImporter.CopyImportVoidPointer(image, image.nbytes)
-    dataImporter.SetDataScalarTypeToUnsignedChar()
-    dataImporter.SetNumberOfScalarComponents(1)
-    w, d, h = shape
-    dataImporter.SetDataExtent(0, h-1, 0, d-1, 0, w-1)
-    dataImporter.SetWholeExtent(0, h-1, 0, d-1, 0, w-1)
-    dataImporter.Update() 
+    vtkImage = NumpyToVTKImage(image)
     
     #Use VTK Marching Cubes algorithm
     dmc = vtk.vtkDiscreteMarchingCubes()
-    dmc.SetInputConnection(dataImporter.GetOutputPort())
+    dmc.SetInput(vtkImage)
     dmc.GenerateValues(1, 1, 1)
     dmc.Update()
     
@@ -125,7 +126,9 @@ def DistanceMap(image):
 #--------------------------------------------------------------------    
 def CoveringRadiusMap(image):    
     """ Returns the Covering Radius Map of the image """
-    distanceMap = DistanceMap(image)
+    
+    print('Not implemented')
+    #distanceMap = DistanceMap(image)
     
     
     coveringRadiusMap = 1
@@ -133,7 +136,7 @@ def CoveringRadiusMap(image):
 
 #--------------------------------------------------------------------
 def NumpyToVTKImage(numpyImage): 
-
+    """ Converts a numpy array to a VTK image """
     dataImporter = vtk.vtkImageImport()
     
     shape=numpyImage.shape
@@ -187,7 +190,7 @@ def NumpyToVTKImage(numpyImage):
 
 #--------------------------------------------------------------------
 def VTKImageToNumpy(vtkImage): 
-    
+    """ Converts a VTK image to a numpy array """
     vtkImageBis = vtkImage.NewInstance()
     vtkImageBis.DeepCopy(vtkImage)    
     
@@ -203,6 +206,7 @@ def VTKImageToNumpy(vtkImage):
     
 #--------------------------------------------------------------------    
 def BestMemoryType(number):   
+    """ Returns the type of voxel that optimize the memory size of the image """
     
     if number>=0:
         if abs(number)<np.iinfo(np.uint8).max:

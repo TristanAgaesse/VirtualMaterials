@@ -7,22 +7,30 @@ import sys
 import time
 
 def EJ_heat(S,beta,d,errtol,maxit):
-#    % Explicit jump effective thermal conductivity
-#    % Andreas L. Wiegmann, 25 March 2006.
-#    % Input :
-#    % S: 3d voxelindices (0-based) ,i.e. 3D images with voxel labelled
-#    % beta: conductivities, defined for all indices in S; 
-#    %       beta(0)=conductivity of phase 0, beta(n)=conductivity of phase n
-#    % d: 'x','y' or 'z' direction,
-#    % errtol: desired relative residual for Schur-complement, bicgstab
-#    % maxit: iteration cap for BiCGStab
-#    %
-#    % Output :
-#    % U     temperature field
-#    % B_l   effective conductivity
-#    % RR    relative residual
-#    % I number of iterations
+    """Explicit Jump Harmonic Averaging Solver for the Effective Heat
+    Conductivity of Composite Materials
+    https://www.itwm.fraunhofer.de/fileadmin/ITWM-Media/Zentral/Pdf/Berichte_ITWM/2006/bericht94.pdf
+        
+    Initialy coded in Matlab by Andreas L. Wiegmann, 25 March 2006.
+    Code translated to python by Tristan Agaesse in 2016
     
+    :param image: numpy ndarray with voxel phase labelled
+    :param beta: conductivities, defined for all indices in S; 
+                    beta[i]=conductivity of phase i
+    :param d : direction : 'x', 'y' or 'z'
+    :param errtol: desired relative residual for Schur-complement, bicgstab
+    :param maxit : max number of iterations for BiCGStab
+    
+    :return: temperature : temperature field (deviation from mean field)
+    :return: B_l : line of effective conductivity tensor in the d direction
+    :return: RR : relative residual
+    :return: I : number of iterations
+    :Example:
+    
+    import VirtualMaterials as vmat
+    temperature,B_l,RR,I = vmat.Simulations.EJHEAT.EJ_heat(image,beta=np.zeros((255,),dtype=np.float),'x',1e-6,100)
+    """
+           
     print('Ej-Heat')    
     
     beginTime=time.time()    

@@ -26,7 +26,25 @@ from VirtualMaterials.VirtualImages  import Voxelization
 def CreateVirtualGDL(voxelNumbers=(200,200,200),
                      fiberContent=0.5,fiberRadius=10,fiberLength=100,
                      binderContent=0.3,anisotropy=1,randomSeed=1):
+    """ Creates a virtual GDL with straigth fibers                    
+    :param: voxelNumbers : virtual image size
+    :param: fiberContent : volume fraction of fibers
+    :param: fiberRadius : fiber radius (unit=voxel)
+    :param: fiberLength : fiber length (unit=voxel)
+    :param: binderContent : volume fraction of binder
+    :param: anisotropy : orientation of fibers
+    :param: randomSeed
     
+    :return: virtual image (numpy array)
+    
+    :example:
+    import VirtualMaterials as vmat
+    virtualGDL=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualGDL(
+                    voxelNumbers=(200,200,200),
+                    fiberContent=0.5,fiberRadius=10,fiberLength=100,
+                    binderContent=0.3,anisotropy=1,randomSeed=1)
+    
+    """
     #Algorithm :add fibers until a given fiber content is achieved. 
     #   Add binder until a given porosity is achieved    
     
@@ -123,6 +141,32 @@ def CreateVirtualCatalystLayer(voxelNumbers=(200,200,200),
                                voidRadius=50,nVoid=200,
                                nafionThickness=2,nafionCoveragePercentage=30,
                                randomSeed=1):  
+    
+    """ Creates a Virtual Catalyst Layer using random balls and Nafion film
+    
+    :param: voxelNumbers : virtual image size
+    :param: carbonGrainRadius
+    :param: nCarbonGrain
+    :param: voidRadius
+    :param: nVoid
+    :param: nafionThickness
+    :param: nafionCoveragePercentage
+    :param: randomSeed   
+    
+    :return: virtual image (numpy array)
+    
+    :example:
+    import VirtualMaterials as vmat
+    virtualCL=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualCatalystLayer(
+    voxelNumbers=(200,200,200),
+                       carbonGrainRadius=4,nCarbonGrain=5000,
+                       voidRadius=50,nVoid=200,
+                       nafionThickness=2,nafionCoveragePercentage=30,
+                       randomSeed=1)
+    """
+    
+    
+    
     
     print('Create Virtual Active Layer')
     beginTime=time.time()
@@ -223,32 +267,25 @@ def CreateVirtualCatalystLayer(voxelNumbers=(200,200,200),
     return image
 
 
-#--------------------------------------------------------------------
-def CreateVirtualAgglomerate(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
-                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
-
-
-    return 1
 
 
 #--------------------------------------------------------------------
-def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
-                                 nCrack,randomSeed=1):
+def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),
+                                 penetrationLength=15):
+    """ Creates a Virtual Interface GDL MPL using a virtual GDL and
+    MPL injected at the bottom of the GDL with full morphology algorithm
     
-    #couche uniforme avec des vides aléatoires
+    :param: voxelNumbers : virtual image size
+    :param: penetrationLength : diameter of full morphology MPL balls, in voxel unit
+
+    :return: virtual image (numpy array)
     
-    
-    #ajouter cracks    
-    
-    
-    return 1
-
-
-
-
-#--------------------------------------------------------------------
-def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),penetrationLength=15):
-
+    :example:
+    import VirtualMaterials as vmat
+    virtualCL=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualInterfaceGDLMPL(
+                    voxelNumbers=(400,400,300),
+                    penetrationLength=15)
+    """
     imageBoundaryThickness = 50
     
     
@@ -291,22 +328,6 @@ def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),penetrationLength=15
     return interface
 
 
-#--------------------------------------------------------------------
-def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
-                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
-
-    #Create Catalyst Layer Image
-
-
-
-    #Create a piece of Membrane
-
-
-
-    #Add the two images
-
-
-    return 1
 
 
 #--------------------------------------------------------------------
@@ -314,7 +335,27 @@ def CreateVirtualVoronoiFoam(voxelNumbers=(200,200,200),imageBounds=(0.0,1.0,0.0
                              nPoint=200,fiberRadius=0.05,
                              anisotropy=1,randomSeed=0):
     
-
+    """ Creates a Virtual Voronoi foam 
+    
+    :param: voxelNumbers : virtual image size
+    :param: imageBounds : physical dimensions of virtual sample
+    :param: nPoint : number of voronoi seed points
+    :param: fiberRadius : radius of cylinders around voronoi mesh edges (unit=voxel)
+    :param: anisotropy : controls a deformation of the voronoi mesh in the z direction 
+    :param: randomSeed
+    
+    :return: virtual image (numpy array)
+    
+    :example:
+    import VirtualMaterials as vmat
+    virtualCL=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualVoronoiFoam(
+            voxelNumbers=(200,200,200),
+            imageBounds=(0.0,1.0,0.0,1.0,0.0,1.0),
+            nPoint=200,fiberRadius=0.05,
+            anisotropy=1,randomSeed=0)
+    """
+    
+    
     print('Create Voronoi')
     beginTime=time.time()
     
@@ -364,16 +405,6 @@ def CreateVirtualVoronoiFoam(voxelNumbers=(200,200,200),imageBounds=(0.0,1.0,0.0
     return image
 
 #--------------------------------------------------------------------
-def CreateVirtualCeramicElectrode():
-    
-    #Create Higth temperature Fuel Cell Electrode
-    
-    #Add polyhedra
-    
-    return 1
-
-
-#--------------------------------------------------------------------
 def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
     
     voxelNumbers = gdlImage.shape
@@ -400,8 +431,81 @@ def PutLaserHolesInGDL(gdlImage,nHole,holeRadius,holeHeight):
 
 
 
+
+
+
+
+#--------------------------------------------------------------------
+def CreateVirtualAgglomerate(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+    """ Not implemented """                             
+    print('Not implemented')
+    return 1
+
+
+#--------------------------------------------------------------------
+def CreateVirtualLayerWithCracks(voxelNumbers,voidRadius,nVoid,crackLength,
+                                 nCrack,randomSeed=1):
+    """ Not implemented """                             
+    print('Not implemented')
+    #couche uniforme avec des vides aléatoires
+    
+    
+    #ajouter cracks    
+    
+    
+    return 1
+
+
+
+#--------------------------------------------------------------------
+def CreateVirtualInterfaceCatalystLayerMembrane(voxelNumbers,grainRadius,nGrain,voidRadius,nVoid,
+                             nafionThickness=1,nafionCoveragePercentage=0,randomSeed=1):
+    """ Not implemented """                             
+    print('Not implemented')
+    #Create Catalyst Layer Image
+
+
+
+    #Create a piece of Membrane
+
+
+
+    #Add the two images
+
+
+    return 1
+
+
+
+#--------------------------------------------------------------------
+def CreateVirtualCeramicElectrode():
+    """ Not implemented """                             
+    print('Not implemented')
+    #Create Higth temperature Fuel Cell Electrode
+    
+    #Add polyhedra
+    
+    return 1
+
+
+
+
+
 #--------------------------------------------------------------------
 def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
+    """ Creates an image putting cylinders around the edges of a mesh
+    (see paraview tube filter to get an idea of what it's doing).
+    :param: polydataMesh : mesh, used as the skeleton of the image (vtk polydata object)
+    :param: voxelNumbers: virtual image size
+    :param: fiberRadius : cylinder raidus (in voxel unit)
+    
+    :return: image (numpy array)
+    
+    :example:
+    
+    """
+    
     
     print('Create FibersOnMesh')
     beginTime=time.time()
@@ -477,7 +581,8 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
  
 #--------------------------------------------------------------------   
 def CreateTestImage_TetrahedronMedialAxis():
-    
+    """ CreateTestImage_TetrahedronMedialAxis """ 
+
     #Image parameters
     voxelNumbers = (100,100,100)
     
@@ -547,7 +652,7 @@ def CreateTestImage_TetrahedronMedialAxis():
     
 #--------------------------------------------------------------------   
 def CreateTestImage_TwoBalls():
-    
+    """ CreateTestImage_TwoBalls """ 
     #Image parameters
     voxelNumbers = (30,30,30)
     
@@ -583,7 +688,8 @@ def CreateTestImage_TwoBalls():
     
 #--------------------------------------------------------------------   
 def CreateTestImage_ThreeBalls():
-    
+    """ CreateTestImage_ThreeBalls """   
+                          
     #Image parameters
     voxelNumbers = (30,30,30)
     

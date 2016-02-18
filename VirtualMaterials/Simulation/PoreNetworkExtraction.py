@@ -12,7 +12,7 @@ from VirtualMaterials.Utilities import Utilities as utilities
 from collections import defaultdict
 import time
 import re 
-from numba import jit
+#from numba import jit
 import os
 #import mahotas
 #from skimage import io as skimio

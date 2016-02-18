@@ -10,8 +10,20 @@ import time
 #----------------------------------------------------------------------------------------------
 
 def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3):
-    """inletFace=0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax"""
+    """FullMorhology simulation of water injection in a porous medium.
+    :param inputImage: numpy ndarray 
+    :param inletFace: 0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax
+    :param pressureList: list of one or several pressures
+    :param pressureCode: list of codes to label water at the pressures in pressureList
+    :param gamma: surface tension
+    :return: image: inputImage + water labelled as pressureCode
     
+    :Example:
+    import VirtualMaterials as vmat 
+    imageWithWater = vmat.Simulation.FullMorphology.FullMorphology(
+                    inputImage,inletFace=1,voxelLength=1,
+                    pressureList=[10],pressureCode=[110],gamma=72e-3)
+    """
     
     
         
@@ -49,7 +61,7 @@ def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressu
     for i in range(len(pressureList)-1,-1,-1):
         print('begin '+str(i))
         pressure = pressureList[ascendingOrder[i]]
-        water = FullMorphologyHydrophobicStep(distanceMap,2*gamma/(pressure*voxelLength),inletVoxels)
+        water = __FullMorphologyHydrophobicStep__(distanceMap,2*gamma/(pressure*voxelLength),inletVoxels)
         myImg[water] = pressureCode[ascendingOrder[i]]
         del water  
     
@@ -64,7 +76,7 @@ def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressu
 
 #----------------------------------------------------------------------------------------------
 
-def FullMorphologyHydrophobicStep(distanceMap,capillaryLength,inletVoxels):
+def __FullMorphologyHydrophobicStep__(distanceMap,capillaryLength,inletVoxels):
     
     #Find the centers of the water balls
     indicesCenters=(distanceMap>capillaryLength).reshape(distanceMap.shape)
