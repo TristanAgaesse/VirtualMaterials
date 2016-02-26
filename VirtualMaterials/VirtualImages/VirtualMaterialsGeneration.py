@@ -579,6 +579,22 @@ def CreateVoxelizedTubeFilter(polydataMesh,voxelNumbers,fiberRadius):
     return image
     
  
+ 
+#--------------------------------------------------------------------   
+def CreateTestImage_Layers():
+    """ CreateTestImage_Layers """  
+
+    voxelNumbers=(100,100,100)
+    image = np.zeros(voxelNumbers,dtype=np.uint8)
+    
+    zInds=np.arange(21,40,dtype=np.int)      
+    image[:,:,zInds]=100
+    
+    zInds=np.arange(61,80,dtype=np.int)      
+    image[:,:,zInds]=200
+
+    return image
+    
 #--------------------------------------------------------------------   
 def CreateTestImage_TetrahedronMedialAxis():
     """ CreateTestImage_TetrahedronMedialAxis """ 

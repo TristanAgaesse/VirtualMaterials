@@ -395,7 +395,9 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     linkLabels = range(1,links.max()+1)
     
-    links_Center                = LinksGeometry_Center(links,distanceMap,linkLabels)    
+    links_Center                = LinksGeometry_Center(links,linkLabels)    
+    
+    links_WidestLocation        = LinksGeometry_WidestLocation(links,distanceMap,linkLabels)
     
     links_InscribedSphereRadius = LinksGeometry_InscribedSphereRadius(
                                                 links,distanceMap,linkLabels) 
@@ -412,12 +414,13 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                                                 phasesCodes )          
 
     PNMGeometricData['internalLinkBarycenters']       = links_Center 
+    PNMGeometricData['internalLinkWidestLocation']    = links_WidestLocation
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
     PNMGeometricData['internalLinkGeometricSurface']  = links_SurfaceArea
     #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
     PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
-    del linkVoxelLookUpTable,links_Center,links_InscribedSphereRadius,links_SurfaceArea,links_NeighborPhases  
+    del linkVoxelLookUpTable,links_Center,links_WidestLocation,links_InscribedSphereRadius,links_SurfaceArea,links_NeighborPhases  
     
     # Infos sur la forme, position des liens frontiere
         
@@ -448,25 +451,28 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
         
         linkLabels = range(1,pores.max()+1)
                 
-        links_center          = LinksGeometry_Center(boundarySlice,boundaryDistances,linkLabels)
-        
+        links_center          = LinksGeometry_Center(boundarySlice,linkLabels)
+
+        links_WidestLocation  = LinksGeometry_WidestLocation(boundarySlice,boundaryDistances,linkLabels)
+
         inscribedSphereRadius = LinksGeometry_InscribedSphereRadius(
                                     boundarySlice,boundaryDistances,linkLabels)
         
         surfaceArea           = LinksGeometry_SurfaceArea(boundarySlice,linkLabels)
                            
-        linkVoxelLookUpTable = BuildVoxelLookUpTable(boundarySlice)                   
-        links_NeighborPhases        = LinksGeometry_NeighborPhases(
+        linkVoxelLookUpTable  = BuildVoxelLookUpTable(boundarySlice)                   
+        links_NeighborPhases  = LinksGeometry_NeighborPhases(
                                                 boundarySlice,boundarySlice,linkLabels,
                                                 linkVoxelLookUpTable, 
                                                 phasesCodes )                   
                            
         PNMGeometricData['boundaryCenters'+str(iBoundary)]          = links_center
+        PNMGeometricData['boundaryWidestLocation'+str(iBoundary)]   = links_WidestLocation
         PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]  = inscribedSphereRadius
         PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)] = surfaceArea
-        PNMGeometricData['boundaryNeighborPhases'+str(iBoundary)] = links_NeighborPhases
+        PNMGeometricData['boundaryNeighborPhases'+str(iBoundary)]   = links_NeighborPhases
     
-        del links_center,inscribedSphereRadius,surfaceArea,links_NeighborPhases
+        del links_center,links_WidestLocation,inscribedSphereRadius,surfaceArea,links_NeighborPhases
         
     return PNMGeometricData
 
@@ -545,14 +551,24 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
     return surfaceComposition
 
 #----------------------------------------------------------------------------------------------
-def LinksGeometry_Center(links,distanceMap,linkLabels): 
+def LinksGeometry_Center(links,linkLabels): 
 
-    links_center_arg=ndimage.measurements.maximum_position(
-                                            distanceMap, links, linkLabels)
-                                            
+    links_center_arg=ndimage.measurements.center_of_mass(links, labels=links,
+                                                     index=linkLabels)
+                                                     
     links_center=np.transpose(np.squeeze(np.dstack(links_center_arg)))
 
     return links_center
+
+#----------------------------------------------------------------------------------------------
+def LinksGeometry_WidestLocation(links,distanceMap,linkLabels):
+
+    links_WidestLocation_arg=ndimage.measurements.maximum_position(
+                                            distanceMap, links, linkLabels)
+                                            
+    links_WidestLocation=np.transpose(np.squeeze(np.dstack(links_WidestLocation_arg)))
+
+    return links_WidestLocation
 
 
 #----------------------------------------------------------------------------------------------
