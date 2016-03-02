@@ -374,7 +374,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     # Pores : infos sur la forme, position des pores
     poreLabels = range(1,pores.max()+1)
 
-    pores_Center          = PoresGeometry_Center(pores)    
+    pores_CenterOfMass          = PoresGeometry_CenterOfMass(pores)    
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
@@ -383,11 +383,11 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                                                  poreVoxelLookUpTable,
                                                  phasesCodes)
     
-    PNMGeometricData['poreCenters']         = pores_Center
+    PNMGeometricData['poreCenterOfMass']    = pores_CenterOfMass
     PNMGeometricData['poreVolumes']         = pores_Volume
     PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
     
-    del poreVoxelLookUpTable,pores_Center,pores_Volume,pores_NeighborPhases
+    del poreVoxelLookUpTable,pores_CenterOfMass,pores_Volume,pores_NeighborPhases
     
     
     # Liens internes : infos sur la forme et position des liens internes    
@@ -395,7 +395,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     
     linkLabels = range(1,links.max()+1)
     
-    links_Center                = LinksGeometry_Center(links,linkLabels)    
+    links_CenterOfMass          = LinksGeometry_CenterOfMass(links,linkLabels)    
     
     links_WidestLocation        = LinksGeometry_WidestLocation(links,distanceMap,linkLabels)
     
@@ -413,14 +413,14 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                                                 linkVoxelLookUpTable, 
                                                 phasesCodes )          
 
-    PNMGeometricData['internalLinkBarycenters']       = links_Center 
+    PNMGeometricData['internalLinkCenterOfMass']       = links_CenterOfMass 
     PNMGeometricData['internalLinkWidestLocation']    = links_WidestLocation
     PNMGeometricData['internalLinkCapillaryRadius']   = links_InscribedSphereRadius
     PNMGeometricData['internalLinkGeometricSurface']  = links_SurfaceArea
     #PNMGeometricData['internalLinkHydraulicDiameter'] = links_HydraulicDiameter
     PNMGeometricData['internalLinkNeighborPhases']    = links_NeighborPhases
     
-    del linkVoxelLookUpTable,links_Center,links_WidestLocation,links_InscribedSphereRadius,links_SurfaceArea,links_NeighborPhases  
+    del linkVoxelLookUpTable,links_CenterOfMass,links_WidestLocation,links_InscribedSphereRadius,links_SurfaceArea,links_NeighborPhases  
     
     # Infos sur la forme, position des liens frontiere
         
@@ -451,7 +451,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
         
         linkLabels = range(1,pores.max()+1)
                 
-        links_center          = LinksGeometry_Center(boundarySlice,linkLabels)
+        links_CenterOfMass          = LinksGeometry_CenterOfMass(boundarySlice,linkLabels)
 
         links_WidestLocation  = LinksGeometry_WidestLocation(boundarySlice,boundaryDistances,linkLabels)
 
@@ -466,13 +466,13 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
                                                 linkVoxelLookUpTable, 
                                                 phasesCodes )                   
                            
-        PNMGeometricData['boundaryCenters'+str(iBoundary)]          = links_center
+        PNMGeometricData['boundaryCenterOfMass'+str(iBoundary)]          = links_CenterOfMass
         PNMGeometricData['boundaryWidestLocation'+str(iBoundary)]   = links_WidestLocation
         PNMGeometricData['boundaryCapillaryRadius'+str(iBoundary)]  = inscribedSphereRadius
         PNMGeometricData['boundaryGeometricSurface'+str(iBoundary)] = surfaceArea
         PNMGeometricData['boundaryNeighborPhases'+str(iBoundary)]   = links_NeighborPhases
     
-        del links_center,links_WidestLocation,inscribedSphereRadius,surfaceArea,links_NeighborPhases
+        del links_CenterOfMass,links_WidestLocation,inscribedSphereRadius,surfaceArea,links_NeighborPhases
         
     return PNMGeometricData
 
@@ -481,7 +481,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
 
 
 #----------------------------------------------------------------------------------------------
-def PoresGeometry_Center(pores): 
+def PoresGeometry_CenterOfMass(pores): 
     
     pores_center=ndimage.measurements.center_of_mass(pores, labels=pores ,
                                                      index=range(1,pores.max()+1))
@@ -551,7 +551,7 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
     return surfaceComposition
 
 #----------------------------------------------------------------------------------------------
-def LinksGeometry_Center(links,linkLabels): 
+def LinksGeometry_CenterOfMass(links,linkLabels): 
 
     links_center_arg=ndimage.measurements.center_of_mass(links, labels=links,
                                                      index=linkLabels)
