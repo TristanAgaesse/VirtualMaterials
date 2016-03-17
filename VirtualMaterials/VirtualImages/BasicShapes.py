@@ -36,13 +36,13 @@ def CreateBall(center,radius):
 
 
 #--------------------------------------------------------------------
-def CreateCylinder(center,axis,radius,height):
+def CreateCylinder(center,axis,radius,height,resolution=8):
     
     source = vtk.vtkCylinderSource()
     source.SetCenter(0,0,0)
     source.SetRadius(radius)
     source.SetHeight(height)
-    source.SetResolution(8)
+    source.SetResolution(int(resolution))
     source.Update()
     
     polydata=source.GetOutput()

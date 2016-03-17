@@ -741,3 +741,107 @@ def CreateTestImage_ThreeBalls():
     image[imSphere3] = 0
     
     return image
+    
+#--------------------------------------------------------------------   
+def CreateTestImage_DiffuseSphericalInclusions(sphereRadius=5):
+    """ CreateTestImage_DiffuseSphericalInclusions    
+    :param: sphereRadius=8
+    """                      
+    #Image parameters
+    voxelNumbers = (100,100,100)
+    
+    image = 0*np.ones(voxelNumbers,dtype=np.uint8)
+    bounds=(0.0, float(voxelNumbers[0]), 
+        0.0, float(voxelNumbers[1]), 
+        0.0, float(voxelNumbers[2]))
+    
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)           
+           
+           
+    #Create elements meshes : 2 spheres 
+           
+    center1 = np.asarray( (80,20,20) )
+    sphere1 = BasicShapes.CreateBall(center1,sphereRadius)
+    
+    center2 = np.asarray( (20,80,20) )
+    sphere2 = BasicShapes.CreateBall(center2,sphereRadius)   
+
+    center3 = np.asarray( (20,20,80) )
+    sphere3 = BasicShapes.CreateBall(center3,sphereRadius)
+    
+    #Fill image with voxelized elements
+    imSphere1 = Voxelization.Voxelize(sphere1,gridX,gridY,gridZ,raydirection='z')
+    imSphere2 = Voxelization.Voxelize(sphere2,gridX,gridY,gridZ,raydirection='z')
+    imSphere3 = Voxelization.Voxelize(sphere3,gridX,gridY,gridZ,raydirection='z')
+    
+    image[imSphere1] = 255
+    image[imSphere2] = 255
+    image[imSphere3] = 255
+    
+    return image    
+    
+#--------------------------------------------------------------------   
+def CreateTestImage_CylinderArray(cylinderRadius=10):
+    """ CreateTestImage_CylinderArray    
+    :param: cylinderRadius=8
+    """                    
+    
+    #Image parameters
+    voxelNumbers = (200,150,200)
+    
+    image = 0*np.ones(voxelNumbers,dtype=np.uint8)
+    bounds=(0.0, float(voxelNumbers[0]), 
+        0.0, float(voxelNumbers[1]), 
+        0.0, float(voxelNumbers[2]))
+    
+    gridX=np.linspace(bounds[0],bounds[1],voxelNumbers[0]+1)
+    gridY=np.linspace(bounds[2],bounds[3],voxelNumbers[1]+1)
+    gridZ=np.linspace(bounds[4],bounds[5],voxelNumbers[2]+1)           
+           
+           
+    #Create elements meshes : 2 spheres 
+    axis = (0,0,1)       
+    height = 1.1*voxelNumbers[2]
+    resolution = int(math.ceil(6*cylinderRadius))
+    
+    center1 = np.asarray( (50,50,height/2.0) )
+    cylinder1 = BasicShapes.CreateCylinder(center1,axis,cylinderRadius,height,resolution=resolution)
+    
+    center2 = np.asarray( (100,50,height/2.0) )
+    cylinder2 = BasicShapes.CreateCylinder(center2,axis,cylinderRadius,height,resolution=resolution)   
+
+    center3 = np.asarray( (150,50,height/2.0) )
+    cylinder3 = BasicShapes.CreateCylinder(center3,axis,cylinderRadius,height,resolution=resolution)
+    
+    center4 = np.asarray( (50,100,height/2.0) )
+    cylinder4 = BasicShapes.CreateCylinder(center4,axis,cylinderRadius,height,resolution=resolution)
+    
+    center5 = np.asarray( (100,100,height/2.0) )
+    cylinder5 = BasicShapes.CreateCylinder(center5,axis,cylinderRadius,height,resolution=resolution)
+    
+    center6 = np.asarray( (150,100,height/2.0) )
+    cylinder6 = BasicShapes.CreateCylinder(center6,axis,cylinderRadius,height,resolution=resolution)
+    
+    
+    #Fill image with voxelized elements
+    imCylinder1 = Voxelization.Voxelize(cylinder1,gridX,gridY,gridZ,raydirection='x')
+    imCylinder2 = Voxelization.Voxelize(cylinder2,gridX,gridY,gridZ,raydirection='x')
+    imCylinder3 = Voxelization.Voxelize(cylinder3,gridX,gridY,gridZ,raydirection='x')
+    imCylinder4 = Voxelization.Voxelize(cylinder4,gridX,gridY,gridZ,raydirection='x')
+    imCylinder5 = Voxelization.Voxelize(cylinder5,gridX,gridY,gridZ,raydirection='x')
+    imCylinder6 = Voxelization.Voxelize(cylinder6,gridX,gridY,gridZ,raydirection='x')
+
+
+    image[imCylinder1] = 255
+    image[imCylinder2] = 255
+    image[imCylinder3] = 255
+    image[imCylinder4] = 255
+    image[imCylinder5] = 255
+    image[imCylinder6] = 255
+    
+    return image    
+        
+    
+    
