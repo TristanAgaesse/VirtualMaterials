@@ -13,11 +13,13 @@ def allTests():
     from VirtualMaterials.test.test_PoreNetworkExtraction import test_PoreNetworkExtraction
     from VirtualMaterials.test.test_FullMorphology import test_FullMorphology
     from VirtualMaterials.test.test_EJHeat import test_EJHeat
+    from VirtualMaterials.test.test_ImageAnalysis import test_ImageAnalysis
     
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(test_PoreNetworkExtraction))
     suite.addTest(unittest.makeSuite(test_FullMorphology))
     suite.addTest(unittest.makeSuite(test_EJHeat))
+    suite.addTest(unittest.makeSuite(test_ImageAnalysis))
     
     return suite
     

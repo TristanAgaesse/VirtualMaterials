@@ -534,7 +534,8 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
             poreImage = np.zeros(localMyImg.shape,dtype=np.bool)
             poreImage[voxels[0]-Xmin,voxels[1]-Ymin,voxels[2]-Zmin]=True
             
-            dilatedPore = __FastDilation__(poreImage,structElement)
+            dilatedPore = imageAnalysis.Morphology.FastDilation(poreImage,structElement)
+            #dilatedPore = __FastDilation__(poreImage,structElement)
 #            dilatedPore = ndimage.binary_dilation(poreImage,
 #                                                  structure=structElement)        
             
@@ -656,8 +657,9 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
                 linkImage = np.zeros(localMyImg.shape,dtype=np.bool)
                 linkImage[voxels[0]-Xmin,voxels[1]-Ymin]=True
                 #linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1]       
-                
-            dilatedLink = __FastDilation__(linkImage,structElement)    
+             
+            dilatedLink = imageAnalysis.Morphology.FastDilation(linkImage,structElement)
+            #dilatedLink = __FastDilation__(linkImage,structElement)    
 #            dilatedLink = ndimage.binary_dilation(linkImage,
 #                                                  structure=structElement)        
             
@@ -767,51 +769,51 @@ def GetVoxelOfLabel(numLabel,voxelLookUpTable):
     return voxelIndices
     
     
-         
-#----------------------------------------------------------------------------------------------    
-def __FastDilation__(image,structuringElement):    
-    
-    structuringElement= np.asarray(structuringElement)
-    center = structuringElement.shape[0]//2
-    image=image.astype(np.bool)    
-    
-    biggerImage = np.zeros(np.asarray(image.shape)+2*center,dtype=np.bool)
-    dilatedImage = np.zeros(biggerImage.shape,dtype=np.bool) 
-    
-    dim=image.ndim    
-    
-    #smallImageIndices=(center:-center-1,center:-center-1,center:-center-1)
-#    smallImageIndices = [np.arange(center,center+image.shape[iDim]) 
+#         
+##----------------------------------------------------------------------------------------------    
+#def __FastDilation__(image,structuringElement):    
+#    
+#    structuringElement= np.asarray(structuringElement)
+#    center = structuringElement.shape[0]//2
+#    image=image.astype(np.bool)    
+#    
+#    biggerImage = np.zeros(np.asarray(image.shape)+2*center,dtype=np.bool)
+#    dilatedImage = np.zeros(biggerImage.shape,dtype=np.bool) 
+#    
+#    dim=image.ndim    
+#    
+#    #smallImageIndices=(center:-center-1,center:-center-1,center:-center-1)
+##    smallImageIndices = [np.arange(center,center+image.shape[iDim]) 
+##                            for iDim in range(dim)]
+#    
+#    smallImageIndices = [slice(center,center+image.shape[iDim]) 
 #                            for iDim in range(dim)]
-    
-    smallImageIndices = [slice(center,center+image.shape[iDim]) 
-                            for iDim in range(dim)]
-    
-    biggerImage[smallImageIndices] = image
-    
-    #X,Y,Z = np.nonzero(biggerImage)
-    nnzIndices=np.nonzero(biggerImage)
-    oneColumn=np.ones(nnzIndices[0].size,dtype=np.int)        
-    
-    for iSE in range(structuringElement.size):        
-        #xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
-        iSEposition = np.unravel_index(iSE,structuringElement.shape)
-        #if structuringElement[xIse,yIse,zIse]:
-#            shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
-#            dilatedImage[X+shiftX*oneColumn,Y+shiftY*oneColumn,Z+shiftZ*oneColumn]=True
-        if structuringElement[iSEposition]:    
-            positionTrue=[]
-            for iDim in range(dim):
-                shift=iSEposition[iDim]-center
-                positionTrue.append( nnzIndices[iDim]+shift*oneColumn )
-                  
-            dilatedImage[positionTrue]=True
-                  
-    dilatedImage = dilatedImage[smallImageIndices]
-    
-    
-    return dilatedImage
-    
+#    
+#    biggerImage[smallImageIndices] = image
+#    
+#    #X,Y,Z = np.nonzero(biggerImage)
+#    nnzIndices=np.nonzero(biggerImage)
+#    oneColumn=np.ones(nnzIndices[0].size,dtype=np.int)        
+#    
+#    for iSE in range(structuringElement.size):        
+#        #xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
+#        iSEposition = np.unravel_index(iSE,structuringElement.shape)
+#        #if structuringElement[xIse,yIse,zIse]:
+##            shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
+##            dilatedImage[X+shiftX*oneColumn,Y+shiftY*oneColumn,Z+shiftZ*oneColumn]=True
+#        if structuringElement[iSEposition]:    
+#            positionTrue=[]
+#            for iDim in range(dim):
+#                shift=iSEposition[iDim]-center
+#                positionTrue.append( nnzIndices[iDim]+shift*oneColumn )
+#                  
+#            dilatedImage[positionTrue]=True
+#                  
+#    dilatedImage = dilatedImage[smallImageIndices]
+#    
+#    
+#    return dilatedImage
+#    
     
 
 

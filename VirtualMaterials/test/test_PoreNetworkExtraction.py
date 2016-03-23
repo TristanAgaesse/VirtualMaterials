@@ -106,27 +106,7 @@ class test_PoreNetworkExtraction(unittest.TestCase):
         
         print('Test_PoreNetworkExtraction_ParseLabeledImage : need to improve coverage')                
         
-        
-    def test_FastDilation(self):
-        
-        #image2
-        image= np.array([0,0,1,1,0,0,0,1])
-        structuringElement = [1,1,1]
-
-        dilatedImage=PoreNetworkExtraction.__FastDilation__(image,structuringElement) 
-        solution = np.array([0,1,1,1,1,0,1,1])
-        self.assertTrue( np.all(dilatedImage==solution) )
     
-        #image2
-        image= np.array([[0,0,1,1,0,0,0,1],[0,0,0,0,0,0,1,0],[0,1,0,0,0,0,0,0]])
-        structuringElement = np.array([[0,1,0],[1,1,1],[0,1,0]])
-        
-        dilatedImage=PoreNetworkExtraction.__FastDilation__(image,structuringElement) 
-        solution = np.array([[0, 1,  1,  1,  1, 0,  1,  1], 
-                             [0,  1,  1,  1, 0 , 1 , 1 , 1], 
-                             [ 1 , 1 , 1 ,0, 0 ,0  ,1 ,0]])
-        self.assertTrue( np.all(dilatedImage==solution) )
-
     
     
     
