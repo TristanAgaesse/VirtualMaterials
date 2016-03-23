@@ -10,11 +10,10 @@ import SimpleITK as sitk
 import time
 import vtk
 
-from VirtualMaterials.Utilities  import tifffile as tff
 from VirtualMaterials.Simulation  import FullMorphology
 from VirtualMaterials.VirtualImages  import BasicShapes
 from VirtualMaterials.VirtualImages  import Voxelization
-
+import VirtualMaterials as vmat
 
 
 #--------------------------------------------------------------------
@@ -25,15 +24,17 @@ from VirtualMaterials.VirtualImages  import Voxelization
 #--------------------------------------------------------------------
 def CreateVirtualGDL(voxelNumbers=(200,200,200),
                      fiberContent=0.5,fiberRadius=10,fiberLength=100,
-                     binderContent=0.3,anisotropy=1,randomSeed=1):
+                     binderContent=0.3,anisotropy=1,randomSeed=1,
+                     distinctFibers=False):
     """ Creates a virtual GDL with straigth fibers                    
-    :param: voxelNumbers : virtual image size
-    :param: fiberContent : volume fraction of fibers
-    :param: fiberRadius : fiber radius (unit=voxel)
-    :param: fiberLength : fiber length (unit=voxel)
-    :param: binderContent : volume fraction of binder
-    :param: anisotropy : orientation of fibers
-    :param: randomSeed
+    :param: voxelNumbers : virtual image size (default:(200,200,200))
+    :param: fiberContent : volume fraction of fibers (default:0.5)
+    :param: fiberRadius : fiber radius (unit=voxel) (default:10 )
+    :param: fiberLength : fiber length (unit=voxel) (default:100)
+    :param: binderContent : volume fraction of binder (default:0.3)
+    :param: anisotropy : orientation of fibers (default:1)
+    :param: randomSeed :    (default:11)
+    :param: distinctFibers : True (each fiber has a different code) or False (default: False) 
     
     :return: virtual image (numpy array)
     
@@ -42,7 +43,8 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),
     virtualGDL=vmat.VirtualImages.VirtualMaterialsGeneration.CreateVirtualGDL(
                     voxelNumbers=(200,200,200),
                     fiberContent=0.5,fiberRadius=10,fiberLength=100,
-                    binderContent=0.3,anisotropy=1,randomSeed=1)
+                    binderContent=0.3,anisotropy=1,randomSeed=1,
+                    distinctFibers=False)
     
     """
     #Algorithm :add fibers until a given fiber content is achieved. 
@@ -51,12 +53,15 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),
     
     print('Create Virtual GDL')
     beginTime=time.time()
-        
+    
+    binderCode = 1
+    fiberCode = 2
+    
     random.seed(randomSeed)
 
     assert(fiberContent+binderContent<=1)
     
-    image=np.zeros(voxelNumbers,dtype=np.bool)
+    image=np.zeros(voxelNumbers,dtype=np.uint16)
     bounds=(0.0, float(voxelNumbers[0]), 
             0.0, float(voxelNumbers[1]), 
             0.0, float(voxelNumbers[2]))
@@ -68,6 +73,7 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),
     #Put cylinders according to a given random law
     print('Adding fibers until fiberContent is reached')
     fiberTotalVolume = 0.0
+    
     while fiberTotalVolume<fiberContent:
         center = (random.uniform(bounds[0], bounds[1]),
                   random.uniform(bounds[2], bounds[3]),
@@ -79,36 +85,48 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),
         
         mesh = BasicShapes.CreateCylinder(center,axis,fiberRadius,fiberLength)
         objImage = Voxelization.Voxelize(mesh,gridX,gridY,gridZ,raydirection='z')
-        image = np.logical_or(image,objImage)
         
+        if distinctFibers:
+            fiberCode = fiberCode+1
+        else:
+            fiberCode=2
+            
+        image[objImage>0] = fiberCode    
+            
         fiberTotalVolume = float(np.count_nonzero(image))/np.size(image)        
         print fiberTotalVolume,
         
     #Add binder
     
-    print('Adding binder until binderContent is reached')
+    print('Adding binder until binderContent %f is reached' %binderContent)
     
-    def GetBinder(image,binderThickness):
-        myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    def GetBinder(allFibers,binderThickness):
+        myItkImage = sitk.GetImageFromArray(allFibers.astype(np.uint8))
         myItkImage = sitk.BinaryDilate(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
         myItkImage = sitk.BinaryErode(myItkImage, int(binderThickness), sitk.sitkBall, 0.0, 1.0,  False)   
         binder=sitk.GetArrayFromImage(myItkImage).astype(np.bool)     
-        binder = np.logical_and(binder,np.logical_not(image))
+        binder = np.logical_and(binder,np.logical_not(allFibers))
         return binder
     
     #recherche dichotomique de binderThickness correspondant au binderContent demande
-    binderTotalVolume = 0.0
-    binderThickness=1    
+    binderTotalVolume = [0.0]
+    binderThickness=[1]    
     
-    while binderTotalVolume<binderContent :
-        print binderTotalVolume,
+    allFibers = image>0     
+    
+    while binderTotalVolume[-1]<binderContent :
         
-        binder = GetBinder(image,binderThickness)
-        binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
+        binder = GetBinder(allFibers,binderThickness[-1])
+        binderTotalVolume.append(float(np.count_nonzero(binder))/np.size(image))
         
-        binderThickness += 1
+        print binderTotalVolume[-1],      
+        binderThickness.append(binderThickness[-1]+1)
         
-       
+        if binderTotalVolume[-1]<binderTotalVolume[-2]:
+            print('Unable to reach binderContent %f. Best value : %f' %(binderContent,binderTotalVolume[-2]))
+            break 
+        
+        
 #guessBT =(upperBT+lowerBT)/2. 
 #binder = GetBinder(image,binderThickness)
 #binderTotalVolume = float(np.count_nonzero(binder))/np.size(image)
@@ -124,9 +142,11 @@ def CreateVirtualGDL(voxelNumbers=(200,200,200),
 #                        upperBT, lowerBT = upperBT, guessBT # dichotomie  gauche
 #                    else:
 #                        upperBT, lowerBT = guessBT, lowerBT
-        
-    image = image.astype(np.uint8)
-    image[binder] = 2    
+    
+    memoryType = vmat.Utilities.Utilities.BestMemoryType(fiberCode)
+    image = image.astype(memoryType)
+    
+    image[binder] = binderCode    
     
     endTime=time.time()
     print("Time spent : {} s".format(endTime-beginTime))

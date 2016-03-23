@@ -28,7 +28,12 @@ def EJ_heat(S,beta,d,errtol,maxit):
     :Example:
     
     import VirtualMaterials as vmat
-    temperature,B_l,RR,I = vmat.Simulations.EJHEAT.EJ_heat(image,beta=np.zeros((255,),dtype=np.float),'x',1e-6,100)
+    import numpy as np
+    beta = np.zeros((256,),dtype=np.float)
+    beta[0]=0
+    beta[255]=1
+    direction='x'
+    temperature,B_l,RR,I = vmat.Simulation.EJHeat.EJ_heat(image,beta,direction,1e-6,100)
     """
            
     print('Ej-Heat')    

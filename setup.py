@@ -20,7 +20,7 @@ setup(
               'VirtualMaterials.Utilities',
               'VirtualMaterials.Examples',
               'VirtualMaterials.test',
-              'VirtualMaterials.ImageCleaning'],
+              'VirtualMaterials.ImageAnalysis'],
               
     install_requires = [
         'numpy',

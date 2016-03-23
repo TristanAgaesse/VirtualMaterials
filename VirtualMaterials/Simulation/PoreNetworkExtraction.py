@@ -7,7 +7,7 @@ from scipy import ndimage
 from skimage import morphology
 from skimage import feature
 import SimpleITK as sitk
-#from VirtualMaterials.Utilities import tifffile as tff
+import VirtualMaterials.ImageAnalysis as imageAnalysis
 from VirtualMaterials.Utilities import Utilities as utilities    
 from collections import defaultdict
 import time
@@ -137,7 +137,8 @@ def PoresSegmentation(myImg,phases={'void':False},structuringElement=np.ones((3,
         labelShift.append(pores.max())
         
         
-    phaseBoundaries = SobelEdgeDetection(myImg)     
+    #phaseBoundaries = SobelEdgeDetection(myImg)     
+    phaseBoundaries = imageAnalysis.FeatureExtraction.SobelEdgeDetection(myImg)   
     watershedLines=np.logical_or(watershedLines,phaseBoundaries)
     
     
@@ -675,53 +676,53 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
     return surfaceComposition
 
 
-
+#
+###-----------------------------------------------------------------------------
+#def CannyEdgeDetection(myImg,variance=2):    
+#    #Uses ITK canny edge detector to detect boundaries between phases in the 
+#    #material image
+#
+#    #Load image into SimpleITK
+#    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
+#    caster = sitk.CastImageFilter()
+#    caster.SetOutputPixelType(sitk.sitkFloat32)
+#    floatImage = caster.Execute( myItkImage )
+#    
+#    #Canny edge detection
+#    canny = sitk.CannyEdgeDetectionImageFilter()
+#    variance=float(variance)
+#    canny.SetVariance( [ variance,variance,variance] )
+#    #canny.SetLowerThreshold( 10 )
+#    #canny.SetUpperThreshold( 1000 ) 
+#    myItkImage = canny.Execute( floatImage )
+#    
+#    #Go back to a numpy array image
+#    caster = sitk.CastImageFilter()
+#    caster.SetOutputPixelType(sitk.sitkInt8)
+#    myItkImage = caster.Execute( myItkImage )
+#    phaseBoundaries = sitk.GetArrayFromImage(myItkImage).astype(np.bool)
+#
+#    del myItkImage, caster, canny, floatImage  
+#
+#    return phaseBoundaries
+#
 ##-----------------------------------------------------------------------------
-def CannyEdgeDetection(myImg,variance=2):    
-    #Uses ITK canny edge detector to detect boundaries between phases in the 
-    #material image
-
-    #Load image into SimpleITK
-    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
-    caster = sitk.CastImageFilter()
-    caster.SetOutputPixelType(sitk.sitkFloat32)
-    floatImage = caster.Execute( myItkImage )
-    
-    #Canny edge detection
-    canny = sitk.CannyEdgeDetectionImageFilter()
-    variance=float(variance)
-    canny.SetVariance( [ variance,variance,variance] )
-    #canny.SetLowerThreshold( 10 )
-    #canny.SetUpperThreshold( 1000 ) 
-    myItkImage = canny.Execute( floatImage )
-    
-    #Go back to a numpy array image
-    caster = sitk.CastImageFilter()
-    caster.SetOutputPixelType(sitk.sitkInt8)
-    myItkImage = caster.Execute( myItkImage )
-    phaseBoundaries = sitk.GetArrayFromImage(myItkImage).astype(np.bool)
-
-    del myItkImage, caster, canny, floatImage  
-
-    return phaseBoundaries
-
-#-----------------------------------------------------------------------------
-def SobelEdgeDetection(myImg):    
-    #Uses ITK sobel edge detector to detect boundaries between phases in the 
-    #material image
-
-    #Load image into SimpleITK
-    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
-    caster = sitk.CastImageFilter()
-    caster.SetOutputPixelType(sitk.sitkFloat32)
-    floatImage = caster.Execute( myItkImage )
-
-    itkEdges = sitk.SobelEdgeDetection(floatImage)
-    phaseBoundaries = sitk.GetArrayFromImage(itkEdges).astype(np.bool)
-
-    del myItkImage,floatImage,itkEdges  
-
-    return phaseBoundaries
+#def SobelEdgeDetection(myImg):    
+#    #Uses ITK sobel edge detector to detect boundaries between phases in the 
+#    #material image
+#
+#    #Load image into SimpleITK
+#    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
+#    caster = sitk.CastImageFilter()
+#    caster.SetOutputPixelType(sitk.sitkFloat32)
+#    floatImage = caster.Execute( myItkImage )
+#
+#    itkEdges = sitk.SobelEdgeDetection(floatImage)
+#    phaseBoundaries = sitk.GetArrayFromImage(itkEdges).astype(np.bool)
+#
+#    del myItkImage,floatImage,itkEdges  
+#
+#    return phaseBoundaries
 
 
 #----------------------------------------------------------------------------------------------     

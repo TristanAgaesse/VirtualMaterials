@@ -12,7 +12,7 @@ def MedianFilter(image,radius = (3,3,3)):
     
     :Example:    
     import VirtualMaterials as vmat
-    filteredImage = vmat.ImageCleaning.Filters.MedianFilter(image,radius = (3,3,3))
+    filteredImage = vmat.ImageAnalysis.Filters.MedianFilter(image,radius = (3,3,3))
     """
         
     assert(image.min()>=0)
@@ -35,7 +35,7 @@ def Threshold(image, lower=0.0,upper=1.0,outsideValue=0.0):
     
     :Example:    
     import VirtualMaterials as vmat
-    filteredImage = vmat.ImageCleaning.Filters.Threshold(image, lower=0.0,upper=1.0,outsideValue=0.0)
+    filteredImage = vmat.ImageAnalysis.Filters.Threshold(image, lower=0.0,upper=1.0,outsideValue=0.0)
     """
     
     assert(image.min()>=0)
@@ -68,7 +68,7 @@ def OtsuThreshold(image,
     
     :Example:    
     import VirtualMaterials as vmat
-    filteredImage = vmat.ImageCleaning.Filters.OtsuThreshold(image,
+    filteredImage = vmat.ImageAnalysis.Filters.OtsuThreshold(image,
                maskImage,
                insideValue = 100,
                outsideValue = 0,
@@ -112,7 +112,7 @@ def AnisotropicDiffusionFilter(image,
     
     :Example:    
     import VirtualMaterials as vmat
-    filteredImage = vmat.ImageCleaning.Filters.AnisotropicDiffusionFilter(image,
+    filteredImage = vmat.ImageAnalysis.Filters.AnisotropicDiffusionFilter(image,
                           timeStep = 0.125,
                           conductanceParameter=3.0,
                           conductanceScalingUpdateInterval=1,
