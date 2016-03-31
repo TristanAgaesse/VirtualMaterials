@@ -11,13 +11,14 @@ from vtk.util import numpy_support
 #--------------------------------------------------------------------    
     
 #--------------------------------------------------------------------
-def WriteTiff(image,filename):
+def WriteTiff(image,filename,imageType=np.uint8):
     """ Writes a numpy array on the disk as a tiff file .
     :param: image
-    :param: filename 
+    :param: filename
+    :param: imageType (optional, default:np.uint8) : type de codage de l'image 
     """
     
-    tff.imsave(filename,image.astype(np.uint8))
+    tff.imsave(filename,image.astype(imageType))
 
 #--------------------------------------------------------------------
 def ReadTiff(filename):

@@ -17,7 +17,7 @@ def SobelEdgeDetection(image):
     sobelEdges = vmat.ImageAnalysis.FeatureExtraction.SobelEdgeDetection(image)
     """
         
-    myItkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    myItkImage = sitk.GetImageFromArray(image.astype(np.uint32))
     caster = sitk.CastImageFilter()
     caster.SetOutputPixelType(sitk.sitkFloat32)
     floatImage = caster.Execute( myItkImage )
@@ -77,22 +77,29 @@ def CannyEdgeDetection(image,variance=2):
 
     
 #---------------------------------------------------------------------------------------------- 
-def FindContacts(image,contours,structuringElement):
+def FindContacts(image):
     """Trouve les contacts entre les labels d'une image. Algorithme :
     # - Attribuer à chaque voxel de contours un contact s'il a exactement deux 
     # labels voisins différents.
 
     :param: image : numpy image avec plusieurs labels
-    :param: contours : zones en contact avec plusieurs labels
-    :param: structuringElement : permet de définir le voisinage d'un voxel
     :return: labeledContacts, contactToLabel
     
     :Example:    
     import VirtualMaterials as vmat
-    labeledContacts, contactToLabel = vmat.ImageAnalysis.FeatureExtraction.FindContacts(
-                        image,contours,structuringElement)
+    labeledContacts, contactToLabel = vmat.ImageAnalysis.FeatureExtraction.FindContacts(image)
     """
 
+    
+    contours = SobelEdgeDetection(image)
+
+
+    #structuringElement = np.ones((3,3,3))
+    structuringElement = np.asarray(
+        [[[0,0,0],[0,1,0],[0,0,0]],
+         [[1,1,1],[1,1,1],[1,1,1]],
+         [[0,0,0],[0,1,0],[0,0,0]]])
+    
     
     imageSize=image.shape
     assert contours.shape == imageSize
@@ -125,7 +132,7 @@ def FindContacts(image,contours,structuringElement):
                                         Y+shiftY*oneColumn,
                                         Z+shiftZ*oneColumn] )
                 #TODO:horzcat au lieu de append pour avoir une seule matrice
-        U=[set([neighboor[j][i] for j in range(len(neighboor))])-{0}  for i in range(nVox)]
+        U=[set([neighboor[j][i] for j in range(len(neighboor))])  for i in range(nVox)]
         #TODO pour gagner en temps de calcul: pour trouver les colonnes à deux elements,  
         #retrancher le max de chaque colonne puis count non zero (deux fois) 
         linksToPores=[[[min(U[i]),max(U[i])],indices[i]] for i in range(nVox) if len(U[i])==2]
