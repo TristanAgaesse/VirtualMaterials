@@ -62,18 +62,23 @@ def ChordLength(image,label,direction=(1,0,0),mode='mean'):
     
     maskImage = np.zeros(image.shape,dtype=np.bool)
 
-    
     direction = np.asarray(direction)
     direction = direction/np.linalg.norm(direction)
-    
+    prototypeLength = np.dot(direction,image.shape)
     start = np.array([0,0,0])    
-    end = start+0
+    end = np.floor(start+prototypeLength*direction)
+    shift=np.array([min(start[0],end[0]),min(start[1],end[1]),min(start[2],end[2])])            
+    start = start-shift
+    end = end-shift 
+    assert(np.all(np.greater_equal(start,np.array([0,0,0]) )))
+    assert(np.all(np.greater_equal(end,np.array([0,0,0]) )))
+    assert(np.all(np.less_equal(start,image.shape )))
+    assert(np.all(np.less_equal(end,image.shape )))
     chordPrototype = vmat.VirtualImages.BasicShapes.CreateLine(start, end)
     
+    #Put chordPrototype in mask image, along with all its copies    
     
     prototypeVolume = np.count_nonzero(chordPrototype)
-    prototypeLength = np.dot(direction,image.shape)
-
     lengthToVolumeRatio = prototypeLength/float(prototypeVolume)
 
     # Multiply image and mask image
