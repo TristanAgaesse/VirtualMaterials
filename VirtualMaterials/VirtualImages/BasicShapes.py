@@ -225,6 +225,74 @@ def CreateTorus(center,axis):
     polydata = MeshTranslate(polydata,translationVector)
     
     return polydata
+
+#--------------------------------------------------------------------
+def CreateLine(start, end):
+    """
+    N-D Bresenham line algo
+    Returns a list of points from (start, end] by ray tracing a line b/w the
+    points.
+    :param start: start point (numpy array)
+    :param end:  end points (numpy array)
+    :return: linevox :  array of all points traversed by the line.      
+    
+    Example :
+    >>>start = np.array([3, 1, 9])
+    >>>end  = np.array([0, 0, 0])
+    >>>CreateLine(start, end)
+     array([[ 3,  1,  8],
+     [ 2,  1,  7],
+     [ 2,  1,  6],
+     [ 2,  1,  5],
+     [ 1,  0,  4],
+     [ 1,  0,  3],
+     [ 1,  0,  2],
+     [ 0,  0,  1],
+     [ 0,  0,  0]])
+    """
+    
+    def _bresenhamline_nslope(slope):
+        """
+        Normalize slope for Bresenham's line algorithm.
+        """
+        scale = np.amax(np.abs(slope), axis=1).reshape(-1, 1)
+        zeroslope = (scale == 0).all(1)
+        scale[zeroslope] = np.ones(1)
+        normalizedslope = np.array(slope, dtype=np.double) / scale
+        normalizedslope[zeroslope] = np.zeros(slope[0].shape)
+            
+        return normalizedslope
+  
+    def _bresenhamlines(start, end, max_iter):
+        """
+        Returns npts lines of length max_iter each. (npts x max_iter x dimension) 
+        """
+        if max_iter == -1:
+            max_iter = np.amax(np.amax(np.abs(end - start), axis=1))
+        npts, dim = start.shape
+        nslope = _bresenhamline_nslope(end - start)
+    
+        # steps to iterate on
+        stepseq = np.arange(1, max_iter + 1)
+        stepmat = np.tile(stepseq, (dim, 1)).T
+        
+        # some hacks for broadcasting properly
+        bline = start[:, np.newaxis, :] + nslope[:, np.newaxis, :] * stepmat
+        
+        # Approximate to nearest int
+        return np.array(np.rint(bline), dtype=start.dtype)
+  
+
+    # Return the points as a single array
+    max_iter=-1
+    start=np.array([start])
+    end=np.array([end])
+    return _bresenhamlines(start, end, max_iter).reshape(-1, start.shape[-1])
+
+
+
+
+
     
 #--------------------------------------------------------------------
 def CreateVoxelizedBallFast(center,radius,imageVoxelNumber,imageBounds):

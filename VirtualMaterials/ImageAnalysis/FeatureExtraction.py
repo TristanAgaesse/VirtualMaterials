@@ -1,10 +1,26 @@
 # -*- coding: utf-8 -*-
 import SimpleITK as sitk
 import numpy as np
+from scipy import ndimage
 from VirtualMaterials.Utilities import Utilities as utilities    
 from collections import defaultdict
 import re 
 
+
+def ConnectedComponentsLabeling(image):
+    """ConnectedComponentsLabeling : 
+    :param image : numpy image    
+    :return: labelledImage
+    
+    :Example:    
+    import VirtualMaterials as vmat
+    labelledImage = vmat.ImageAnalysis.FeatureExtraction.ConnectedComponentsLabeling(image)
+    """
+
+    structuringElement = np.ones((3,3,3))
+    labelledImage=ndimage.measurements.label(image,structuringElement)[0]
+
+    return labelledImage
 
 #-----------------------------------------------------------------------------
 def SobelEdgeDetection(image):    
