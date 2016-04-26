@@ -30,7 +30,20 @@ class test_ImageAnalysis(unittest.TestCase):
         self.assertTrue( np.all(dilatedImage==solution) )
     
     
-    
+    def test_ChordLength(self):
+        
+        image=np.ones((100,50,75))
+        label=1
+        
+        clX = imageAnalysis.QuantifyGeometry.ChordLength(
+            image,label,direction=(1,0,0),mode='meanLength')
+        clY = imageAnalysis.QuantifyGeometry.ChordLength(
+            image,label,direction=(0,1,0),mode='meanLength')    
+        clZ = imageAnalysis.QuantifyGeometry.ChordLength(
+            image,label,direction=(0,0,1),mode='meanLength')   
+            
+        self.assertTrue( np.all(np.asarray((clX,clY,clZ))==image.shape) )    
+            
 #----------------------------------------------------------------------------------------------
 if __name__ == '__main__':
     unittest.main()   
