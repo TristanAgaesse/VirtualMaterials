@@ -97,8 +97,6 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
                 Zshifted=np.mod(np.asarray(Z+shiftZ),image.shape[2]*np.ones(Z.size,dtype=np.int))
                 maskImage[Xshifted,Yshifted,Zshifted]=True
     
-    #vmat.Utilities.Utilities.WriteTiff(255*(maskImage.astype(np.uint8)),'test_mask_chord.tiff')
-    # TODO
     # length of chords
     labeledmask = vmat.ImageAnalysis.FeatureExtraction.ConnectedComponentsLabeling(maskImage)
     maskVolume=ndimage.measurements.labeled_comprehension(
@@ -110,8 +108,12 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     foo=np.abs((maskVolume-prototypeVolume)/prototypeVolume)
     properMask= np.nonzero( np.less(foo,0.05))[0]+1
     maskImage = np.zeros(image.shape,dtype=np.bool)
-    for i in properMask:
-        maskImage[labeledmask==i]=True
+    
+    labeledmask_unique_sorted, labeledmask_idx = np.unique(labeledmask, return_inverse=True)
+    labeledmask_in_properMask_bool = np.in1d(labeledmask_unique_sorted, properMask, assume_unique=True)    
+    maskImage=labeledmask_in_properMask_bool[labeledmask_idx]
+    maskImage=np.reshape( maskImage,image.shape)
+  
     lengthToVolumeRatio = prototypeLength/float(prototypeVolume)
     
     # Multiply image and mask image
