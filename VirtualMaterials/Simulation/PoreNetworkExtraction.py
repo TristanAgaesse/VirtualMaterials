@@ -375,7 +375,7 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     # Pores : infos sur la forme, position des pores
     poreLabels = range(1,pores.max()+1)
 
-    pores_CenterOfMass          = PoresGeometry_CenterOfMass(pores)    
+    pores_CenterOfMass    = PoresGeometry_CenterOfMass(pores)    
     
     pores_Volume          = PoresGeometry_Volume(pores)  
         
@@ -535,10 +535,7 @@ def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesC
             poreImage[voxels[0]-Xmin,voxels[1]-Ymin,voxels[2]-Zmin]=True
             
             dilatedPore = imageAnalysis.Morphology.FastDilation(poreImage,structElement)
-            #dilatedPore = __FastDilation__(poreImage,structElement)
-#            dilatedPore = ndimage.binary_dilation(poreImage,
-#                                                  structure=structElement)        
-            
+                  
             poreSurfaceNeighborhood = localMyImg[np.logical_and(dilatedPore,
                                                                 localMyImg.astype(np.bool))]
     
@@ -659,9 +656,7 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
                 #linkImage = links[Xmin:Xmax+1,Ymin:Ymax+1]       
              
             dilatedLink = imageAnalysis.Morphology.FastDilation(linkImage,structElement)
-            #dilatedLink = __FastDilation__(linkImage,structElement)    
-#            dilatedLink = ndimage.binary_dilation(linkImage,
-#                                                  structure=structElement)        
+       
             
             linkSurfaceNeighborhood = localMyImg[np.logical_and(dilatedLink,
                                                                 localMyImg.astype(np.bool))]
@@ -677,54 +672,6 @@ def LinksGeometry_NeighborPhases(myImg,links,linkLabels,voxelLookUpTable,phasesC
     
     return surfaceComposition
 
-
-#
-###-----------------------------------------------------------------------------
-#def CannyEdgeDetection(myImg,variance=2):    
-#    #Uses ITK canny edge detector to detect boundaries between phases in the 
-#    #material image
-#
-#    #Load image into SimpleITK
-#    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
-#    caster = sitk.CastImageFilter()
-#    caster.SetOutputPixelType(sitk.sitkFloat32)
-#    floatImage = caster.Execute( myItkImage )
-#    
-#    #Canny edge detection
-#    canny = sitk.CannyEdgeDetectionImageFilter()
-#    variance=float(variance)
-#    canny.SetVariance( [ variance,variance,variance] )
-#    #canny.SetLowerThreshold( 10 )
-#    #canny.SetUpperThreshold( 1000 ) 
-#    myItkImage = canny.Execute( floatImage )
-#    
-#    #Go back to a numpy array image
-#    caster = sitk.CastImageFilter()
-#    caster.SetOutputPixelType(sitk.sitkInt8)
-#    myItkImage = caster.Execute( myItkImage )
-#    phaseBoundaries = sitk.GetArrayFromImage(myItkImage).astype(np.bool)
-#
-#    del myItkImage, caster, canny, floatImage  
-#
-#    return phaseBoundaries
-#
-##-----------------------------------------------------------------------------
-#def SobelEdgeDetection(myImg):    
-#    #Uses ITK sobel edge detector to detect boundaries between phases in the 
-#    #material image
-#
-#    #Load image into SimpleITK
-#    myItkImage = sitk.GetImageFromArray(myImg.astype(np.uint8))
-#    caster = sitk.CastImageFilter()
-#    caster.SetOutputPixelType(sitk.sitkFloat32)
-#    floatImage = caster.Execute( myItkImage )
-#
-#    itkEdges = sitk.SobelEdgeDetection(floatImage)
-#    phaseBoundaries = sitk.GetArrayFromImage(itkEdges).astype(np.bool)
-#
-#    del myItkImage,floatImage,itkEdges  
-#
-#    return phaseBoundaries
 
 
 #----------------------------------------------------------------------------------------------     
@@ -768,53 +715,7 @@ def GetVoxelOfLabel(numLabel,voxelLookUpTable):
     
     return voxelIndices
     
-    
-#         
-##----------------------------------------------------------------------------------------------    
-#def __FastDilation__(image,structuringElement):    
-#    
-#    structuringElement= np.asarray(structuringElement)
-#    center = structuringElement.shape[0]//2
-#    image=image.astype(np.bool)    
-#    
-#    biggerImage = np.zeros(np.asarray(image.shape)+2*center,dtype=np.bool)
-#    dilatedImage = np.zeros(biggerImage.shape,dtype=np.bool) 
-#    
-#    dim=image.ndim    
-#    
-#    #smallImageIndices=(center:-center-1,center:-center-1,center:-center-1)
-##    smallImageIndices = [np.arange(center,center+image.shape[iDim]) 
-##                            for iDim in range(dim)]
-#    
-#    smallImageIndices = [slice(center,center+image.shape[iDim]) 
-#                            for iDim in range(dim)]
-#    
-#    biggerImage[smallImageIndices] = image
-#    
-#    #X,Y,Z = np.nonzero(biggerImage)
-#    nnzIndices=np.nonzero(biggerImage)
-#    oneColumn=np.ones(nnzIndices[0].size,dtype=np.int)        
-#    
-#    for iSE in range(structuringElement.size):        
-#        #xIse,yIse,zIse = np.unravel_index(iSE,structuringElement.shape)
-#        iSEposition = np.unravel_index(iSE,structuringElement.shape)
-#        #if structuringElement[xIse,yIse,zIse]:
-##            shiftX,shiftY,shiftZ = xIse-center,yIse-center,zIse-center
-##            dilatedImage[X+shiftX*oneColumn,Y+shiftY*oneColumn,Z+shiftZ*oneColumn]=True
-#        if structuringElement[iSEposition]:    
-#            positionTrue=[]
-#            for iDim in range(dim):
-#                shift=iSEposition[iDim]-center
-#                positionTrue.append( nnzIndices[iDim]+shift*oneColumn )
-#                  
-#            dilatedImage[positionTrue]=True
-#                  
-#    dilatedImage = dilatedImage[smallImageIndices]
-#    
-#    
-#    return dilatedImage
-#    
-    
+ 
 
 
     

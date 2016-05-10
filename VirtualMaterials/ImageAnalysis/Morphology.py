@@ -4,6 +4,54 @@ import numpy as np
 
 
 #----------------------------------------------------------------------------------------------    
+def Dilation(image,ballRadius):
+    """ITK morphology binary dilation
+    :param image : numpy image (boolean)   
+    :param: ballRadius : radius of the structuring element (in voxels)
+    :return: numpy image 
+    
+    :Example:    
+    import VirtualMaterials as vmat
+    ballRadius = 1
+    sobelEdges = vmat.ImageAnalysis.Morphology.Dilation(image,ballRadius)
+    """
+
+    itkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    foregroundValue = 1.0   
+    backgroundValue = 0.0
+    boundaryToForeGround=False
+    itkDilated = sitk.BinaryDilate(itkImage, int(ballRadius), sitk.sitkBall,
+                        backgroundValue, foregroundValue,  boundaryToForeGround)   
+    dilatedImage=sitk.GetArrayFromImage(itkDilated)  
+    dilatedImage=dilatedImage.astype(np.bool) 
+
+    return dilatedImage
+    
+#----------------------------------------------------------------------------------------------    
+def Erosion(image,ballRadius):
+    """ITK morphology binary erosion
+    :param image : numpy image (boolean)   
+    :param: ballRadius : radius of the structuring element (in voxels)
+    :return: numpy image 
+    
+    :Example:    
+    import VirtualMaterials as vmat
+    ballRadius = 1
+    sobelEdges = vmat.ImageAnalysis.Morphology.Erosion(image,ballRadius)
+    """
+
+    itkImage = sitk.GetImageFromArray(image.astype(np.uint8))
+    foregroundValue = 1.0   
+    backgroundValue = 0.0
+    boundaryToForeGround=True
+    itkEroded = sitk.BinaryErode(itkImage, int(ballRadius), sitk.sitkBall,
+                        backgroundValue, foregroundValue,  boundaryToForeGround)    
+    erodedImage=sitk.GetArrayFromImage(itkEroded)  
+    erodedImage=erodedImage.astype(np.bool) 
+
+    return erodedImage
+
+#----------------------------------------------------------------------------------------------    
 def FastDilation(image,structuringElement):    
     """Custom implementation of morphology dilation
     :param image : numpy image    

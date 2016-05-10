@@ -113,7 +113,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     labeledmask_in_properMask_bool = np.in1d(labeledmask_unique_sorted, properMask, assume_unique=True)    
     maskImage=labeledmask_in_properMask_bool[labeledmask_idx]
     maskImage=np.reshape( maskImage,image.shape)
-  
+
     lengthToVolumeRatio = prototypeLength/float(prototypeVolume)
     
     # Multiply image and mask image
