@@ -803,13 +803,15 @@ def CreateTestImage_DiffuseSphericalInclusions(sphereRadius=5):
     return image    
     
 #--------------------------------------------------------------------   
-def CreateTestImage_CylinderArray(cylinderRadius=10):
+def CreateTestImage_CylinderArray(cylinderRadius=10,voxelNumberParam=1):
     """ CreateTestImage_CylinderArray    
-    :param: cylinderRadius=8
+    :param: cylinderRadius=10
     """                    
     
     #Image parameters
-    voxelNumbers = (200,150,200)
+    vp=voxelNumberParam
+    voxelNumbers = np.array([vp*200,vp*150,vp*200],dtype=np.int)
+    
     
     image = 0*np.ones(voxelNumbers,dtype=np.uint8)
     bounds=(0.0, float(voxelNumbers[0]), 
@@ -826,22 +828,22 @@ def CreateTestImage_CylinderArray(cylinderRadius=10):
     height = 1.1*voxelNumbers[2]
     resolution = int(math.ceil(6*cylinderRadius))
     
-    center1 = np.asarray( (50,50,height/2.0) )
+    center1 = np.asarray( (vp*50,vp*50,height/2.0) ,dtype=np.int)
     cylinder1 = BasicShapes.CreateCylinder(center1,axis,cylinderRadius,height,resolution=resolution)
     
-    center2 = np.asarray( (100,50,height/2.0) )
+    center2 = np.asarray( (vp*100,vp*50,height/2.0) ,dtype=np.int)
     cylinder2 = BasicShapes.CreateCylinder(center2,axis,cylinderRadius,height,resolution=resolution)   
 
-    center3 = np.asarray( (150,50,height/2.0) )
+    center3 = np.asarray( (vp*150,vp*50,height/2.0) ,dtype=np.int)
     cylinder3 = BasicShapes.CreateCylinder(center3,axis,cylinderRadius,height,resolution=resolution)
     
-    center4 = np.asarray( (50,100,height/2.0) )
+    center4 = np.asarray( (vp*50,vp*100,height/2.0) ,dtype=np.int)
     cylinder4 = BasicShapes.CreateCylinder(center4,axis,cylinderRadius,height,resolution=resolution)
     
-    center5 = np.asarray( (100,100,height/2.0) )
+    center5 = np.asarray( (vp*100,vp*100,height/2.0) ,dtype=np.int)
     cylinder5 = BasicShapes.CreateCylinder(center5,axis,cylinderRadius,height,resolution=resolution)
     
-    center6 = np.asarray( (150,100,height/2.0) )
+    center6 = np.asarray( (vp*150,vp*100,height/2.0) ,dtype=np.int)
     cylinder6 = BasicShapes.CreateCylinder(center6,axis,cylinderRadius,height,resolution=resolution)
     
     
