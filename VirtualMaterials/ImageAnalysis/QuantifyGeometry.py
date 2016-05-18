@@ -17,7 +17,7 @@ def VolumeFraction(image):
 
     phaseList= np.unique(image)
     maxPhase = max(phaseList)
-    volumeFraction = np.zeros((1,maxPhase+1))
+    volumeFraction = np.zeros(maxPhase+1)
 
     imSize=float(image.size)
     for iPhase in phaseList:
@@ -36,12 +36,33 @@ def Tortuosity(image,label):
     import VirtualMaterials as vmat
     label = 0
     tortuosity = vmat.ImageAnalysis.QuantifyGeometry.Tortuosity(image,label)
-    tortuosity = -1
     """
     
     #ITK MinimalPathExtraction
+    print('Tortuosity : NOT IMPLEMENTED')
     tortuosity=-1
     return tortuosity
+
+
+#----------------------------------------------------------------------------------------------    
+def Constrictivity(image,label): 
+    """Constrictivity : NOT IMPLEMENTED Constrictivity of a label in the image
+    :param image : numpy image
+    :param label : label
+    :return: constrictivity
+    
+    :Example:    
+    import VirtualMaterials as vmat
+    label = 0
+    constrictivity = vmat.ImageAnalysis.QuantifyGeometry.Constrictivity(image,label)
+    """
+    
+    # Mean size according to full morphology
+    print('Constrictivity : NOT IMPLEMENTED')
+    constrictivity=-1
+    return constrictivity
+
+
 
 #----------------------------------------------------------------------------------------------    
 def ChordLength(image,label,direction=(1,0,0),mode='meanLength'): 
@@ -136,4 +157,52 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
         
     
     return length
+
+
+
+
+#----------------------------------------------------------------------------------------------    
+def PoreSizeDistribution_Continuous(image,nPoint=10): 
+    """PoreSizeDistribution_Continuous : NOT IMPLEMENTED 
+    PoreSizeDistribution_Continuous of a label in the image
+    :param image : numpy image (boolean)
+    :param nPoint : label (default=10)
+    :return: radiusList,cPSD
+    
+    :Example:    
+    import VirtualMaterials as vmat
+    label = 0
+    radiusList,cPSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(image,label)
+    """
+        
+    # Compute distance map
+    distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(image) 
+    
+    #Compute radius covering map :
+    # for size from 1 voxel to max(DistanceMap), dilate distanceMap>size with
+    # ball of radius size
+    radiusCovMap=np.zeros(image.shape,dtype=np.uint8)
+    maxRadius = int(distanceMap.max())
+    nPoint = min((nPoint,maxRadius))
+    radiusList = np.linspace(1,maxRadius,nPoint).astype(np.uint8)
+    for i in range(nPoint):
+        radius = radiusList[-i]
+        foo=vmat.ImageAnalysis.Morphology.Dilation(distanceMap>=float(radius),radius)
+        radiusCovMap[np.logical_and(foo,radiusCovMap==0)] = radius
+    
+    # Post treatement : coonvert the radius covering map to a PSD
+    volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(radiusCovMap)
+    
+    sphereVolume = [4/3.0*math.pi*R**3 for R in radiusList.tolist()]
+    cPSD = [volumeFraction[radiusList[i]]/sphereVolume[i] 
+                                    for i in range(1,maxRadius)]
+    cPSD = np.asarray(cPSD)
+    
+        
+    
+    return radiusList,cPSD
+
+
+
+
     
