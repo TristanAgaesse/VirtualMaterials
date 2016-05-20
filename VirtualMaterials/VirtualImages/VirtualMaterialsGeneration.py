@@ -291,7 +291,8 @@ def CreateVirtualCatalystLayer(voxelNumbers=(200,200,200),
 
 #--------------------------------------------------------------------
 def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),
-                                 penetrationLength=15):
+                                 penetrationLength=15,randomSeed=0,
+                                 anisotropy=4):
     """ Creates a Virtual Interface GDL MPL using a virtual GDL and
     MPL injected at the bottom of the GDL with full morphology algorithm
     
@@ -319,7 +320,7 @@ def CreateVirtualInterfaceGDLMPL(voxelNumbers=(400,400,300),
     
     gdl = CreateVirtualGDL(voxelNumbers=GDLVoxelNumbers,
                            fiberContent=0.2,fiberRadius=9,fiberLength=GDLVoxelNumbers[0],
-                           binderContent=0.05,anisotropy=4,randomSeed=0)
+                           binderContent=0.05,anisotropy=anisotropy,randomSeed=randomSeed)
 
     #Create interface image with GDL on top
     
