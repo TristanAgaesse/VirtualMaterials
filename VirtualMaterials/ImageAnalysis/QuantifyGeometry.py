@@ -126,6 +126,12 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     
     prototypeVolume = float(chordPrototype.shape[0])
     
+    # Remove pathological chords, i.e. the ones were there is an uncertainty 
+    #regarding their length
+    # Here we use the following criterium: the chord must have the same length 
+    #as a reference chord.
+    # A better criteria would be : don't take into account the chords that 
+    # intersect the frontiers of the domain    
     foo=np.abs((maskVolume-prototypeVolume)/prototypeVolume)
     properMask= np.nonzero( np.less(foo,0.05))[0]+1
     maskImage = np.zeros(image.shape,dtype=np.bool)

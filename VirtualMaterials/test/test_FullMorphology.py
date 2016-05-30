@@ -31,6 +31,12 @@ class test_FullMorphology(unittest.TestCase):
        
         print('Test_FullMorphology : need to improve coverage')
     
+    def test_CapillaryPressureCurve(self):
+    
+        print('Test_CapillaryPressureCurve : need to improve coverage')
+    
+    
+    
     
     
 #----------------------------------------------------------------------------------------------

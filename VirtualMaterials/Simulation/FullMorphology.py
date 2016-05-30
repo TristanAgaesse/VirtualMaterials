@@ -4,18 +4,70 @@ import numpy as np
 from scipy import ndimage
 import SimpleITK as sitk
 import time
+import VirtualMaterials as vmat
 
-#from skimage import morphology
-
+def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
+                           voxelLength=1,nPoints=10):
+    """Computes the capillary pressure curve of the pore phase using a 
+    FullMorphology simulation of water injection.
+    :param image: numpy ndarray
+    :param porePhaseCode : code of the void voxels (default:0)
+    :param inletFace: 0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax (default:0)
+    :param nPoints: number of points on the curve (default:10)
+    :return: PcS: capillary pressure curve: PcS[0]=saturationList, PcS[1]=pressures  
+    :return: ,imageWithWater : image of water distributions
+    
+    :Example:
+    import VirtualMaterials as vmat 
+    PcSCurve,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
+               image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=10)
+    """
+    
+    simuImage = 255*(np.logical_not(image==porePhaseCode).astype(np.uint8)) 
+    
+    distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
+    maxRadius = distanceMap.max()
+    
+    radiusList=np.unique(np.linspace(1,maxRadius,nPoints).astype(np.int))    
+    radiusList = radiusList.tolist()
+    nPoints = len(radiusList)
+    
+    gamma = 72e-3
+    pressureCode = [100+i for i in range(nPoints)]
+    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
+    
+    
+    imageWithWater = FullMorphology(simuImage,inletFace=inletFace,
+                                    voxelLength=voxelLength,pressureList=pressureList,
+                                    pressureCode=pressureCode,gamma=gamma,
+                                    distanceMap=distanceMap)
+    
+    # Convert the water distributions to Pc(S) curve
+    volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(image)    
+    
+    cumulativeSaturation = 0
+    saturationList =[]
+    for i in range(nPoints):
+        cumulativeSaturation = volumeFraction[pressureCode[i]] + cumulativeSaturation
+        saturationList.append(cumulativeSaturation)
+    
+    PcS=[0,0]
+    PcS[0] = saturationList
+    PcS[1] = pressureList
+    
+    return PcS,imageWithWater
+    
+    
+    
 #----------------------------------------------------------------------------------------------
-
-def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3):
-    """FullMorhology simulation of water injection in a porous medium.
+def FullMorphology(inputImage,inletFace=0,voxelLength=1,pressureList=[10],pressureCode=[110],gamma=72e-3,distanceMap=None):
+    """FullMorphology simulation of water injection in a porous medium.
     :param inputImage: numpy ndarray 
     :param inletFace: 0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax
     :param pressureList: list of one or several pressures
     :param pressureCode: list of codes to label water at the pressures in pressureList
     :param gamma: surface tension
+    :param distanceMap: (facultative, default=None): precomputed distanceMap
     :return: image: inputImage + water labelled as pressureCode
     
     :Example:
@@ -47,11 +99,11 @@ def FullMorphology(inputImage,inletFace=1,voxelLength=1,pressureList=[10],pressu
     elif inletFace==5:
         inletVoxels[:,:,-1] = True        
         
-    #distanceMap = ndimage.distance_transform_edt(np.logical_not(myImg)).astype(np.float16)
-    memoryType=np.float16
-    itkimage = sitk.GetImageFromArray(np.logical_not(myImg==0).astype(np.uint8))
-    itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
-    distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType)
+    if not(distanceMap is None):
+        distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(myImg==0)
+    else:
+        assert(distanceMap.shape == image.shape)
+        distanceMap=distanceMap
 
 
     pressureCode=np.asarray(pressureCode).astype(np.uint8)
