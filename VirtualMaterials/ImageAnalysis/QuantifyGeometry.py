@@ -61,9 +61,9 @@ def Constrictivity(image,label):
     print('Constrictivity : NOT IMPLEMENTED')
     constrictivity=-1
     return constrictivity
-
-
-
+    
+    
+    
 #----------------------------------------------------------------------------------------------    
 def ChordLength(image,label,direction=(1,0,0),mode='meanLength'): 
     """ChordLength : 
@@ -76,11 +76,11 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     :Example:    
     import VirtualMaterials as vmat
     label = 0
-    ChordLength = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(image,label,direction=(1,0,0),mode='mean')
+    chordLength = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(image,label,direction=(1,0,0),mode='meanLength')
     """
     
     # Mask image
-
+    
     maskImage = np.zeros(image.shape,dtype=np.bool)
     
     direction = np.asarray(direction)
@@ -109,7 +109,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
         shiftYList=[0]
     elif perpDir==2:
         shiftZlist=[0]
-        
+    
     for shiftX in shiftXList:
         for shiftY in shiftYList:
             for shiftZ in shiftZlist:
@@ -134,7 +134,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     labeledmask_in_properMask_bool = np.in1d(labeledmask_unique_sorted, properMask, assume_unique=True)    
     maskImage=labeledmask_in_properMask_bool[labeledmask_idx]
     maskImage=np.reshape( maskImage,image.shape)
-
+    
     lengthToVolumeRatio = prototypeLength/float(prototypeVolume)
     
     # Multiply image and mask image
@@ -147,7 +147,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     chordVolume=ndimage.measurements.labeled_comprehension(
                   labeledChords, labeledChords,range(1,labeledChords.max()+1),
                   np.size,np.int,0)
-      
+    
     chordLength = chordVolume*lengthToVolumeRatio      
     
     if mode=='allLength':
@@ -157,10 +157,10 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
         
     
     return length
-
-
-
-
+    
+    
+    
+    
 #----------------------------------------------------------------------------------------------    
 def PoreSizeDistribution_Continuous(image,nPoint=10): 
     """PoreSizeDistribution_Continuous : NOT IMPLEMENTED 
@@ -174,7 +174,7 @@ def PoreSizeDistribution_Continuous(image,nPoint=10):
     label = 0
     radiusList,cPSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(image,label)
     """
-        
+    
     # Compute distance map
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(image) 
     
@@ -198,11 +198,11 @@ def PoreSizeDistribution_Continuous(image,nPoint=10):
                                     for i in range(1,maxRadius)]
     cPSD = np.asarray(cPSD)
     
-        
+    
     
     return radiusList,cPSD
-
-
-
-
+    
+    
+    
+    
     
