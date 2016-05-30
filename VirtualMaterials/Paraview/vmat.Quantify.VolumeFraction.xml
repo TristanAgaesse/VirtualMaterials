@@ -1,0 +1,53 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.Quantify.VolumeFraction" group="filters">
+    <CompoundSourceProxy id="4419" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4263" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4263.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="4263.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="4263.InformationScript" number_of_elements="1">
+          <Element index="0" value="from paraview import util&#xa;&#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;shape=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;&#xa;util.SetOutputWholeExtent(self, shape)&#xa;"/>
+        </Property>
+        <Property name="Input" id="4263.Input" number_of_elements="1">
+          <Domain name="groups" id="4263.Input.groups"/>
+          <Domain name="input_type" id="4263.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4263.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="6"/>
+          <Domain name="enum" id="4263.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4263.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4263.Script" number_of_elements="1">
+          <Element index="0" value="#Computes the volume fraction of the phases in the image&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;pdi = self.GetInputDataObject(0,0)&#xa;numpyInputImage=vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(numpyInputImage)&#xa;&#xa;phases=np.nonzero(volumeFraction)&#xa;print(&#x27;Codes of phases present in the image&#x27;)&#xa;print(phases[0])&#xa;print(&#x27;Volume fractions of the phases&#x27;)&#xa;print(volumeFraction[phases])&#xa;&#xa;#-----Do not modify below-------------------------&#xa;numpyOutputImage = np.zeros(numpyInputImage.shape,dtype=np.uint8)&#xa;vtkOutputImage=vmat.Utilities.Utilities.NumpyToVTKImage(numpyOutputImage)&#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;wholeExtent=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;vtkOutputImage.SetExtent(wholeExtent)&#xa;&#xa;self.GetOutputDataObject(0).DeepCopy( vtkOutputImage)"/>
+        </Property>
+        <Property name="TimestepValues" id="4263.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4263.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="InformationScript" proxy_name="ProgrammableFilter1" exposed_name="RequestInformation Script"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>

@@ -1,0 +1,53 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.Quantify.ChordLength" group="filters">
+    <CompoundSourceProxy id="4573" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4152" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4152.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="4152.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="4152.InformationScript" number_of_elements="1">
+          <Element index="0" value="from paraview import util&#xa;&#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;shape=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;&#xa;util.SetOutputWholeExtent(self, shape)&#xa;"/>
+        </Property>
+        <Property name="Input" id="4152.Input" number_of_elements="1">
+          <Domain name="groups" id="4152.Input.groups"/>
+          <Domain name="input_type" id="4152.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4152.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="8"/>
+          <Domain name="enum" id="4152.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4152.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4152.Script" number_of_elements="1">
+          <Element index="0" value="#Computes chord lengths for one phase in the image&#xa;&#xa;label = 0  #Change here the code of the phase you want to study   &#xa;&#xa;mode = &#x27;meanLength&#x27;  # mode: function returns the mean chord length &#xa;#mode = &#x27;allLength&#x27;   # mode: function returns all chord length computed&#xa;&#xa;&#xa;#---Do not modify below--------------&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image = vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Chord Length. Phase:%d&#x27; %label)&#xa;&#xa;chordLengthX = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(1,0,0),mode=mode)&#xa;chordLengthY = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,1,0),mode=mode)&#xa;chordLengthZ = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,0,1),mode=mode)&#xa;&#xa;print(&#x27;direction: X&#x27;)&#xa;print(chordLengthX)&#xa;print(&#x27;direction: Y&#x27;)&#xa;print(chordLengthY)&#xa;print(&#x27;direction: Z&#x27;)&#xa;print(chordLengthZ)&#xa;&#xa;#-----Do not modify below-------------------------&#xa;numpyOutputImage = np.zeros(image.shape,dtype=np.uint8)&#xa;vtkOutputImage=vmat.Utilities.Utilities.NumpyToVTKImage(numpyOutputImage)&#xa;inInfo = self.GetExecutive().GetInputInformation(0,0)&#xa;wholeExtent=inInfo.Get(vtk.vtkStreamingDemandDrivenPipeline.WHOLE_EXTENT())&#xa;vtkOutputImage.SetExtent(wholeExtent)&#xa;&#xa;self.GetOutputDataObject(0).DeepCopy( vtkOutputImage)"/>
+        </Property>
+        <Property name="TimestepValues" id="4152.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4152.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter1" exposed_name="Parameters"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
