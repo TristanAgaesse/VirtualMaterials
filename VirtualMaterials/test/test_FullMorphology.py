@@ -35,7 +35,9 @@ class test_FullMorphology(unittest.TestCase):
     
         print('Test_CapillaryPressureCurve : need to improve coverage')
     
-    
+        image = VirtualMaterialsGeneration.CreateTestImage_TetrahedronMedialAxis()
+        image[image==50]=0
+        image[image==100]=0 
     
     
     

@@ -1,0 +1,53 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.Simulation.CapillaryPressureCurve" group="filters">
+    <CompoundSourceProxy id="4417" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4361" servers="1" compound_name="ProgrammableFilter2">
+        <Property name="CopyArrays" id="4361.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="4361.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="4361.InformationScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Input" id="4361.Input" number_of_elements="1">
+          <Domain name="groups" id="4361.Input.groups"/>
+          <Domain name="input_type" id="4361.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4361.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="19"/>
+          <Domain name="enum" id="4361.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4361.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4361.Script" number_of_elements="1">
+          <Element index="0" value="#Simulates a capillary pressure curve using the FullMorphology algorithm&#xa;&#xa;porePhaseCode=0  # code of pore voxels&#xa;inletFace = 0&#xa;#inletFace=0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax&#xa;voxelLength = 1e-6&#xa;&#xa;&#xa;#------Do not modify below------&#xa;import VirtualMaterials as vmat&#xa;import matplotlib.pyplot as plt&#xa;&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image=vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Capillary Pressure Curve&#x27;)&#xa;PcS,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(&#xa;           image,porePhaseCode=porePhaseCode,inletFace=inletFace,&#xa;           voxelLength=voxelLength,nPoints=10)&#xa;&#xa;print(&#x27;Saturation&#x27;)&#xa;print(PcS[0])&#xa;print(&#x27;Pression capillaire&#x27;)&#xa;print(PcS[1])&#xa;&#xa;import numpy as np&#xa;executive = self.GetExecutive()&#xa;outInfo = executive.GetOutputInformation(0)&#xa;output.RowData.append(PcS[0], &#x22;Saturation&#x22;)&#xa;output.RowData.append(PcS[1], &#x22;Capillary pressure (in Pa)&#x22;)"/>
+        </Property>
+        <Property name="TimestepValues" id="4361.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4361.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Input" proxy_name="ProgrammableFilter2" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter2" exposed_name="Parameters"/>
+        <Property name="Script" proxy_name="ProgrammableFilter2" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter2" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>

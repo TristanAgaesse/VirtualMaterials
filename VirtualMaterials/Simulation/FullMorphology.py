@@ -15,11 +15,11 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     :param inletFace: 0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax (default:0)
     :param nPoints: number of points on the curve (default:10)
     :return: PcS: capillary pressure curve: PcS[0]=saturationList, PcS[1]=pressures  
-    :return: ,imageWithWater : image of water distributions
+    :return: imageWithWater : image of water distributions
     
     :Example:
     import VirtualMaterials as vmat 
-    PcSCurve,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
+    PcS,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
                image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=10)
     """
     
@@ -28,7 +28,7 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
     maxRadius = distanceMap.max()
     
-    radiusList=np.unique(np.linspace(1,maxRadius,nPoints).astype(np.int))    
+    radiusList = np.unique(np.linspace(1,maxRadius,nPoints).astype(np.int))    
     radiusList = radiusList.tolist()
     nPoints = len(radiusList)
     
@@ -36,24 +36,23 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     pressureCode = [100+i for i in range(nPoints)]
     pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
     
-    
     imageWithWater = FullMorphology(simuImage,inletFace=inletFace,
                                     voxelLength=voxelLength,pressureList=pressureList,
                                     pressureCode=pressureCode,gamma=gamma,
                                     distanceMap=distanceMap)
     
     # Convert the water distributions to Pc(S) curve
-    volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(image)    
+    volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(imageWithWater)    
     
     cumulativeSaturation = 0
-    saturationList =[]
+    saturationList = []
     for i in range(nPoints):
-        cumulativeSaturation = volumeFraction[pressureCode[i]] + cumulativeSaturation
+        cumulativeSaturation = volumeFraction[pressureCode[nPoints-1-i]]+cumulativeSaturation
         saturationList.append(cumulativeSaturation)
     
     PcS=[0,0]
     PcS[0] = saturationList
-    PcS[1] = pressureList
+    PcS[1] = pressureList[::-1]
     
     return PcS,imageWithWater
     
@@ -99,10 +98,10 @@ def FullMorphology(inputImage,inletFace=0,voxelLength=1,pressureList=[10],pressu
     elif inletFace==5:
         inletVoxels[:,:,-1] = True        
         
-    if not(distanceMap is None):
+    if distanceMap is None:
         distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(myImg==0)
     else:
-        assert(distanceMap.shape == image.shape)
+        assert(distanceMap.shape == myImg.shape)
         distanceMap=distanceMap
 
 
