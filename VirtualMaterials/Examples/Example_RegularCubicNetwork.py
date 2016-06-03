@@ -1,0 +1,257 @@
+# -*- coding: utf-8 -*-
+#%Test de la formule de la constrictivité sur un réseau de pore régulier
+#%formé de pores ayant tous la même taille. 
+#% Paramètres du réseau :
+#%   a : pas du réseau
+#%   D : diamètre des pores
+#%   k*D : diamètre des liens
+#%   u=D/a, paramètre adimensionné.
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+#-----------------Gaz phase : formula-----------------
+
+#Geometric parameters
+epsilonGaz = lambda u, k: u**2*k**2+u**3*(1-k**2)    #volume fraction
+tortuosityGaz = 1
+constrictivityGaz = lambda u, k: k**2     # constrictivité
+
+# Constrictivity equation
+mGaz=lambda u, k: 2.03*(epsilonGaz(u,k))**1.57*(constrictivityGaz(u,k))**0.57/tortuosityGaz**2
+# Formule pour la conductivité effective : calcul à la main possible sur la
+# géométrie très simple
+deffGaz= lambda u, k:  1/(((1/u)*(1-1/k**2)+(1/u**2)*(1/k**2)))
+
+#-----------------Solide phase : formula-----------------
+
+# geometric parameters
+epsilonSolide = lambda u, k: 1-epsilonGaz(u,k)    #volume fraction
+tortuositySolide = 1
+constrictivitySolide = lambda u, k: (1-u)*(1+u*(2*k-1))    # constrictivité
+
+# Constrictivity equation
+mSolide=lambda u, k: 2.03*(epsilonSolide(u,k))**1.57*(constrictivitySolide(u,k))**0.57/tortuositySolide**2
+# Formule pour la conductivité effective : calcul à la main possible sur la
+# géométrie très simple
+deffSolide= lambda u, k:  1/(1-u+k/(-2*k+u*(2*k-1)+1/u)+(1-k)/(-u+1/u))
+
+
+#-----------------  Gaz phase plots   -----------------
+
+#Comparing m and deffGaz, which are two expressions for effective diffusivity
+plt.figure(0)
+nPoints = 9 
+uArray = np.linspace(0.1,0.9,nPoints) 
+kArray = 0.5*np.ones(nPoints) 
+
+deffGazArray=np.zeros(nPoints)
+for i in range(9):
+    deffGazArray[i]=deffGaz(uArray[i],kArray[i]) 
+
+mGazArray=np.zeros(nPoints)
+for i in range(9):
+    mGazArray[i]=mGaz(uArray[i],kArray[i])
+
+plt.plot(uArray,deffGazArray,label='Real value (analytic formula)')
+plt.plot(uArray,mGazArray,label='Constrictivity equation') 
+plt.xlabel('u=d/a')
+plt.ylabel('Diffusion coefficient (adimensioned)')
+plt.title('Constrictivity equation on a simple structured pore network - gaz phase')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()
+
+
+#Error analysis
+plt.figure(1)
+ratio=[]
+for j in range(1,10):
+    kArray = j/10.0*np.ones(nPoints) 
+    deffGazArray=np.zeros(nPoints)
+    mGazArray=np.zeros(nPoints)
+    for i in range(9):
+        deffGazArray[i]=deffGaz(uArray[i],kArray[i]) 
+    for i in range(9):
+        mGazArray[i]=mGaz(uArray[i],kArray[i])
+    ratio.append(mGazArray/deffGazArray)
+
+for j in range(1,10): 
+    plt.plot(uArray,ratio[j-1],label='Ratio for k=0.%d' %j)
+    
+plt.xlabel('u=d/a')
+plt.ylabel('Ratio : constrictivity equation over real value')
+plt.title('Constrictivity equation on a simple structured pore network - gaz phase')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()
+
+
+#Correlation between deffGaz and porosity
+plt.figure(2)
+nPoints = 20 
+uArray = np.linspace(0.1,0.9,nPoints) 
+kArray = np.linspace(0.1,0.9,nPoints) 
+
+deffSolideArray=np.zeros(nPoints*nPoints)
+epsilonSolideArray = np.zeros(nPoints*nPoints)
+for i in range(nPoints):
+    for j in range(nPoints):
+        deffSolideArray[i*nPoints+j]=deffSolide(uArray[i],kArray[j])
+        epsilonSolideArray[i*nPoints+j]=epsilonSolide(uArray[i],kArray[j])    
+
+plt.scatter(epsilonSolideArray,deffSolideArray)    
+plt.xlabel('Porosity')
+plt.ylabel('Diffusion coefficient (normalized)')
+plt.title('Correlation between diffusion and porosity - solide phase')
+#plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()        
+
+
+#--------------------Solide phase plots---------------------
+
+#Comparing m and deffSolide, which are two expressions for effective diffusivity
+plt.figure(3)
+nPoints = 9 
+uArray = np.linspace(0.1,0.9,nPoints) 
+kArray = 0.5*np.ones(nPoints) 
+
+deffSolideArray=np.zeros(nPoints)
+for i in range(9):
+    deffSolideArray[i]=deffSolide(uArray[i],kArray[i]) 
+
+mSolideArray=np.zeros(nPoints)
+for i in range(9):
+    mSolideArray[i]=mSolide(uArray[i],kArray[i])
+
+plt.plot(uArray,deffSolideArray,label='Real value (analytic formula)')
+plt.plot(uArray,mSolideArray,label='Constrictivity equation') 
+plt.xlabel('u=d/a')
+plt.ylabel('Diffusion coefficient (adimensioned)')
+plt.title('Constrictivity equation on a simple structured pore network - solide phase')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()
+
+
+#Error analysis
+plt.figure(4)
+ratio=[]
+for j in range(1,10):
+    kArray = j/10.0*np.ones(nPoints) 
+    deffSolideArray=np.zeros(nPoints)
+    mSolideArray=np.zeros(nPoints)
+    for i in range(9):
+        deffSolideArray[i]=deffSolide(uArray[i],kArray[i]) 
+    for i in range(9):
+        mSolideArray[i]=mSolide(uArray[i],kArray[i])
+    ratio.append(mSolideArray/deffSolideArray)
+
+for j in range(1,10): 
+    plt.plot(uArray,ratio[j-1],label='Ratio for k=0.%d' %j)
+    
+plt.xlabel('u=d/a')
+plt.ylabel('Ratio : constrictivity equation over real value')
+plt.title('Constrictivity equation on a simple structured pore network - solide phase')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()
+
+
+#Correlation between deffGaz and porosity
+plt.figure(5)
+nPoints = 20 
+uArray = np.linspace(0.1,0.9,nPoints) 
+kArray = np.linspace(0.1,0.9,nPoints) 
+
+deffSolideArray=np.zeros(nPoints*nPoints)
+epsilonSolideArray = np.zeros(nPoints*nPoints)
+for i in range(nPoints):
+    for j in range(nPoints):
+        deffSolideArray[i*nPoints+j]=deffSolide(uArray[i],kArray[j])
+        epsilonSolideArray[i*nPoints+j]=epsilonSolide(uArray[i],kArray[j])    
+
+plt.scatter(epsilonSolideArray,deffSolideArray)    
+plt.xlabel('Porosity')
+plt.ylabel('Diffusion coefficient (normalized)')
+plt.title('Correlation between diffusion and porosity - solide phase')
+#plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()        
+
+
+
+#--------------------Correlation solide gaz---------------------
+
+def pareto_frontier(Xs, Ys, maxX = True, maxY = True):
+    '''
+    Method to take two equally-sized lists and return just the elements which lie 
+    on the Pareto frontier, sorted into order.
+    Default behaviour is to find the maximum for both X and Y, but the option is
+    available to specify maxX = False or maxY = False to find the minimum for either
+    or both of the parameters.
+    '''      
+    # Sort the list in either ascending or descending order of X
+    myList = sorted([[Xs[i], Ys[i]] for i in range(len(Xs))], reverse=maxX)
+    # Start the Pareto frontier with the first value in the sorted list
+    p_front = [myList[0]]    
+    # Loop through the sorted list
+    for pair in myList[1:]:
+        if maxY: 
+            if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
+                p_front.append(pair) # … and add them to the Pareto frontier
+        else:
+            if pair[1] <= p_front[-1][1]: # Look for lower values of Y…
+                p_front.append(pair) # … and add them to the Pareto frontier
+    # Turn resulting pairs back into a list of Xs and Ys
+    p_frontX = [pair[0] for pair in p_front]
+    p_frontY = [pair[1] for pair in p_front]
+    return p_frontX, p_frontY
+
+def ismember(A,B):
+    B_unique_sorted, B_idx = np.unique(B, return_index=True)
+    B_in_A_bool = np.in1d(B_unique_sorted, A, assume_unique=True)
+    commonVals=B_unique_sorted[B_in_A_bool]
+    indicesOfCommonVals = B_idx[B_in_A_bool]
+    return commonVals,indicesOfCommonVals
+
+#Correlation between deffGaz and deffSolide
+plt.figure(6)
+nPoints = 50 
+uArray = np.linspace(0.1,0.9,nPoints) 
+kArray = np.linspace(0.1,0.9,nPoints) 
+
+deffSolideArray=np.zeros(nPoints*nPoints)
+deffGazArray = np.zeros(nPoints*nPoints)
+uArray_SolidGazCorrel = np.zeros(nPoints*nPoints)
+kArray_SolidGazCorrel = np.zeros(nPoints*nPoints)
+for i in range(nPoints):
+    for j in range(nPoints):
+        deffSolideArray[i*nPoints+j]=deffSolide(uArray[i],kArray[j])
+        deffGazArray[i*nPoints+j]=deffGaz(uArray[i],kArray[j])
+        uArray_SolidGazCorrel[i*nPoints+j] = uArray[i]
+        kArray_SolidGazCorrel[i*nPoints+j] = kArray[j]
+
+p_front = pareto_frontier(deffGazArray, deffSolideArray, maxX = True, maxY = True)
+plt.scatter(deffGazArray,deffSolideArray) 
+plt.plot(p_front[0],p_front[1],'r')   
+plt.xlabel('Diffusion coefficient of pore phase (normalized)')
+plt.ylabel('Conduction coefficient of solid phase (normalized)')
+plt.title('Correlation between pore diffusion and solid conduction')
+#plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()     
+
+
+
+
+#Parallel coordinates plot to see Pareto optimal structures
+foo=ismember(deffGazArray,p_front[0])
+optimalU = uArray_SolidGazCorrel[foo[1]]
+optimalK = kArray_SolidGazCorrel[foo[1]]
+plt.figure(7)
+#plt.scatter(optimalU,optimalK)   
+#plt.scatter(constrictivityGaz(optimalU,optimalK),constrictivitySolide(optimalU,optimalK))
+plt.scatter(epsilonGaz(optimalU,optimalK),epsilonSolide(optimalU,optimalK))
+
+#from pandas.tools.plotting import parallel_coordinates
+#plt.figure()
+#parallel_coordinates(data, 'Name')
+
+
+
+
