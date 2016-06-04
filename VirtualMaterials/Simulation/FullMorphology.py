@@ -80,7 +80,7 @@ def FullMorphology(inputImage,inletFace=0,voxelLength=1,pressureList=[10],pressu
         
     beginTime=time.time()
             
-    myImg = inputImage
+    myImg = inputImage.copy()
 
     inletVoxels = np.zeros(myImg.shape,dtype=bool)
     
