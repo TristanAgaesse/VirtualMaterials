@@ -226,7 +226,7 @@ def PoreAndLinkSizeDistribution_Watershed(image,label=0,hMaxima=4):
     :Example:    
     import VirtualMaterials as vmat
     poreCode = 0
-    linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(
+    linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD = vmat.ImageAnalysis.QuantifyGeometry.PoreAndLinkSizeDistribution_Watershed(
                                         simuImage,label=poreCode,hMaxima=4)
     """
     
