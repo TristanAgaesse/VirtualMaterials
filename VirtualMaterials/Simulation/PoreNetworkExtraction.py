@@ -378,17 +378,20 @@ def AnalyseElementsGeometry(myImg,pores,links,distanceMap,phases={'void':False})
     pores_CenterOfMass    = PoresGeometry_CenterOfMass(pores)    
     
     pores_Volume          = PoresGeometry_Volume(pores)  
-        
+    
+    pores_InscribedSphereRadius = PoresGeometry_InscribedSphereRadius(pores,distanceMap,poreLabels)
+    
     poreVoxelLookUpTable  = BuildVoxelLookUpTable(pores)
     pores_NeighborPhases  = PoresGeometry_NeighborPhases( myImg,pores,poreLabels,
                                                  poreVoxelLookUpTable,
                                                  phasesCodes)
     
-    PNMGeometricData['poreCenterOfMass']    = pores_CenterOfMass
-    PNMGeometricData['poreVolumes']         = pores_Volume
-    PNMGeometricData['poresNeighborPhases'] = pores_NeighborPhases
+    PNMGeometricData['poreCenterOfMass']          = pores_CenterOfMass
+    PNMGeometricData['poreVolumes']               = pores_Volume
+    PNMGeometricData['poreInscribedSphereRadius'] = pores_InscribedSphereRadius
+    PNMGeometricData['poresNeighborPhases']       = pores_NeighborPhases
     
-    del poreVoxelLookUpTable,pores_CenterOfMass,pores_Volume,pores_NeighborPhases
+    del poreVoxelLookUpTable,pores_CenterOfMass,pores_Volume,pores_NeighborPhases,pores_InscribedSphereRadius
     
     
     # Liens internes : infos sur la forme et position des liens internes    
@@ -502,7 +505,15 @@ def PoresGeometry_Volume(pores):
     return pores_volumes
 
 
-     
+#----------------------------------------------------------------------------------------------
+def PoresGeometry_InscribedSphereRadius(pores,distanceMap,poreLabels):
+
+    pores_InscribedSphereRadius = ndimage.measurements.labeled_comprehension(
+                                            distanceMap, pores, poreLabels,
+                                            np.max,np.float16,0).astype(np.float32)
+    
+    return pores_InscribedSphereRadius
+         
 #----------------------------------------------------------------------------------------------
 #@jit
 def PoresGeometry_NeighborPhases(myImg,pores,poreLabels,voxelLookUpTable,phasesCodes): 

@@ -68,7 +68,7 @@ def Constrictivity(image,label):
 def ChordLength(image,label,direction=(1,0,0),mode='meanLength'): 
     """ChordLength : 
     :param image : numpy image
-    :param label : label
+    :param label : code of the phase you want to study
     :param direction : chord direction (defaultValue=(1,0,0))
     :param mode : 'meanLength' or 'allLength'
     :return: chordLength
@@ -160,7 +160,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
         length = chordLength
     else:
         length = np.mean(chordLength)
-        
+    
     
     return length
     
@@ -168,17 +168,18 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     
     
 #----------------------------------------------------------------------------------------------    
-def PoreSizeDistribution_Continuous(image,nPoint=10): 
+def PoreSizeDistribution_Continuous(image,label=0,nPoint=10): 
     """PoreSizeDistribution_Continuous : NOT IMPLEMENTED 
     PoreSizeDistribution_Continuous of a label in the image
     :param image : numpy image (boolean)
-    :param nPoint : label (default=10)
+    :param label : code of the phase you want to study (default=0)
+    :param nPoint : number of sampling points to compute the size distribution (default=10)
     :return: radiusList,cPSD
     
     :Example:    
     import VirtualMaterials as vmat
-    label = 0
-    radiusList,cPSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(image,label)
+    poreCode = 0
+    radiusList,cPSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(image,label=poreCode,nPoint=10)
     """
     
     # Compute distance map
@@ -207,6 +208,51 @@ def PoreSizeDistribution_Continuous(image,nPoint=10):
     
     
     return radiusList,cPSD
+    
+    
+#--------------------------------------------------------------------------
+def PoreAndLinkSizeDistribution_Watershed(image,label=0,hMaxima=4): 
+    """PoreAndLinkSizeDistribution_Watershed :
+    Pore And Link Size Distribution using Watershed segmentation.
+    Returns the size distribution of links and pore, using the following geometric definition :    
+    linkInscribedRadiusSD : inscribed ball radius.
+    poreInscribedRadiusSD : inscribed ball radius.
+    poreEquivalentRadiusSD : radius of the sphere of same volume.
+    
+    :param image : numpy image (boolean)
+    :param hMaxima : seed parameter of the watershed algorithm (default=4). More information in VirtualMaterials.Simulations.PoreNetworkExtraction
+    :return: linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD 
+        
+    :Example:    
+    import VirtualMaterials as vmat
+    poreCode = 0
+    linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(
+                                        simuImage,label=poreCode,hMaxima=4)
+    """
+    
+        
+    ExtractionResult = vmat.Simulations.PoreNetworkExtraction.ExtractNetwork(
+                image=image,phases={'_':label},seedMethod='hMaxima',seedParam=hMaxima)
+    
+    
+    linkInscribedRadius = ExtractionResult['internalLinkCapillaryRadius']
+    
+    
+    
+    
+    
+    poreVolume = ExtractionResult['poreVolumes'] 
+    
+    
+    
+    
+    
+    poreInscribedRadius = ExtractionResult['poreInscribedSphereRadius']
+    
+    
+    
+    
+    
     
     
     
