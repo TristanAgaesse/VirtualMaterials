@@ -39,7 +39,8 @@ class test_FullMorphology(unittest.TestCase):
         image[image==50]=0
         image[image==100]=0 
     
-    
+        PcS,imageWithWater = FullMorphology.CapillaryPressureCurve(
+               image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=3)
     
 #----------------------------------------------------------------------------------------------
 if __name__ == '__main__':

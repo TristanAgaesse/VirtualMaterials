@@ -188,7 +188,7 @@ def CreateVirtualCatalystLayer(voxelNumbers=(200,200,200),
     
     
     
-    print('Create Virtual Active Layer')
+    print('Create Virtual Catalyst Layer')
     beginTime=time.time()
     random.seed(randomSeed)
     

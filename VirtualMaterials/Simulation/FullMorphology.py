@@ -22,32 +22,51 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     PcS,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
                image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=10)
     """
-    
+        
     simuImage = 255*(np.logical_not(image==porePhaseCode).astype(np.uint8)) 
     
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
     maxRadius = distanceMap.max()
     
-    radiusList = np.unique(np.linspace(1,maxRadius,nPoints).astype(np.int))    
-    radiusList = radiusList.tolist()
-    nPoints = len(radiusList)
+    minRadius = 4
+    #I take a minimum radius of 4 voxels. Indeed, for very small radii the  
+    #result depends too much on the small details of the microstructure     
+#    
+#    radiusList = np.unique(np.linspace(4,maxRadius,nPoints).astype(np.int)) 
+#    
+#    radiusList = radiusList.tolist()
+#    nPoints = len(radiusList)
+#    
+#    gamma = 72e-3
+#    pressureCode = [100+i for i in range(nPoints)]
+#    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
     
+    # Define the pressure points where to compute the water distributions
     gamma = 72e-3
-    pressureCode = [100+i for i in range(nPoints)]
-    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
+    minPressure = 2*gamma/float(voxelLength*maxRadius)
+    maxPressure = 2*gamma/float(voxelLength*minRadius)
+    pressureList = np.linspace(minPressure,maxPressure,nPoints) 
+    radiusList = [int(2*gamma/float(voxelLength*pressure)) for pressure in pressureList]
+    radiusList=np.unique(np.asarray(radiusList).astype(np.int))
+    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList] #Update pressure list after removing non unique radii
     
+    nPoints = len(radiusList)
+    pressureCode = [100+i for i in range(nPoints)]    
+    
+    # Simulation
     imageWithWater = FullMorphology(simuImage,inletFace=inletFace,
                                     voxelLength=voxelLength,pressureList=pressureList,
                                     pressureCode=pressureCode,gamma=gamma,
                                     distanceMap=distanceMap)
     
     # Convert the water distributions to Pc(S) curve
-    volumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(imageWithWater)    
+    waterVolumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(imageWithWater)    
+    poreVolumeFraction = vmat.ImageAnalysis.QuantifyGeometry.VolumeFraction(image)[porePhaseCode] 
     
     cumulativeSaturation = 0
     saturationList = []
     for i in range(nPoints):
-        cumulativeSaturation = volumeFraction[pressureCode[nPoints-1-i]]+cumulativeSaturation
+        cumulativeSaturation += waterVolumeFraction[pressureCode[nPoints-1-i]]/float(poreVolumeFraction)
         saturationList.append(cumulativeSaturation)
     
     PcS=[0,0]
