@@ -28,13 +28,13 @@ deffGaz= lambda u, k:  1/(((1/u)*(1-1/k**2)+(1/u**2)*(1/k**2)))
 # geometric parameters
 epsilonSolide = lambda u, k: 1-epsilonGaz(u,k)    #volume fraction
 tortuositySolide = 1
-constrictivitySolide = lambda u, k: (1-u)*(1+u*(2*k-1))    # constrictivité
+constrictivitySolide = lambda u, k: (1-u)*(1+u*(2*k-1))/(1-(k*u)**2)#((1-u)/(1-k*u))**2  #    # constrictivité
 
 # Constrictivity equation
 mSolide=lambda u, k: 2.03*(epsilonSolide(u,k))**1.57*(constrictivitySolide(u,k))**0.57/tortuositySolide**2
 # Formule pour la conductivité effective : calcul à la main possible sur la
 # géométrie très simple
-deffSolide= lambda u, k:  1/(1-u+k/(-2*k+u*(2*k-1)+1/u)+(1-k)/(-u+1/u))
+deffSolide= lambda u, k:  1/((1-u)/(1-(k*u)**2)+k/(-2*k+u*(2*k-1)+1/u)+(1-k)/(-u+1/u))
 
 
 #-----------------  Gaz phase plots   -----------------
@@ -203,18 +203,11 @@ def pareto_frontier(Xs, Ys, maxX = True, maxY = True):
     p_frontY = [pair[1] for pair in p_front]
     return p_frontX, p_frontY
 
-def ismember(A,B):
-    B_unique_sorted, B_idx = np.unique(B, return_index=True)
-    B_in_A_bool = np.in1d(B_unique_sorted, A, assume_unique=True)
-    commonVals=B_unique_sorted[B_in_A_bool]
-    indicesOfCommonVals = B_idx[B_in_A_bool]
-    return commonVals,indicesOfCommonVals
-
 #Correlation between deffGaz and deffSolide
 plt.figure(6)
-nPoints = 50 
-uArray = np.linspace(0.1,0.9,nPoints) 
-kArray = np.linspace(0.1,0.9,nPoints) 
+nPoints = 100 
+uArray = np.linspace(0.05,0.95,nPoints) 
+kArray = np.linspace(0.05,0.95,nPoints) 
 
 deffSolideArray=np.zeros(nPoints*nPoints)
 deffGazArray = np.zeros(nPoints*nPoints)
@@ -228,6 +221,7 @@ for i in range(nPoints):
         kArray_SolidGazCorrel[i*nPoints+j] = kArray[j]
 
 p_front = pareto_frontier(deffGazArray, deffSolideArray, maxX = True, maxY = True)
+
 plt.scatter(deffGazArray,deffSolideArray) 
 plt.plot(p_front[0],p_front[1],'r')   
 plt.xlabel('Diffusion coefficient of pore phase (normalized)')
@@ -240,17 +234,43 @@ plt.show()
 
 
 #Parallel coordinates plot to see Pareto optimal structures
-foo=ismember(deffGazArray,p_front[0])
-optimalU = uArray_SolidGazCorrel[foo[1]]
-optimalK = kArray_SolidGazCorrel[foo[1]]
-plt.figure(7)
-#plt.scatter(optimalU,optimalK)   
-#plt.scatter(constrictivityGaz(optimalU,optimalK),constrictivitySolide(optimalU,optimalK))
-plt.scatter(epsilonGaz(optimalU,optimalK),epsilonSolide(optimalU,optimalK))
+def ismember(B,A):
+    B_unique_sorted, B_idx = np.unique(B, return_index=True)
+    B_in_A_bool = np.in1d(B_unique_sorted, A, assume_unique=True)
+    commonVals=B_unique_sorted[B_in_A_bool]
+    indicesOfCommonVals = B_idx[B_in_A_bool]
+    return commonVals,indicesOfCommonVals
 
-#from pandas.tools.plotting import parallel_coordinates
-#plt.figure()
-#parallel_coordinates(data, 'Name')
+
+isOptimal=ismember(deffSolideArray,p_front[1])
+optimalU = uArray_SolidGazCorrel[isOptimal[1]]
+optimalK = kArray_SolidGazCorrel[isOptimal[1]]
+plt.figure(7)
+plt.scatter(optimalU,optimalK)   
+plt.xlabel('u')
+plt.ylabel('k')
+plt.title('Optimal structures parameters')
+#plt.scatter(constrictivityGaz(optimalU,optimalK),constrictivitySolide(optimalU,optimalK))
+#plt.scatter(epsilonGaz(optimalU,optimalK),epsilonSolide(optimalU,optimalK))
+
+import pandas
+from pandas.tools.plotting import parallel_coordinates
+plt.figure(8)
+
+mydict={}
+mydict['Pore Diffusion']=deffGazArray
+mydict['Solid Conductivity']=deffSolideArray
+mydict['u']=uArray_SolidGazCorrel
+mydict['k']=kArray_SolidGazCorrel
+mydict['Gas constrictivity']=constrictivityGaz(uArray_SolidGazCorrel,kArray_SolidGazCorrel)
+mydict['Solid constrictivity']=constrictivitySolide(uArray_SolidGazCorrel,kArray_SolidGazCorrel)
+paretoOptimal=np.zeros(nPoints*nPoints,dtype=np.bool)
+paretoOptimal[isOptimal[1]]=True #['Yes' else 'No' for i in nPoints if isOptimal[1]==1 ]
+mydict['Pareto optimal']=paretoOptimal
+
+columnName = ['Pore Diffusion','Gas constrictivity','Solid Conductivity','Solid constrictivity','u','k','Pareto optimal']  #mydict.keys()
+myDataFrame = pandas.DataFrame(mydict,columns=columnName)
+#parallel_coordinates(myDataFrame, 'Pareto optimal')
 
 
 
