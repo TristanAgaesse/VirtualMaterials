@@ -188,8 +188,8 @@ def __reshapeU__(U,d):
 #            temperature[:,:,i] = temperature[:,:,i]+H*i        
 #    
     temperature = temperature-temperature.min()
-    temperature = temperature/float(temperature.max())
-        
+    if temperature.max()>0:
+        temperature = temperature/float(temperature.max())
         
     return temperature
     
