@@ -274,4 +274,31 @@ myDataFrame = pandas.DataFrame(mydict,columns=columnName)
 
 
 
+# Cas de réseaux désordonnés formés de cellules telles que celles calculées précédemment
+# Moyennes harmoniques et arithmétiques : bornes de Voigt et Reuss
+
+
+nK=nPoints
+arithmSolid = np.zeros(nK)
+harmSolid = np.zeros(nK)
+arithmGaz = np.zeros(nK)
+harmGaz = np.zeros(nK)
+for ik in range(0,nK):
+    kFilter = kArray_SolidGazCorrel==kArray[ik]
+    arithmSolid[ik] = np.mean(deffSolideArray[kFilter])
+    harmSolid[ik] = (np.mean(deffSolideArray[kFilter]**(-1)))**(-1)
+    arithmGaz[ik] = np.mean(deffGazArray[kFilter])
+    harmGaz[ik] = (np.mean(deffGazArray[kFilter]**(-1)))**(-1)
+
+plt.figure()
+plt.plot(kArray,arithmSolid,'r',label='Solid - arithmetic bound')   
+plt.plot(kArray,harmSolid,'b',label='Solid - harmonic bound') 
+plt.plot(kArray,arithmGaz,'k',label='Gas - arithmetic bound') 
+plt.plot(kArray,harmGaz,'g',label='Gas - harmonic bound') 
+plt.xlabel('k')
+plt.ylabel('Effective property')
+plt.title('Voigt and Reuss bounds for effective properties of disordered cubic network')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()     
+
 
