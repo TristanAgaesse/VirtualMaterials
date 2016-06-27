@@ -255,7 +255,6 @@ plt.title('Optimal structures parameters')
 
 import pandas
 from pandas.tools.plotting import parallel_coordinates
-plt.figure(8)
 
 mydict={}
 mydict['Pore Diffusion']=deffGazArray
@@ -270,13 +269,12 @@ mydict['Pareto optimal']=paretoOptimal
 
 columnName = ['Pore Diffusion','Gas constrictivity','Solid Conductivity','Solid constrictivity','u','k','Pareto optimal']  #mydict.keys()
 myDataFrame = pandas.DataFrame(mydict,columns=columnName)
+#plt.figure(8)
 #parallel_coordinates(myDataFrame, 'Pareto optimal')
-
 
 
 # Cas de réseaux désordonnés formés de cellules telles que celles calculées précédemment
 # Moyennes harmoniques et arithmétiques : bornes de Voigt et Reuss
-
 
 nK=nPoints
 arithmSolid = np.zeros(nK)
@@ -301,4 +299,49 @@ plt.title('Voigt and Reuss bounds for effective properties of disordered cubic n
 plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
 plt.show()     
 
+# Cas de réseaux désordonnés formés de cellules telles que celles calculées précédemment
+# Moyennes harmoniques et arithmétiques : bornes de Voigt et Reuss
 
+nK=nPoints
+arithmSolid = np.zeros(nK)
+harmSolid = np.zeros(nK)
+arithmGaz = np.zeros(nK)
+harmGaz = np.zeros(nK)
+wShape = 1.5 #https://en.wikipedia.org/wiki/Weibull_distribution
+wScale = 0.4 #https://en.wikipedia.org/wiki/Weibull_distribution
+wU=uArray_SolidGazCorrel/wScale
+weibull = wShape/wScale*np.power(wU,wShape-1)*np.exp(-np.power(wU,wShape))    
+for ik in range(0,nK):
+    kFilter = kArray_SolidGazCorrel==kArray[ik]
+    #uFilter = np.logical_and(uArray_SolidGazCorrel>0.01,uArray_SolidGazCorrel<0.8)    
+    #paramFilter = np.logical_and(kFilter,uFilter)
+    paramFilter=kFilter
+    weigth=np.mean(weibull[paramFilter])
+    arithmSolid[ik] = np.mean(weibull[paramFilter]*deffSolideArray[paramFilter])/weigth
+    harmSolid[ik] = (np.mean(weibull[paramFilter]*(deffSolideArray[paramFilter]**(-1)))/weigth)**(-1)
+    arithmGaz[ik] = np.mean(weibull[paramFilter]*deffGazArray[paramFilter])/weigth
+    harmGaz[ik] = (np.mean(weibull[paramFilter]*(deffGazArray[paramFilter]**(-1)))/weigth)**(-1)
+
+plt.figure()
+plt.plot(kArray,arithmSolid,'r',label='Solid - arithmetic bound')   
+plt.plot(kArray,harmSolid,'b',label='Solid - harmonic bound') 
+plt.plot(kArray,arithmGaz,'k',label='Gas - arithmetic bound') 
+plt.plot(kArray,harmGaz,'g',label='Gas - harmonic bound') 
+plt.xlabel('k')
+plt.ylabel('Effective property')
+plt.title('Voigt and Reuss bounds for effective properties of disordered cubic network with custom pore size distribution')
+plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
+plt.show()  
+
+#Weibull distribution
+plt.figure()
+xArray=np.linspace(0,1,30)
+wU=xArray/wScale
+weibull = wShape/wScale*np.power(wU,wShape-1)*np.exp(-np.power(wU,wShape))
+weigth=np.mean(weibull)
+weibull=weibull/weigth 
+plt.plot(xArray,weibull)
+plt.xlabel('Pore size parameter u')
+plt.ylabel('Density of probability')
+plt.title('Pore size distribution')
+plt.show()
