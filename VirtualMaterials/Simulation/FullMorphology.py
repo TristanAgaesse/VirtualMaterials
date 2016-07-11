@@ -28,8 +28,8 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
     maxRadius = distanceMap.max()
     
-    minRadius = 4
-    #I take a minimum radius of 4 voxels. Indeed, for very small radii the  
+    minRadius = 3
+    #I take a minimum radius of 3 voxels. Indeed, for very small radii the  
     #result depends too much on the small details of the microstructure     
 #    
 #    radiusList = np.unique(np.linspace(4,maxRadius,nPoints).astype(np.int)) 
