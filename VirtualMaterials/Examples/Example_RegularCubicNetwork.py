@@ -13,7 +13,7 @@ import numpy as np
 #-----------------Gaz phase : formula-----------------
 
 #Geometric parameters
-epsilonGaz = lambda u, k: u**2*k**2+u**3*(1-k**2)    #volume fraction
+epsilonGaz = lambda u, k: 3*u**2*k**2+u**3*(1-3*k**2)    #volume fraction
 tortuosityGaz = 1
 constrictivityGaz = lambda u, k: k**2     # constrictivité
 
@@ -91,17 +91,17 @@ nPoints = 20
 uArray = np.linspace(0.1,0.9,nPoints) 
 kArray = np.linspace(0.1,0.9,nPoints) 
 
-deffSolideArray=np.zeros(nPoints*nPoints)
-epsilonSolideArray = np.zeros(nPoints*nPoints)
+deffGazArray=np.zeros(nPoints*nPoints)
+epsilonGazArray = np.zeros(nPoints*nPoints)
 for i in range(nPoints):
     for j in range(nPoints):
-        deffSolideArray[i*nPoints+j]=deffSolide(uArray[i],kArray[j])
-        epsilonSolideArray[i*nPoints+j]=epsilonSolide(uArray[i],kArray[j])    
+        deffGazArray[i*nPoints+j]=deffGaz(uArray[i],kArray[j])
+        epsilonGazArray[i*nPoints+j]=epsilonGaz(uArray[i],kArray[j])    
 
-plt.scatter(epsilonSolideArray,deffSolideArray)    
+plt.scatter(epsilonGazArray,deffGazArray)    
 plt.xlabel('Porosity')
 plt.ylabel('Diffusion coefficient (normalized)')
-plt.title('Correlation between diffusion and porosity - solide phase')
+plt.title('Correlation between diffusion and porosity - gaz phase')
 #plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
 plt.show()        
 
@@ -154,7 +154,7 @@ plt.legend(bbox_to_anchor=(1, 1),bbox_transform=plt.gcf().transFigure)
 plt.show()
 
 
-#Correlation between deffGaz and porosity
+#Correlation between deffSolide and porosity
 plt.figure(5)
 nPoints = 20 
 uArray = np.linspace(0.1,0.9,nPoints) 
@@ -165,7 +165,7 @@ epsilonSolideArray = np.zeros(nPoints*nPoints)
 for i in range(nPoints):
     for j in range(nPoints):
         deffSolideArray[i*nPoints+j]=deffSolide(uArray[i],kArray[j])
-        epsilonSolideArray[i*nPoints+j]=epsilonSolide(uArray[i],kArray[j])    
+        epsilonSolideArray[i*nPoints+j]=1-epsilonSolide(uArray[i],kArray[j])    
 
 plt.scatter(epsilonSolideArray,deffSolideArray)    
 plt.xlabel('Porosity')
@@ -307,8 +307,8 @@ arithmSolid = np.zeros(nK)
 harmSolid = np.zeros(nK)
 arithmGaz = np.zeros(nK)
 harmGaz = np.zeros(nK)
-wShape = 1.5 #https://en.wikipedia.org/wiki/Weibull_distribution
-wScale = 0.4 #https://en.wikipedia.org/wiki/Weibull_distribution
+wShape = 3 #https://en.wikipedia.org/wiki/Weibull_distribution
+wScale = 0.3 #https://en.wikipedia.org/wiki/Weibull_distribution
 wU=uArray_SolidGazCorrel/wScale
 weibull = wShape/wScale*np.power(wU,wShape-1)*np.exp(-np.power(wU,wShape))    
 for ik in range(0,nK):
