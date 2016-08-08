@@ -102,6 +102,11 @@ def __VoxelizeRayTracing__(vtkPolyDataObject,nVoxSubImage,boundSubgrid,raydirect
 #-----------------------------------------------------------------------------
 #@jit
 def __VoxelizeRayTracingZDirectionVTK__(polydata,gridCOx,gridCOy,gridCOz):
+    # Remark : most of the time is spent in this function. This is because of 
+    # the python loop on VTK_Rays. Maybe a loop through a VTK collection of rays 
+    # using an iterator object would be faster, because python could recognize
+    # the loop should be spent in C++. 
+    #See https://blog.kitware.com/pythonic-callbacks-and-iteration-in-vtk/
     
     #Identify the min and max x,y coordinates (cm) of the mesh:
 #    meshXmin = meshXYZ[:,0,:].min()
