@@ -11,6 +11,11 @@ import VirtualMaterials as vmat
 #      Voxelization
 #--------------------------------------------------------------------
 
+# implements a custom voxelization algorithm. This was because the VTK voxelisation 
+#method was inefficient. But since VTK 7.1 it is said to be more efficient, so 
+#maybe this whole algorithm should be replaced by VTK function Resample To Image
+#See : https://blog.kitware.com/dataset-resampling-filters/
+
     
 #--------------------------------------------------------------------
 #@jit    
