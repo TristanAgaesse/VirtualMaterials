@@ -22,6 +22,28 @@ def ConnectedComponentsLabeling(image):
 
     return labelledImage
 
+
+#--------------------------------------------------------------------
+def ExtractSurface(image):
+    """ Extracts the surface of an image using vtkDiscreteMarchingCubes
+    :param : image 
+    :return: surface (vtk polydata object)  
+    """    
+        
+    #Convert numpy array to vtk image
+    vtkImage = NumpyToVTKImage(image)
+    
+    #Use VTK Marching Cubes algorithm
+    dmc = vtk.vtkDiscreteMarchingCubes()
+    dmc.SetInput(vtkImage)
+    dmc.GenerateValues(1, 1, 1)
+    dmc.Update()
+    
+    return dmc.GetOutput()
+    
+
+
+
 #-----------------------------------------------------------------------------
 def SobelEdgeDetection(image):    
     """Uses ITK sobel edge detector to detect boundaries between phases

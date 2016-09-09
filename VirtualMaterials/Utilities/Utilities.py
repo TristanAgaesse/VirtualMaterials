@@ -43,24 +43,7 @@ def ReadVTKFile(filename):
 
     return polydata
 
-#--------------------------------------------------------------------
-def ExtractSurface(image):
-    """ Extracts the surface of an image using vtkDiscreteMarchingCubes
-    :param : image 
-    :return: surface (vtk polydata object)  
-    """    
-        
-    #Convert numpy array to vtk image
-    vtkImage = NumpyToVTKImage(image)
-    
-    #Use VTK Marching Cubes algorithm
-    dmc = vtk.vtkDiscreteMarchingCubes()
-    dmc.SetInput(vtkImage)
-    dmc.GenerateValues(1, 1, 1)
-    dmc.Update()
-    
-    return dmc.GetOutput()
-    
+
     
 #--------------------------------------------------------------------
 def Resize(image,scale=(2,2,2),interpolator='NearestNeighbor'):  
@@ -110,34 +93,26 @@ def Resize(image,scale=(2,2,2),interpolator='NearestNeighbor'):
     return outputImage
     
 #--------------------------------------------------------------------    
-def DistanceMap(image):   
-    """ Returns the Danielsson Distance Map of the image : for each 
-    zero voxel, the min distance to a non zero voxel"""
-    
-    memoryType=np.float16
-    itkimage = sitk.GetImageFromArray(image.astype(np.uint8))
-    itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
-    del itkimage
-    distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
-    del itkdistanceMap 
-    
-    return distanceMap
-    
-    
-#--------------------------------------------------------------------    
-def CoveringRadiusMap(image):    
-    """ Returns the Covering Radius Map of the image """
-    
-    print('Not implemented')
-    #distanceMap = DistanceMap(image)
+#def DistanceMap(image):   
+#    """ Returns the Danielsson Distance Map of the image : for each 
+#    zero voxel, the min distance to a non zero voxel"""
+#    
+#    memoryType=np.float16
+#    itkimage = sitk.GetImageFromArray(image.astype(np.uint8))
+#    itkdistanceMap = sitk.DanielssonDistanceMap( itkimage )
+#    del itkimage
+#    distanceMap=sitk.GetArrayFromImage(itkdistanceMap).astype(memoryType) 
+#    del itkdistanceMap 
+#    
+#    return distanceMap
     
     
-    coveringRadiusMap = 1
-    return coveringRadiusMap
 
 #--------------------------------------------------------------------
 def NumpyToVTKImage(numpyImage): 
-    """ Converts a numpy array to a VTK image """
+    """ Converts a numpy array to a VTK image 
+    vtk.numpy_interface may be better, see https://blog.kitware.com/improved-vtk-numpy-integration/
+    """
     dataImporter = vtk.vtkImageImport()
     
     shape=numpyImage.shape
@@ -191,7 +166,9 @@ def NumpyToVTKImage(numpyImage):
 
 #--------------------------------------------------------------------
 def VTKImageToNumpy(vtkImage): 
-    """ Converts a VTK image to a numpy array """
+    """ Converts a VTK image to a numpy array 
+    vtk.numpy_interface may be better, see https://blog.kitware.com/improved-vtk-numpy-integration/
+    """
     vtkImageBis = vtkImage.NewInstance()
     vtkImageBis.DeepCopy(vtkImage)    
     
