@@ -128,4 +128,20 @@ def DistanceMap(image):
     del itkdistanceMap
 
     return distanceMap
+
+
+#----------------------------------------------------------------------------   
+def Skeleton(image):
+    """ Not Implemented !
     
+    Le squelette est une fonction souvent utilisée en analyse de forme. Elle est 
+    à la base de nombreuses fonctions d'extraction de réseau de pores. 
+    ITK semble ne pas avoir de fonction skeleton en 3D. Il y a une fonction 
+    skeleton qui a été développée pour ITK en 2007 mais il semble qu'elle n'ai 
+    pas été intégrée à la version standard d'ITK.
+    Un option pour implémenter le skeleton est de convertir la fonction Skeleton3D
+    sur Matlab File Exchange en python: 
+    https://fr.mathworks.com/matlabcentral/fileexchange/43400-skeleton3d?requestedDomain=www.mathworks.com
+    Cette fonction peut être utilisée avec une autre fonction, Skel2Graph3Ds
+    qui nettoye le skelette 
+    """    
