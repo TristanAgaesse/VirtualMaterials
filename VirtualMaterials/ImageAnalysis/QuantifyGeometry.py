@@ -237,7 +237,7 @@ def PoreSizeDistribution_Watershed(image,label=0,hMaxima=4):
     """
     
         
-    ExtractionResult = vmat.Simulations.PoreNetworkExtraction.ExtractNetwork(
+    ExtractionResult = vmat.Simulation.PoreNetworkExtraction.ExtractNetwork(
                 image=image,phases={'someName':label},seedMethod='hMaxima',seedParam=hMaxima)
     
     constrictionInscribedRadius = ExtractionResult['internalLinkCapillaryRadius']
