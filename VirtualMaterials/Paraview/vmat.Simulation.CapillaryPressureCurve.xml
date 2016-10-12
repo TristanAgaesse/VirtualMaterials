@@ -1,21 +1,21 @@
 <CustomFilterDefinitions>
   <CustomProxyDefinition name="vmat.Simulation.CapillaryPressureCurve" group="filters">
-    <CompoundSourceProxy id="4417" servers="1">
-      <Proxy group="filters" type="ProgrammableFilter" id="4361" servers="1" compound_name="ProgrammableFilter2">
-        <Property name="CopyArrays" id="4361.CopyArrays" number_of_elements="1">
+    <CompoundSourceProxy id="4404" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4369" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4369.CopyArrays" number_of_elements="1">
           <Element index="0" value="0"/>
-          <Domain name="bool" id="4361.CopyArrays.bool"/>
+          <Domain name="bool" id="4369.CopyArrays.bool"/>
         </Property>
-        <Property name="InformationScript" id="4361.InformationScript" number_of_elements="1">
+        <Property name="InformationScript" id="4369.InformationScript" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
-        <Property name="Input" id="4361.Input" number_of_elements="1">
-          <Domain name="groups" id="4361.Input.groups"/>
-          <Domain name="input_type" id="4361.Input.input_type"/>
+        <Property name="Input" id="4369.Input" number_of_elements="1">
+          <Domain name="groups" id="4369.Input.groups"/>
+          <Domain name="input_type" id="4369.Input.input_type"/>
         </Property>
-        <Property name="OutputDataSetType" id="4361.OutputDataSetType" number_of_elements="1">
+        <Property name="OutputDataSetType" id="4369.OutputDataSetType" number_of_elements="1">
           <Element index="0" value="19"/>
-          <Domain name="enum" id="4361.OutputDataSetType.enum">
+          <Domain name="enum" id="4369.OutputDataSetType.enum">
             <Entry value="8" text="Same as Input"/>
             <Entry value="0" text="vtkPolyData"/>
             <Entry value="2" text="vtkStructuredGrid"/>
@@ -28,23 +28,23 @@
             <Entry value="19" text="vtkTable"/>
           </Domain>
         </Property>
-        <Property name="PythonPath" id="4361.PythonPath" number_of_elements="1">
+        <Property name="PythonPath" id="4369.PythonPath" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
-        <Property name="Script" id="4361.Script" number_of_elements="1">
-          <Element index="0" value="#Simulates a capillary pressure curve using the FullMorphology algorithm&#xa;&#xa;porePhaseCode=0  # code of pore voxels&#xa;inletFace = 0&#xa;#inletFace=0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax&#xa;voxelLength = 1e-6&#xa;&#xa;&#xa;#------Do not modify below------&#xa;import VirtualMaterials as vmat&#xa;import matplotlib.pyplot as plt&#xa;&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image=vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Capillary Pressure Curve&#x27;)&#xa;PcS,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(&#xa;           image,porePhaseCode=porePhaseCode,inletFace=inletFace,&#xa;           voxelLength=voxelLength,nPoints=10)&#xa;&#xa;print(&#x27;Saturation&#x27;)&#xa;print(PcS[0])&#xa;print(&#x27;Pression capillaire&#x27;)&#xa;print(PcS[1])&#xa;&#xa;executive = self.GetExecutive()&#xa;output.RowData.append(PcS[0], &#x22;Saturation&#x22;)&#xa;output.RowData.append(PcS[1], &#x22;Capillary pressure (in Pa)&#x22;)"/>
+        <Property name="Script" id="4369.Script" number_of_elements="1">
+          <Element index="0" value="#Simulates a capillary pressure curve using the Full Morphology algorithm&#xa;&#xa;porePhaseCode=0  # code of pore voxels&#xa;inletFace = 0&#xa;#inletFace=0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax&#xa;voxelLength = 1e-6&#xa;surfaceTension = 72e-3&#xa;&#xa;#------Do not modify below------&#xa;import VirtualMaterials as vmat&#xa;import matplotlib.pyplot as plt&#xa;&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image=vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Capillary Pressure Curve&#x27;)&#xa;pcsOutput = vmat.Simulation.FullMorphology.CapillaryPressureCurve(&#xa;           image,porePhaseCode=porePhaseCode,inletFace=inletFace,&#xa;           voxelLength=voxelLength,nPoints=10,surfaceTension=surfaceTension)&#xa;&#xa;print(&#x27;Contact Angle&#x27;)&#xa;print(pcsOutput[&#x27;Contact angle&#x27;])&#xa;&#xa;print(&#x27;Saturation&#x27;)&#xa;print(pcsOutput[&#x27;Saturation list&#x27;])&#xa;&#xa;print(&#x27;Pression capillaire (in Pa)&#x27;)&#xa;print(pcsOutput[&#x27;Capillary pressure list (in Pa)&#x27;])&#xa;&#xa;print(&#x27;Ball radii (in voxels)&#x27;)&#xa;print(pcsOutput[&#x27;Ball radius list (in voxel)&#x27;])&#xa;&#xa;executive = self.GetExecutive()&#xa;output.RowData.append(pcsOutput[&#x27;Saturation list&#x27;], &#x22;Saturation&#x22;)&#xa;output.RowData.append(pcsOutput[&#x27;Capillary pressure list (in Pa)&#x27;], &#x22;Capillary pressure (in Pa)&#x22;)&#xa;output.RowData.append(pcsOutput[&#x27;Ball radius list (in voxel)&#x27;], &#x22;Ball radii (in voxels)&#x22;)"/>
         </Property>
-        <Property name="TimestepValues" id="4361.TimestepValues"/>
-        <Property name="UpdateExtentScript" id="4361.UpdateExtentScript" number_of_elements="1">
+        <Property name="TimestepValues" id="4369.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4369.UpdateExtentScript" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
       </Proxy>
       <ExposedProperties>
-        <Property name="Input" proxy_name="ProgrammableFilter2" exposed_name="Input"/>
-        <Property name="Parameters" proxy_name="ProgrammableFilter2" exposed_name="Parameters"/>
-        <Property name="Script" proxy_name="ProgrammableFilter2" exposed_name="Script"/>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter1" exposed_name="Parameters"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
       </ExposedProperties>
-      <OutputPort name="Output" proxy="ProgrammableFilter2" port_index="0"/>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
       <Hints>
         <ShowInMenu/>
       </Hints>

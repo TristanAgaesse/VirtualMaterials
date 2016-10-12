@@ -7,28 +7,37 @@ import time
 import VirtualMaterials as vmat
 
 def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
-                           voxelLength=1,nPoints=10):
+                           voxelLength=1,nPoints=10,surfaceTension=72e-3):
     """Computes the capillary pressure curve of the pore phase using a 
     FullMorphology simulation of water injection.
     :param image: numpy ndarray
     :param porePhaseCode : code of the void voxels (default:0)
     :param inletFace: 0 for Xmin, 1 for Xmax, 2 for Ymin, 3 for Ymax, 4 for Zmin, 5 for Zmax (default:0)
     :param nPoints: number of points on the curve (default:10)
-    :return: PcS: capillary pressure curve: PcS[0]=saturationList, PcS[1]=pressures  
-    :return: imageWithWater : image of water distributions
+    :param surfaceTension: surface tension (default:72e-3)
+    :return: output (dictionary)
+    output['Saturation list']: saturation for Pc(S) curve
+    output['Capillary pressure list (in Pa)']: capillary pressure for Pc(S) curve
+    output['Ball radius list (in voxel)'] 
+    output['Contact angle']: 180 (fixed)
+    output['Image with water']: image of water distributions
     
     :Example:
     import VirtualMaterials as vmat 
-    PcS,imageWithWater = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
+    output = vmat.Simulation.FullMorphology.CapillaryPressureCurve(
                image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=10)
+    output['Saturation list']
+    output['Capillary pressure list (in Pa)']
+    output['Ball radius list (in voxel)']
+    
     """
-        
+    
     simuImage = 255*(np.logical_not(image==porePhaseCode).astype(np.uint8)) 
     
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
     maxRadius = distanceMap.max()
     
-    minRadius = 3
+    minRadius = 1
     #I take a minimum radius of 3 voxels. Indeed, for very small radii the  
     #result depends too much on the small details of the microstructure     
 #    
@@ -42,7 +51,8 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
 #    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
     
     # Define the pressure points where to compute the water distributions
-    gamma = 72e-3
+    gamma=surfaceTension    
+    
     minPressure = 2*gamma/float(voxelLength*maxRadius)
     maxPressure = 2*gamma/float(voxelLength*minRadius)
     pressureList = np.linspace(minPressure,maxPressure,nPoints) 
@@ -69,11 +79,14 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
         cumulativeSaturation += waterVolumeFraction[pressureCode[nPoints-1-i]]/float(poreVolumeFraction)
         saturationList.append(cumulativeSaturation)
     
-    PcS=[0,0]
-    PcS[0] = saturationList
-    PcS[1] = pressureList[::-1]
+    output = dict()
+    output['Contact angle'] = 180
+    output['Image with water'] = imageWithWater
+    output['Saturation list'] = saturationList
+    output['Capillary pressure list (in Pa)'] = pressureList[::-1]
+    output['Ball radius list (in voxel)'] = radiusList
     
-    return PcS,imageWithWater
+    return output
     
     
     

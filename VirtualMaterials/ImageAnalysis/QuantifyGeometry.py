@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import SimpleITK as sitk
+
 import numpy as np
 import VirtualMaterials as vmat
 from scipy import ndimage
@@ -207,7 +207,6 @@ def PoreSizeDistribution_Continuous(image,label=0,nPoint=10):
     cPSD = np.asarray(cPSD)
     
     
-    
     return radiusList,cPSD
     
     
@@ -236,7 +235,6 @@ def PoreSizeDistribution_Watershed(image,label=0,hMaxima=4):
     plt.plot(pore_bin_edges,pore_hist)                                    
     """
     
-        
     ExtractionResult = vmat.Simulation.PoreNetworkExtraction.ExtractNetwork(
                 image=image,phases={'someName':label},seedMethod='hMaxima',seedParam=hMaxima)
     
