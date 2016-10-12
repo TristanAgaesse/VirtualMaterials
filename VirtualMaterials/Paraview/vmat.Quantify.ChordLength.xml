@@ -1,21 +1,21 @@
 <CustomFilterDefinitions>
-  <CustomProxyDefinition name="vmat.Quantify.ChordLength" group="filters">
-    <CompoundSourceProxy id="4261" servers="1">
-      <Proxy group="filters" type="ProgrammableFilter" id="4204" servers="1" compound_name="ProgrammableFilter1">
-        <Property name="CopyArrays" id="4204.CopyArrays" number_of_elements="1">
+  <CustomProxyDefinition name="vmat.Quantify.ChorlLength" group="filters">
+    <CompoundSourceProxy id="4350" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4327" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4327.CopyArrays" number_of_elements="1">
           <Element index="0" value="0"/>
-          <Domain name="bool" id="4204.CopyArrays.bool"/>
+          <Domain name="bool" id="4327.CopyArrays.bool"/>
         </Property>
-        <Property name="InformationScript" id="4204.InformationScript" number_of_elements="1">
+        <Property name="InformationScript" id="4327.InformationScript" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
-        <Property name="Input" id="4204.Input" number_of_elements="1">
-          <Domain name="groups" id="4204.Input.groups"/>
-          <Domain name="input_type" id="4204.Input.input_type"/>
+        <Property name="Input" id="4327.Input" number_of_elements="1">
+          <Domain name="groups" id="4327.Input.groups"/>
+          <Domain name="input_type" id="4327.Input.input_type"/>
         </Property>
-        <Property name="OutputDataSetType" id="4204.OutputDataSetType" number_of_elements="1">
+        <Property name="OutputDataSetType" id="4327.OutputDataSetType" number_of_elements="1">
           <Element index="0" value="19"/>
-          <Domain name="enum" id="4204.OutputDataSetType.enum">
+          <Domain name="enum" id="4327.OutputDataSetType.enum">
             <Entry value="8" text="Same as Input"/>
             <Entry value="0" text="vtkPolyData"/>
             <Entry value="2" text="vtkStructuredGrid"/>
@@ -28,14 +28,14 @@
             <Entry value="19" text="vtkTable"/>
           </Domain>
         </Property>
-        <Property name="PythonPath" id="4204.PythonPath" number_of_elements="1">
+        <Property name="PythonPath" id="4327.PythonPath" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
-        <Property name="Script" id="4204.Script" number_of_elements="1">
-          <Element index="0" value="#Computes chord lengths for one phase in the image&#xa;&#xa;label = 0  #Change here the code of the phase you want to study   &#xa;&#xa;mode = &#x27;MeanChordLength&#x27;  # mode: function returns the mean chord length &#xa;#mode = &#x27;ChordLengthDistribution&#x27;   # mode: function returns all chord length computed&#xa;&#xa;nBins = 10 # number of bins, i.e. plot points, for ChordLengthDistribution histograms&#xa;&#xa;#---Do not modify below--------------&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image = vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Chord Length. Phase:%d&#x27; %label)&#xa;&#xa;chordLengthX = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(1,0,0))&#xa;chordLengthY = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,1,0))&#xa;chordLengthZ = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,0,1))&#xa;&#xa;if mode==&#x27;MeanChordLength&#x27;:&#xa;    print(&#x27;direction: X&#x27;)&#xa;    print(chordLengthX)&#xa;    print(&#x27;direction: Y&#x27;)&#xa;    print(chordLengthY)&#xa;    print(&#x27;direction: Z&#x27;)&#xa;    print(chordLengthZ)&#xa;&#xa;if mode==&#x27;ChordLengthDistribution&#x27;:&#xa;    print(&#x27;Chord Length Distributions print : bin centers, then density of probability&#x27;)&#xa;    histX, bin_edgesX = np.histogram(chordLengthX,bins=nBins,density=True)&#xa;    bin_centerX=(bin_edgesX[0:-1]+bin_edgesX[1:])/2.0&#xa;    print(&#x27;direction: X&#x27;)&#xa;    print(bin_centerX)&#xa;    print(histX)&#xa;&#xa;    histY, bin_edgesY = np.histogram(chordLengthY,bins=nBins,density=True)&#xa;    bin_centerY=(bin_edgesY[0:-1]+bin_edgesY[1:])/2.0&#xa;    print(&#x27;direction: Y&#x27;)&#xa;    print(bin_centerY)&#xa;    print(histY)&#xa;&#xa;    histZ, bin_edgesZ = np.histogram(chordLengthX,bins=nBins,density=True)&#xa;    bin_centerZ=(bin_edgesZ[0:-1]+bin_edgesZ[1:])/2.0&#xa;    print(&#x27;direction: Z&#x27;)&#xa;    print(bin_centerZ)&#xa;    print(histZ)&#xa;&#xa;&#xa;#-----Do not modify below-------------------------&#xa;executive = self.GetExecutive()&#xa;if mode==&#x27;MeanChordLength&#x27;:&#xa;    output.RowData.append(chordLengthX, &#x22;Mean chord length X (in voxels)&#x22;)&#xa;    output.RowData.append(chordLengthY, &#x22;Mean chord length Y (in voxels)&#x22;)&#xa;    output.RowData.append(chordLengthZ, &#x22;Mean chord length Z (in voxels)&#x22;)&#xa;&#xa;if mode==&#x27;ChordLengthDistribution&#x27;:&#xa;    output.RowData.append(bin_centerX, &#x22;Bin center X, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histX, &#x22;Density X, chord length distribution&#x22;)&#xa;    output.RowData.append(bin_centerY, &#x22;Bin center Y, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histY, &#x22;Density Y, chord length distribution&#x22;)&#xa;    output.RowData.append(bin_centerZ, &#x22;Bin center Z, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histZ, &#x22;Density Z, chord length distribution&#x22;)&#xa;&#xa;"/>
+        <Property name="Script" id="4327.Script" number_of_elements="1">
+          <Element index="0" value="#Computes chord lengths for one phase in the image&#xa;&#xa;label = 0  #Change here the code of the phase you want to study   &#xa;&#xa;mode = &#x27;MeanChordLength&#x27;  # mode: function returns the mean chord length &#xa;#mode = &#x27;ChordLengthDistribution&#x27;   # mode: function returns all chord length computed&#xa;&#xa;nBins = 10 # number of bins, i.e. plot points, for ChordLengthDistribution histograms&#xa;&#xa;#---Do not modify below--------------&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image = vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Chord Length. Phase:%d&#x27; %label)&#xa;&#xa;chordLengthX = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(1,0,0))&#xa;chordLengthY = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,1,0))&#xa;chordLengthZ = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(&#xa;                image,label,direction=(0,0,1))&#xa;&#xa;if mode==&#x27;MeanChordLength&#x27;:&#xa;    print(&#x27;direction: X&#x27;)&#xa;    meanChordLengthX = np.mean(chordLengthX)&#xa;    print(meanChordLengthX)&#xa;    print(&#x27;direction: Y&#x27;)&#xa;    meanChordLengthY = np.mean(chordLengthY)&#xa;    print(meanChordLengthY)&#xa;    print(&#x27;direction: Z&#x27;)&#xa;    meanChordLengthZ = np.mean(chordLengthZ)&#xa;    print(meanChordLengthZ)&#xa;&#xa;elif mode==&#x27;ChordLengthDistribution&#x27;:&#xa;    print(&#x27;Chord Length Distributions print : bin centers, then density of probability&#x27;)&#xa;    histX, bin_edgesX = np.histogram(chordLengthX,bins=nBins,density=True)&#xa;    bin_centerX=(bin_edgesX[0:-1]+bin_edgesX[1:])/2.0&#xa;    print(&#x27;direction: X&#x27;)&#xa;    print(bin_centerX)&#xa;    print(histX)&#xa;&#xa;    histY, bin_edgesY = np.histogram(chordLengthY,bins=nBins,density=True)&#xa;    bin_centerY=(bin_edgesY[0:-1]+bin_edgesY[1:])/2.0&#xa;    print(&#x27;direction: Y&#x27;)&#xa;    print(bin_centerY)&#xa;    print(histY)&#xa;&#xa;    histZ, bin_edgesZ = np.histogram(chordLengthX,bins=nBins,density=True)&#xa;    bin_centerZ=(bin_edgesZ[0:-1]+bin_edgesZ[1:])/2.0&#xa;    print(&#x27;direction: Z&#x27;)&#xa;    print(bin_centerZ)&#xa;    print(histZ)&#xa;&#xa;&#xa;#-----Do not modify below-------------------------&#xa;executive = self.GetExecutive()&#xa;if mode==&#x27;MeanChordLength&#x27;:&#xa;    output.RowData.append(meanChordLengthX, &#x22;Mean chord length X (in voxels)&#x22;)&#xa;    output.RowData.append(meanChordLengthY, &#x22;Mean chord length Y (in voxels)&#x22;)&#xa;    output.RowData.append(meanChordLengthZ, &#x22;Mean chord length Z (in voxels)&#x22;)&#xa;&#xa;elif mode==&#x27;ChordLengthDistribution&#x27;:&#xa;    output.RowData.append(bin_centerX, &#x22;Bin center X, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histX, &#x22;Density X, chord length distribution&#x22;)&#xa;    output.RowData.append(bin_centerY, &#x22;Bin center Y, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histY, &#x22;Density Y, chord length distribution&#x22;)&#xa;    output.RowData.append(bin_centerZ, &#x22;Bin center Z, chord length distribution (in voxels)&#x22;)&#xa;    output.RowData.append(histZ, &#x22;Density Z, chord length distribution&#x22;)&#xa;&#xa;"/>
         </Property>
-        <Property name="TimestepValues" id="4204.TimestepValues"/>
-        <Property name="UpdateExtentScript" id="4204.UpdateExtentScript" number_of_elements="1">
+        <Property name="TimestepValues" id="4327.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4327.UpdateExtentScript" number_of_elements="1">
           <Element index="0" value=""/>
         </Property>
       </Proxy>

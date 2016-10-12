@@ -58,12 +58,14 @@ class test_ImageAnalysis(unittest.TestCase):
         label=1
         
         clX = imageAnalysis.QuantifyGeometry.ChordLength(
-            image,label,direction=(1,0,0),mode='meanLength')
+            image,label,direction=(1,0,0))
+        clX = np.mean(clX)    
         clY = imageAnalysis.QuantifyGeometry.ChordLength(
-            image,label,direction=(0,1,0),mode='meanLength')    
+            image,label,direction=(0,1,0))   
+        clY = np.mean(clY)    
         clZ = imageAnalysis.QuantifyGeometry.ChordLength(
-            image,label,direction=(0,0,1),mode='meanLength')   
-            
+            image,label,direction=(0,0,1))   
+        clZ = np.mean(clZ)    
         self.assertTrue( np.all(np.asarray((clX,clY,clZ))==image.shape) )    
     
 
