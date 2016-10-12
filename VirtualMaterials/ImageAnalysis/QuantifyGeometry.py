@@ -79,8 +79,9 @@ def ChordLength(image,label,direction=(1,0,0)):
     label = 0
     chordLength = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(image,label,direction=(1,0,0))
     meanChordLength = np.mean(chordLength)
+    # plot chord length distribution
     hist, bin_edges = np.histogram(chordLength,bins=10,density=True)
-    bin_center=(bin_edgesX[0:-1]+bin_edgesX[1:])/2.0
+    bin_center=(bin_edges[0:-1]+bin_edges[1:])/2.0
     plt.plot(bin_center,hist)
     """
     
@@ -170,7 +171,7 @@ def ChordLength(image,label,direction=(1,0,0)):
 def PoreSizeDistribution_Continuous(image,label=0,nPoint=10): 
     """PoreSizeDistribution_Continuous : NOT IMPLEMENTED 
     PoreSizeDistribution_Continuous of a label in the image
-    :param image : numpy image (boolean)
+    :param image : numpy image 
     :param label : code of the phase you want to study (default=0)
     :param nPoint : number of sampling points to compute the size distribution (default=10)
     :return: radiusList,cPSD
@@ -181,13 +182,14 @@ def PoreSizeDistribution_Continuous(image,label=0,nPoint=10):
     radiusList,cPSD = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Continuous(image,label=poreCode,nPoint=10)
     """
     
+    imageBool = np.copy(image==label)
     # Compute distance map
-    distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(image) 
+    distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(imageBool) 
     
     #Compute radius covering map :
     # for size from 1 voxel to max(DistanceMap), dilate distanceMap>size with
     # ball of radius size
-    radiusCovMap=np.zeros(image.shape,dtype=np.uint8)
+    radiusCovMap=np.zeros(imageBool.shape,dtype=np.uint8)
     maxRadius = int(distanceMap.max())
     nPoint = min((nPoint,maxRadius))
     radiusList = np.linspace(1,maxRadius,nPoint).astype(np.uint8)
@@ -210,50 +212,42 @@ def PoreSizeDistribution_Continuous(image,label=0,nPoint=10):
     
     
 #--------------------------------------------------------------------------
-def PoreAndLinkSizeDistribution_Watershed(image,label=0,hMaxima=4): 
-    """PoreAndLinkSizeDistribution_Watershed :
-    Pore And Link Size Distribution using Watershed segmentation.
-    Returns the size distribution of links and pore, using the following geometric definition :    
-    linkInscribedRadiusSD : inscribed ball radius.
-    poreInscribedRadiusSD : inscribed ball radius.
-    poreEquivalentRadiusSD : radius of the sphere of same volume.
-    
-    :param image : numpy image (boolean)
+def PoreSizeDistribution_Watershed(image,label=0,hMaxima=4): 
+    """PoreSizeDistribution_Watershed :
+    Pore and constriction size distribution using Watershed segmentation.
+    Returns the size distribution of pore and constriction, using the following geometric definition :    
+    poreEquivalentRadius : radius of the sphere of same volume (in voxels)
+    constrictionInscribedRadius : max of distance map on constriction (in voxels)
+
+    :param image : numpy image
     :param hMaxima : seed parameter of the watershed algorithm (default=4). More information in VirtualMaterials.Simulations.PoreNetworkExtraction
-    :return: linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD 
+    :return: poreEquivalentRadius,constrictionInscribedRadius 
         
     :Example:    
     import VirtualMaterials as vmat
+    import numpy as np
+    import matplotlib.pyplot as plt
     poreCode = 0
-    linkInscribedRadiusSD,poreInscribedRadiusSD,poreEquivalentRadiusSD = vmat.ImageAnalysis.QuantifyGeometry.PoreAndLinkSizeDistribution_Watershed(
+    poreEquivalentRadius,constrictionInscribedRadius = vmat.ImageAnalysis.QuantifyGeometry.PoreAndLinkSizeDistribution_Watershed(
                                         simuImage,label=poreCode,hMaxima=4)
+    #plot pore size distribution                                    
+    pore_hist, pore_bin_edges = np.histogram(poreEquivalentRadius,bins=10,density=True)
+    pore_bin_center=(pore_bin_edges[0:-1]+pore_bin_edges[1:])/2.0
+    plt.plot(pore_bin_edges,pore_hist)                                    
     """
     
         
     ExtractionResult = vmat.Simulations.PoreNetworkExtraction.ExtractNetwork(
-                image=image,phases={'_':label},seedMethod='hMaxima',seedParam=hMaxima)
+                image=image,phases={'someName':label},seedMethod='hMaxima',seedParam=hMaxima)
     
-    
-    linkInscribedRadius = ExtractionResult['internalLinkCapillaryRadius']
-    
-    
-    
-    
+    constrictionInscribedRadius = ExtractionResult['internalLinkCapillaryRadius']
     
     poreVolume = ExtractionResult['poreVolumes'] 
+    poreEquivalentRadius = np.power(3*poreVolume/float(math.pi*4),1/3.0)
     
+    #poreInscribedRadius = ExtractionResult['poreInscribedSphereRadius']
     
-    
-    
-    
-    poreInscribedRadius = ExtractionResult['poreInscribedSphereRadius']
-    
-    
-    
-    
-    
-    
-    
+    return poreEquivalentRadius,constrictionInscribedRadius
     
     
     

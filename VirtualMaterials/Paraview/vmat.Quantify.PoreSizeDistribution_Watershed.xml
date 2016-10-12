@@ -1,0 +1,53 @@
+<CustomFilterDefinitions>
+  <CustomProxyDefinition name="vmat.Quantify.PoreSizeDistribution_Watershed" group="filters">
+    <CompoundSourceProxy id="4431" servers="1">
+      <Proxy group="filters" type="ProgrammableFilter" id="4396" servers="1" compound_name="ProgrammableFilter1">
+        <Property name="CopyArrays" id="4396.CopyArrays" number_of_elements="1">
+          <Element index="0" value="0"/>
+          <Domain name="bool" id="4396.CopyArrays.bool"/>
+        </Property>
+        <Property name="InformationScript" id="4396.InformationScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Input" id="4396.Input" number_of_elements="1">
+          <Domain name="groups" id="4396.Input.groups"/>
+          <Domain name="input_type" id="4396.Input.input_type"/>
+        </Property>
+        <Property name="OutputDataSetType" id="4396.OutputDataSetType" number_of_elements="1">
+          <Element index="0" value="19"/>
+          <Domain name="enum" id="4396.OutputDataSetType.enum">
+            <Entry value="8" text="Same as Input"/>
+            <Entry value="0" text="vtkPolyData"/>
+            <Entry value="2" text="vtkStructuredGrid"/>
+            <Entry value="3" text="vtkRectilinearGrid"/>
+            <Entry value="4" text="vtkUnstructuredGrid"/>
+            <Entry value="6" text="vtkImageData"/>
+            <Entry value="10" text="vtkUniformGrid"/>
+            <Entry value="13" text="vtkMultiblockDataSet"/>
+            <Entry value="15" text="vtkHierarchicalBoxDataSet"/>
+            <Entry value="19" text="vtkTable"/>
+          </Domain>
+        </Property>
+        <Property name="PythonPath" id="4396.PythonPath" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+        <Property name="Script" id="4396.Script" number_of_elements="1">
+          <Element index="0" value="#Pore and constrictions size distributions, using watershed segmentation, for one phase in the image&#xa;&#xa;label = 0  #Change here the code of the phase you want to study   &#xa;&#xa;nBins = 10 # number of bins, i.e. points in plots, for size distribution histograms&#xa;&#xa;#---Do not modify below--------------&#xa;&#xa;import VirtualMaterials as vmat&#xa;import numpy as np&#xa;pdi = self.GetInputDataObject(0,0)&#xa;image = vmat.Utilities.Utilities.VTKImageToNumpy(pdi)&#xa;&#xa;print(&#x27;Watershed segmentation. Phase:%d&#x27; %label)&#xa;poreEquivalentRadius,constrictionInscribedRadius = vmat.ImageAnalysis.QuantifyGeometry.PoreSizeDistribution_Watershed(&#xa;                                        image,label=label,hMaxima=4)&#xa;&#xa;    &#xa;&#xa;print(&#x27;Size distributions print : bin centers, then density of probability&#x27;)&#xa;&#xa;print(&#x27;PoreEquivalentRadius (in voxels)&#x27;) #radius of sphere of same volume as pore&#xa;pore_hist, pore_bin_edges = np.histogram(poreEquivalentRadius,bins=nBins,density=True)&#xa;pore_bin_center=(pore_bin_edges[0:-1]+pore_bin_edges[1:])/2.0&#xa;print(pore_bin_center)&#xa;print(pore_hist)&#xa;&#xa;print(&#x27;ConstrictionInscribedRadius (in voxels)&#x27;) #max of distance map on constriction&#xa;constriction_hist, constriction_bin_edges = np.histogram(constrictionInscribedRadius,bins=nBins,density=True)&#xa;constriction_bin_center=(constriction_bin_edges[0:-1]+constriction_bin_edges[1:])/2.0    &#xa;print(constriction_bin_center)&#xa;print(constriction_hist)&#xa;&#xa;&#xa;#-----Do not modify below-------------------------&#xa;executive = self.GetExecutive()&#xa;&#xa;output.RowData.append(pore_bin_center, &#x22;Bin center, pore size distribution distribution (in voxels)&#x22;)&#xa;output.RowData.append(pore_hist, &#x22;Density, pore size distribution distribution&#x22;)&#xa;&#xa;output.RowData.append(constriction_bin_center, &#x22;Bin center, constriction size distribution distribution (in voxels)&#x22;)&#xa;output.RowData.append(constriction_hist, &#x22;Density, constriction size distribution distribution&#x22;)&#xa;"/>
+        </Property>
+        <Property name="TimestepValues" id="4396.TimestepValues"/>
+        <Property name="UpdateExtentScript" id="4396.UpdateExtentScript" number_of_elements="1">
+          <Element index="0" value=""/>
+        </Property>
+      </Proxy>
+      <ExposedProperties>
+        <Property name="Input" proxy_name="ProgrammableFilter1" exposed_name="Input"/>
+        <Property name="Parameters" proxy_name="ProgrammableFilter1" exposed_name="Parameters"/>
+        <Property name="Script" proxy_name="ProgrammableFilter1" exposed_name="Script"/>
+      </ExposedProperties>
+      <OutputPort name="Output" proxy="ProgrammableFilter1" port_index="0"/>
+      <Hints>
+        <ShowInMenu/>
+      </Hints>
+    </CompoundSourceProxy>
+  </CustomProxyDefinition>
+</CustomFilterDefinitions>
