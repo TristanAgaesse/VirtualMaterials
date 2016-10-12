@@ -65,18 +65,23 @@ def Constrictivity(image,label):
     
     
 #----------------------------------------------------------------------------------------------    
-def ChordLength(image,label,direction=(1,0,0),mode='meanLength'): 
+def ChordLength(image,label,direction=(1,0,0)): 
     """ChordLength : 
     :param image : numpy image
     :param label : code of the phase you want to study
     :param direction : chord direction (defaultValue=(1,0,0))
-    :param mode : 'meanLength' or 'allLength'
     :return: chordLength
     
     :Example:    
     import VirtualMaterials as vmat
+    import numpy as np
+    import matplotlib.pyplot as plt
     label = 0
-    chordLength = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(image,label,direction=(1,0,0),mode='meanLength')
+    chordLength = vmat.ImageAnalysis.QuantifyGeometry.ChordLength(image,label,direction=(1,0,0))
+    meanChordLength = np.mean(chordLength)
+    hist, bin_edges = np.histogram(chordLength,bins=10,density=True)
+    bin_center=(bin_edgesX[0:-1]+bin_edgesX[1:])/2.0
+    plt.plot(bin_center,hist)
     """
     
     # Mask image
@@ -156,13 +161,7 @@ def ChordLength(image,label,direction=(1,0,0),mode='meanLength'):
     
     chordLength = chordVolume*lengthToVolumeRatio      
     
-    if mode=='allLength':
-        length = chordLength
-    else:
-        length = np.mean(chordLength)
-    
-    
-    return length
+    return chordLength
     
     
     
