@@ -25,7 +25,6 @@ class test_FullMorphology(unittest.TestCase):
                                      voxelLength=1,gamma=72e-3,
                                      pressureList=[10],pressureCode=[110])
 
-        
 #        self.assertTrue( == )
 #        self.assertTrue(np.all( ==))
        
@@ -39,9 +38,13 @@ class test_FullMorphology(unittest.TestCase):
         image[image==50]=0
         image[image==100]=0 
     
-        PcS,imageWithWater = FullMorphology.CapillaryPressureCurve(
+        output = FullMorphology.CapillaryPressureCurve(
                image,porePhaseCode=0,inletFace=0,voxelLength=1,nPoints=3)
-    
+
+        output['Saturation list']
+        output['Capillary pressure list (in Pa)']
+        output['Ball radius list (in voxel)']
+        
 #----------------------------------------------------------------------------------------------
 if __name__ == '__main__':
     unittest.main()   

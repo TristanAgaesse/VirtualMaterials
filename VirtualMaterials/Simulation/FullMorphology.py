@@ -37,29 +37,25 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     distanceMap = vmat.ImageAnalysis.Morphology.DistanceMap(simuImage==0)
     maxRadius = distanceMap.max()
     
-    minRadius = 1
-    #I take a minimum radius of 3 voxels. Indeed, for very small radii the  
-    #result depends too much on the small details of the microstructure     
-#    
-#    radiusList = np.unique(np.linspace(4,maxRadius,nPoints).astype(np.int)) 
-#    
-#    radiusList = radiusList.tolist()
-#    nPoints = len(radiusList)
-#    
-#    gamma = 72e-3
-#    pressureCode = [100+i for i in range(nPoints)]
-#    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
+    minRadius = 2   
+    #I take a minimum radius of minRadius voxels. Indeed, for very small radii   
+    #the result depends too much on the small details of the microstructure     
+    
+    gamma=surfaceTension 
     
     # Define the pressure points where to compute the water distributions
-    gamma=surfaceTension    
     
-    minPressure = 2*gamma/float(voxelLength*maxRadius)
-    maxPressure = 2*gamma/float(voxelLength*minRadius)
-    pressureList = np.linspace(minPressure,maxPressure,nPoints) 
-    radiusList = [int(2*gamma/float(voxelLength*pressure)) for pressure in pressureList]
-    radiusList=np.unique(np.asarray(radiusList).astype(np.int))
-    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList] #Update pressure list after removing non unique radii
+    radiusList = np.unique(np.linspace(minRadius,maxRadius,nPoints).astype(np.int)) 
+    radiusList = radiusList.tolist()
+    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList]
     
+#    minPressure = 2*gamma/float(voxelLength*maxRadius)
+#    maxPressure = 2*gamma/float(voxelLength*minRadius)
+#    pressureList = np.linspace(minPressure,maxPressure,nPoints) 
+#    radiusList = [int(2*gamma/float(voxelLength*pressure)) for pressure in pressureList]
+#    radiusList=np.unique(np.asarray(radiusList).astype(np.int))
+#    pressureList = [2*gamma/float(voxelLength*radius) for radius in radiusList] #Update pressure list after removing non unique radii
+#    
     nPoints = len(radiusList)
     pressureCode = [100+i for i in range(nPoints)]    
     
@@ -84,7 +80,7 @@ def CapillaryPressureCurve(image,porePhaseCode=0,inletFace=0,
     output['Image with water'] = imageWithWater
     output['Saturation list'] = saturationList
     output['Capillary pressure list (in Pa)'] = pressureList[::-1]
-    output['Ball radius list (in voxel)'] = radiusList
+    output['Ball radius list (in voxel)'] = radiusList[::-1]
     
     return output
     
@@ -162,13 +158,11 @@ def FullMorphology(inputImage,inletFace=0,voxelLength=1,pressureList=[10],pressu
 def __FullMorphologyHydrophobicStep__(distanceMap,capillaryLength,inletVoxels):
     
     #Find the centers of the water balls
-    indicesCenters=(distanceMap>capillaryLength).reshape(distanceMap.shape)
+    indicesCenters=(distanceMap>float(capillaryLength+0.5)).reshape(distanceMap.shape)
     invadedVoxels=np.zeros(distanceMap.shape,dtype=bool)
     invadedVoxels[indicesCenters]=True
     del indicesCenters
     
-    
-     
               
     #Keep only water connected with the inlet          
     structuringElement = np.ones((3,3,3))
@@ -204,4 +198,3 @@ def __FullMorphologyHydrophobicStep__(distanceMap,capillaryLength,inletVoxels):
     return invadedVoxels
     
     
-
